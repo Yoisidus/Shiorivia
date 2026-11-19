@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react"; 
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, User, Heart, Zap, Skull, Thermometer, Shirt, Footprints, Sparkles, ChevronLeft, Send, Copy, Lock, Check, Brain, Moon, Ghost, Bot, ToggleLeft, ToggleRight, X } from "lucide-react";
+import { ChevronRight, User, Heart, Zap, Skull, Thermometer, Shirt, Footprints, Sparkles, ChevronLeft, Send, Copy, Lock, Check, Brain, X } from "lucide-react";
 import { CHAR_DATA } from "../data/char_config";
 import { useLanguage } from "../context/LanguageContext";
 import { characterDisplayName } from "../lib/characterNames";
@@ -21,8 +21,6 @@ const SidebarRightComponent = ({
     handleSend,
     setSessions,
     currentSessionId,
-    handleToggleVariant, 
-    voiceVariant,
     onRepoUpdate, 
     onCharSwitch,
     dbChars,
