@@ -49,7 +49,7 @@ export const useChatEngine = ({
         if (!mayReviewSessionTitle(currentSession, mode)) return;
         const userTurns = history.filter(message => message.role === "user").length;
         if (!shouldReviewTitleAtTurn(userTurns)) return;
-        const recent = [...history, { role: "assistant", content: answer }].slice(-12)
+        const recent = [...aiConversationMessages(history), { role: "assistant", content: answer }].slice(-12)
             .map(message => {
                 const role = message.role === "assistant" ? "ASSISTANT" : "USER";
                 const raw = typeof message.content === "string" ? message.content : JSON.stringify(message.content || "");
