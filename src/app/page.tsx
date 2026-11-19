@@ -1114,14 +1114,15 @@ export default function Home() {
             <MemoryVaultModal
                 open={showMemoryVault}
                 onClose={() => setShowMemoryVault(false)}
-                sessionId={currentSession?.id || ""}
-                stm={currentSession?.stm}
-                ltm={currentSession?.ltm}
+                sessionId={`${currentSession?.id || ""}${currentSession?.memoryMode === "chat" ? `:${activeCharacterId || "unselected"}` : ""}`}
+                stm={currentSession?.memoryMode === "chat" ? currentSession.chatCharacterMemories?.[activeCharacterId]?.stm || "" : currentSession?.stm}
+                ltm={currentSession?.memoryMode === "chat" ? currentSession.chatCharacterMemories?.[activeCharacterId]?.ltm || "" : currentSession?.ltm}
                 tone={currentSession?.memoryMode === "sliding" ? "story" : "engineering"}
                 onSave={({ stm, ltm }) => {
                     if (!currentSession) return;
                     cloud.setSessions(prev => prev.map(s => s.id === currentSession.id
-                        ? { ...s, stm, ltm, turnCount: stm.split(/\n/).filter(Boolean).length, updatedAt: Date.now() }
+                        ? s.memoryMode === "chat" ? { ...s, chatCharacterMemories: { ...(s.chatCharacterMemories || {}), [activeCharacterId]: { stm, ltm } }, updatedAt: Date.now() }
+                        : { ...s, stm, ltm, turnCount: stm.split(/\n/).filter(Boolean).length, updatedAt: Date.now() }
                         : s));
                     ui.showToast("Memory Vault saved");
                 }}
