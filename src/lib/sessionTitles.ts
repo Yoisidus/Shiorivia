@@ -20,6 +20,18 @@ export function officinaUnassignedWelcome(locale: Locale): string {
   return messages[locale] || messages["zh-CN"];
 }
 
+/** Visual-only Umbra onboarding before a worldline and speaker are selected. */
+export function umbraUnassignedWelcome(locale: Locale): string {
+  const copy: Record<Locale, string> = {
+    "zh-CN": "欢迎来到 Umbra。请先在左侧配置世界线，再在右侧选择聊天角色。",
+    "zh-TW": "歡迎來到 Umbra。請先在左側配置世界線，再在右側選擇聊天角色。",
+    en: "Welcome to Umbra. Choose a worldline on the left and a character on the right.",
+    ja: "Umbraへようこそ。左側で世界線、右側で話すキャラクターを選んでください。",
+    ko: "Umbra에 오신 것을 환영합니다. 왼쪽에서 세계선을, 오른쪽에서 대화할 캐릭터를 선택하세요.",
+  };
+  return copy[locale] || copy["zh-CN"];
+}
+
 /** Initial assistant greetings are generated only for brand-new sessions. */
 export function sessionGreeting(mode: "infinite" | "chat", name: string, locale: Locale): string {
   const who = name || "Shiorivia";
