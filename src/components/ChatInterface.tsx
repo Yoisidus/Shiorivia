@@ -270,7 +270,9 @@ export const ChatInterface = ({
     const { locale } = useLanguage();
     const requiresWorldline = currentSession?.memoryMode === "sliding" && !parseStoryWorldline(currentSession.storyWorldline);
     const requiresEngineer = currentSession?.memoryMode === "infinite" && !currentSession.characterId;
-    const inputLocked = requiresWorldline || requiresEngineer;
+    const requiresChatWorldline = currentSession?.memoryMode === "chat" && !parseStoryWorldline(currentSession.storyWorldline);
+    const requiresChatCharacter = currentSession?.memoryMode === "chat" && !currentSession.characterId;
+    const inputLocked = requiresWorldline || requiresEngineer || requiresChatWorldline || requiresChatCharacter;
     const savedSelf = currentSession?.memoryMode === "sliding" && currentSession.storyRole === "participant"
         ? currentSession.storySelfSnapshot : null;
     const selfColors: Record<string, string> = savedSelf?.hex && savedSelf?.names
@@ -393,7 +395,7 @@ export const ChatInterface = ({
     );
 
     return (
-        <div className="flex-1 flex flex-col relative min-w-0" style={{ backgroundColor: requiresEngineer ? "#f3f6f8" : currentCharacter.hex + "08" }}>
+        <div className="flex-1 flex flex-col relative min-w-0" style={{ backgroundColor: (requiresEngineer || requiresChatWorldline || requiresChatCharacter) ? "#f3f7f4" : currentCharacter.hex + "08" }}>
 
             <header className={`
           flex items-center justify-between px-3 md:px-4 bg-white/95 md:bg-white/80 md:backdrop-blur z-20 border-b border-gray-100/50 shrink-0 relative
@@ -415,7 +417,7 @@ export const ChatInterface = ({
                                 <span className="flex items-center gap-2 truncate text-[#527762]">
                                     <TreeDeciduous size={19} className="shrink-0 text-[#729481]" aria-hidden="true" />
                                     <span className="font-semibold tracking-wide">Umbra</span>
-                                    <span className="truncate text-[11px] text-slate-500">· {characterDisplayName(currentCharacter.id, currentCharacter.name, locale)}</span>
+                                    {!requiresChatCharacter && <span className="truncate text-[11px] text-slate-500">· {characterDisplayName(currentCharacter.id, currentCharacter.name, locale)}</span>}
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-2 truncate text-[#365b75]">
@@ -600,7 +602,7 @@ export const ChatInterface = ({
                             {msg.role === 'assistant' && (
                                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs border-2 border-white flex-shrink-0 shadow-sm relative group/avatar"
                                     style={{ backgroundColor: msg.modelName === "System" ? "#8da2b4" : currentSession?.memoryMode === 'sliding' ? '#e11e54' : msgChar.hex }}>
-                                    {msg.modelName === "System" ? <Hammer size={14} /> : currentSession?.memoryMode === 'sliding' ? <Guitar size={14} /> : msgChar.avatar}
+                                    {msg.modelName === "System" ? (currentSession.memoryMode === "chat" ? <TreeDeciduous size={14} /> : <Hammer size={14} />) : currentSession?.memoryMode === 'sliding' ? <Guitar size={14} /> : msgChar.avatar}
                                 </div>
                             )}
 
@@ -721,6 +723,15 @@ export const ChatInterface = ({
             </div>
 
             <div className="p-4 bg-white/50 backdrop-blur-sm shrink-0">
+                {(requiresChatWorldline || requiresChatCharacter) && <div role="status"
+                    className="mx-auto mb-3 flex max-w-3xl items-center gap-2 rounded-xl border border-[#dce8df] bg-[#f7faf8] px-4 py-3 text-xs text-[#557968]">
+                    <TreeDeciduous size={16}/>
+                    {requiresChatWorldline ? "先在左侧栏设置 Umbra 世界线，再在右侧选择聊天角色。" : "请先在右侧栏选择当前聊天角色。"}
+                    <button type="button" onClick={() => requiresChatWorldline ? setLeftSidebarOpen(true) : setRightSidebarOpen(true)}
+                        className="ml-auto shrink-0 rounded-lg border border-[#d9e5dd] bg-white px-3 py-2 text-xs font-semibold">
+                        {requiresChatWorldline ? "配置世界线" : "选择角色"}
+                    </button>
+                </div>}
                 {requiresEngineer && <div role="status" className="mx-auto mb-3 flex max-w-3xl items-center gap-2 rounded-xl border border-[#dce4ea] bg-[#f7fafb] px-4 py-3 text-xs text-[#5b7588]">
                     <Hammer size={16} />请选择右侧栏中的角色工程师，之后就可以开始编程对话。
                     <button type="button" className="ml-auto rounded-lg border border-[#d6e3e9] bg-white px-3 py-2 text-xs font-semibold" onClick={() => setRightSidebarOpen(true)}>选择角色</button>
@@ -739,7 +750,7 @@ export const ChatInterface = ({
                         boxShadow: isLoading ? `0 0 10px ${currentCharacter.hex}20` : 'none'
                     }}
                 >
-                    <textarea value={input} disabled={inputLocked} style={{ caretColor: currentCharacter.hex }} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!inputLocked) handleSend() } }} placeholder={requiresEngineer ? "请先在右侧栏选择角色工程师" : requiresWorldline ? "请先设定世界线（WORLD / ERA / PERIOD）" : currentSession?.memoryMode === 'sliding' ? "Start your dream..." : currentSession?.memoryMode === 'chat' ? `和${currentCharacter.name}聊聊天...` : `Speak to ${currentCharacter.name}...`} className="w-full bg-transparent border-none outline-none py-3 pl-4 pr-20 resize-none min-h-[50px] max-h-32 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f6f1] disabled:text-[#9a988c]" />
+                    <textarea value={input} disabled={inputLocked} style={{ caretColor: currentCharacter.hex }} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!inputLocked) handleSend() } }} placeholder={requiresChatWorldline ? "请先配置 Umbra 世界线" : requiresChatCharacter ? "请先选择聊天角色" : requiresEngineer ? "请先在右侧栏选择角色工程师" : requiresWorldline ? "请先设定世界线（WORLD / ERA / PERIOD）" : currentSession?.memoryMode === 'sliding' ? "Start your dream..." : currentSession?.memoryMode === 'chat' ? `和${currentCharacter.name}聊聊天...` : `Speak to ${currentCharacter.name}...`} className="w-full bg-transparent border-none outline-none py-3 pl-4 pr-20 resize-none min-h-[50px] max-h-32 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f6f1] disabled:text-[#9a988c]" />
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,text/plain,.txt" />
                     <div className="absolute bottom-2 right-2 flex gap-1">
                         {isMultimodal && <button disabled={inputLocked} onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-emerald-500 disabled:opacity-30"><Paperclip size={18} /></button>}
