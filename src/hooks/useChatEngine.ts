@@ -17,6 +17,7 @@ import { snapshotStoryState, restoreStoryState, emptyStoryState, isUsableStoryPr
 import { completeStoryProtagonist } from "../lib/storyProtagonist";
 import { mayReviewSessionTitle, shouldReviewTitleAtTurn } from "../lib/titleReview";
 import { aiConversationMessages, isEngineeringCharacterLocked } from "../lib/engineeringSession";
+import { engineeringOutputIncomplete, OFFICINA_COMPLETION_REQUEST } from "../lib/engineeringCompletion";
 
 export const useChatEngine = ({
     currentSession, currentSessionId, setSessions,
@@ -101,6 +102,14 @@ export const useChatEngine = ({
         }
         const txt = overrideInput !== undefined ? overrideInput : input.trim();
         if (!isRegen && !txt && !selectedFile) return;
+        if (currentSession.memoryMode === "chat") {
+            const worldline = parseStoryWorldline(currentSession.storyWorldline);
+            const char = [...CHARACTERS, ...customCharacters].find((item: any) => item.id === activeCharacterId);
+            if (!worldline || !char || !storyCastAllowed(char, worldline)) {
+                showToast("请先配置 Umbra 世界线，并从当前世界线选择一位聊天角色。");
+                return;
+            }
+        }
         if (currentSession.memoryMode === "infinite") {
             const engineerId = currentSession.characterId || "";
             if (!engineerId || engineerId !== activeCharacterId ||
@@ -204,7 +213,10 @@ export const useChatEngine = ({
                     stm: currentSession.stm,
                     ltm: currentSession.ltm,
                     timeline: currentSession.timeline,
-                    storyWorldline: (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel") ? currentSession.storyWorldline : undefined,
+                    storyWorldline: (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel" || currentSession.memoryMode === "chat") ? currentSession.storyWorldline : undefined,
+                    ...(currentSession.memoryMode === "chat" ? { chatCharacterMemories: currentSession.chatCharacterMemories || {} } : {}),
+                    activeChartaSelf: (currentSession.memoryMode === "chat" || currentSession.memoryMode === "infinite") && activeSelfId
+                        ? (() => { const self = customSelves.find((item: any) => item.id === activeSelfId); return self ? asChartaSelfPromptData(self) : null; })() : null,
                     novelConfig: configOverride?.novelConfig ?? (currentSession.memoryMode === "novel" ? {
                         environment: currentSession.novelDraft?.environment ?? currentSession.novelState?.environment ?? "",
                         event: currentSession.novelDraft?.event ?? currentSession.novelState?.event ?? "",
@@ -278,7 +290,7 @@ export const useChatEngine = ({
 
             
             if (currentSession.memoryMode === "chat") {
-                // Character Chat sends plain text without story/game/IDE commands.
+                // Character Chat preserves distinct speaker IDs and memory ownership.
                 setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? {
                     ...s,
                     messages: [...msgs, { role: "assistant", content: fullText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }],
@@ -825,6 +837,16 @@ export const useChatEngine = ({
                 return s;
             }));
 
+            if (currentSession.memoryMode === "infinite") {
+                const lastPrompt = [...msgs].reverse().find((message: any) => message.role === "user");
+                const requestText = typeof lastPrompt?.content === "string" ? lastPrompt.content : "";
+                if (engineeringOutputIncomplete(requestText, currentText)) {
+                    setSessions((prev: Session[]) => prev.map(s => s.id === currentSessionId ? {
+                        ...s, messages: s.messages.map(m => m.storyGenerationId === generationId
+                            && m.role === "assistant" ? { ...m, engineeringOutputIncomplete: true } : m),
+                    } : s));
+                }
+            }
             if (currentText.trim()) requestAutomaticTitle(msgs, currentText, modelToUse, generationId);
             if ((currentSession.memoryMode === 'sliding' && !storyProtocolMissing) || currentSession.memoryMode === 'novel') {
                 const textToSummarize = currentSession.memoryMode === 'novel' ? stripNovelSuggestions(currentText) : `User: ${txt}\nAI: ${currentText}\n`;
@@ -1031,11 +1053,18 @@ export const useChatEngine = ({
         setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? { ...s, codeRepository: newRepo } : s));
     };
 
+    const completeEngineeringOutput = (index: number) => {
+        if (!currentSession || currentSession.memoryMode !== "infinite" || isLoading) return;
+        if (!currentSession.messages[index]?.engineeringOutputIncomplete) return;
+        if (!window.confirm("确认要求当前角色工程师补全缺失的代码文件吗？这会额外调用一次所选模型。")) return;
+        void handleSend(OFFICINA_COMPLETION_REQUEST);
+    };
+
     return {
         input, setInput,
         isLoading,
         selectedFile, setSelectedFile,
-        handleSend,
+        handleSend, completeEngineeringOutput,
         stopGeneration,
         handleRegenerate,
         handleEditMessage,
