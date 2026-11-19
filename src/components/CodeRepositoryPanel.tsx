@@ -259,7 +259,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                                                     title="preview"
                                                 />
                                             ) : (
-                                                <pre className="p-4 text-xs font-mono text-emerald-400 whitespace-pre-wrap select-text font-bold">
+                                                <pre className="p-4 text-xs font-mono text-[#adbbec] whitespace-pre-wrap select-text font-bold">
                                                     {consoleOutput}
                                                 </pre>
                                             )}
