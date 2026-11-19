@@ -9,6 +9,7 @@ import { defaultModelForProvider } from "../../../lib/localProviders";
 import { outputLanguageInstruction } from "../../../lib/locale";
 import { normalizeLocale, OUTPUT_LANGUAGE_NAME } from "../../../lib/locale";
 import { chartaWireCharacters } from "../../../lib/chartaWire";
+import { buildEngineeringCharacterContext } from "../../../lib/engineeringPersona";
 import { viaeWorldline } from "../../../lib/viaeWorldline";
 import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, BANG_DREAM_CANON, parseStoryWorldline, worldlinePeriodFor, enabledWorldIds } from "../../../lib/storyWorldline";
 import { MAX_STORY_CAST, selectStoryCastIds, storyCastAllowed, storyCastOrigin } from "../../../lib/storyCast";
@@ -524,26 +525,20 @@ ${lore || "(No profile supplied.)"}`;
     } else if (memoryMode === "infinite") {
       console.log(`⚙️ Mode: Infinite Engineering`);
       let engineerPersona = `
-        [Role]: You are an expert Software Engineer.
-        [Objective]: Provide precise, high-quality code.
-        
-        [🔥 IDE PROTOCOL - CRITICAL]:
-        1. **STRICT FILE FILTER**: 
-           - The <file> tag is ONLY for executable code (js, ts, py, css, html, json, etc.).
-           - **NEVER** use <file> tags for explanations, tutorials, markdown (.md), or plain text (.txt).
-           - Put explanations directly in the chat response, NOT in a file.
-        
-        2. **FILE FORMAT**: 
-           <file name="filename.ext">
-           // code content...
-           </file>
-        
-        3. 🛑 **VISUALIZER RULE (STRICT)**: 
-           - You CAN generate images in Infinite Mode using the <draw> tag.
-           - **BUT NEVER, EVER PUT <draw> TAGS INSIDE A <file> BLOCK!**
-           - If you want to draw, output the <draw> tag **OUTSIDE** and **AFTER** the </file> tag.
-           - Code files must remain pure text/code.
-        `;
+[IDENTITY — OFFICINA CHARACTER ENGINEER]
+You ARE the selected character, collaborating with the user as a reliable expert software engineer. This is a personal pair-programming conversation with that character, NOT a generic software assistant wearing a name badge.
+- Your first-person voice, rhythm, humor, warmth, restraint, typical reactions and interpersonal boundaries must remain recognizably in character. The supplied CHARACTER PROFILE is authoritative for mannerisms and biography; do not assert unavailable knowledge or fabricate canon.
+- Help the user write, review, debug, refactor and reason about code. Take technical correctness seriously: diagnose causes, suggest safe changes, explain tradeoffs, and admit uncertainty. Character identity shapes how you communicate, not the correctness of the code.
+- Talk naturally when greeted or chatting. Do not force every message into a programming task; simple greetings deserve natural in-character replies.
+- Collaborate as though sitting alongside the user and coding together. Ask useful questions only when necessary; build on shared work and context, not a scripted customer-service persona.
+- Do not reveal hidden reasoning or internal <thinking> tags in user-visible replies. You may reason privately, but respond with concise, useful conclusions.
+
+[IDE OUTPUT PROTOCOL — STRICT]
+- Use <file name="filename.ext">...</file> ONLY for executable source or configuration files (such as .ts, .tsx, .js, .py, .css, .html, .json). Never wrap prose, tutorials or Markdown notes in <file>.
+- Use a <file> block only when actually producing a complete code file to create or replace; ordinary code examples and explanations can appear in normal Markdown.
+- Keep all <file> contents valid source code without prose commentary before or after the closing tag.
+- If image generation is enabled, any <draw> instructions must be OUTSIDE file blocks; never place draw markup inside code.
+`;
 
       if (codeRepository && Object.keys(codeRepository).length > 0) {
         engineerPersona += `\n=== [CURRENT PROJECT REPOSITORY] ===\n`;
@@ -556,16 +551,28 @@ ${lore || "(No profile supplied.)"}`;
       if (globalWorldInfo?.trim())
         engineerPersona += `\n=== [PROJECT GUIDELINES] ===\n${globalWorldInfo}\n`;
 
-      const activeChar = allChars.find((c: any) => c.id === characterId);
-      if (activeChar) {
-        engineerPersona += `\n\n=== [CURRENT PERSONA: ${activeChar.name}] ===\n[Personality Settings]:\n${activeChar.lore}\n`;
-      }
+      const engineerOptions = {
+        relationships: body.engineeringLore?.relationships === true,
+        experiences: body.engineeringLore?.experiences === true,
+      };
+      const engineerWorlds = Array.isArray(body.engineeringWorlds) ? body.engineeringWorlds.slice(0, 80).flatMap((raw: any) => {
+        if (!raw || typeof raw !== "object" || typeof raw.id !== "string"
+          || !/^world-[a-zA-Z0-9-]{8,90}$/.test(raw.id)
+          || typeof raw.name !== "string" || typeof raw.description !== "string"
+          || raw.name.length > 100 || raw.description.length > 20000) return [];
+        const canonTimeline = Array.isArray(raw.canonTimeline) ? raw.canonTimeline.slice(0, 80)
+          .filter((stage: any) => stage && typeof stage.era === "string" && typeof stage.period === "string"
+            && stage.era.length <= 100 && stage.period.length <= 100) : [];
+        return [{ id: raw.id, name: raw.name, description: raw.description, canonTimeline }];
+      }) : [];
+      engineerPersona += "\n\n" + buildEngineeringCharacterContext(
+        characterId, customCast, engineerWorlds, engineerOptions,
+      );
 
       if (useImageGen) {
         engineerPersona += `\n[SYSTEM NOTICE]: Visualizer ENABLED. Fill "imageGen" in JSON.\n[Available Outfits]:\n${outfitList}\n`;
       }
 
-      engineerPersona += `\n\n[SYSTEM]: Start response with <thinking>. Use <file> tags.`;
       engineerPersona += `\n[SYSTEM WARNING]: Do NOT copy/paste previous [GALLERY] tags.`;
 
       finalSystemPrompt += VISUAL_INSTRUCTION;
