@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
     Lock, Check, FileCode, Plus, Trash2, Copy,
     Search, Terminal, X, Maximize2, Minimize2,
-    Sidebar, Play, RefreshCw, Layers, MoreHorizontal, Download, Sparkles, FolderPlus, Folder, HardDrive
+    Sidebar, Play, RefreshCw, Layers, MoreHorizontal, Download, Sparkles, FolderPlus, Folder, HardDrive, ChevronDown
 } from "lucide-react";
 import { CodeFile } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,6 +18,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
     const [tree, setTree] = useState<{ path: string; type: "file" | "directory" }[]>([]);
     const [projects, setProjects] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
+    const [showProjectPicker, setShowProjectPicker] = useState(false);
     const [status, setStatus] = useState("");
     const ideRequest = async (action: string, args: Record<string, unknown> = {}) => {
         const response = await fetch("/api/ide", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -208,6 +209,13 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                     <div className="flex items-center gap-2 font-bold text-slate-200">
                         <Sparkles size={14} className="text-[#a6b9fc]" />
                         <span className="hidden md:inline">OFFICINA IDE</span>
+                        <button type="button" onClick={() => { void loadProjects(); setShowProjectPicker(v => !v); }}
+                            className="flex max-w-[230px] items-center gap-2 truncate rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-normal text-[#c6d3f2] hover:bg-white/10"
+                            title={projectRoot ? `当前项目 IDE/${projectRoot}` : "绑定本地 IDE 项目"}>
+                            <HardDrive size={12} className="shrink-0"/>
+                            <span className="truncate">{projectRoot ? `IDE/${projectRoot}` : "未绑定项目 · 选择根目录"}</span>
+                            <ChevronDown size={12}/>
+                        </button>
                         <span className="md:hidden text-[#a6b9fc] truncate max-w-[100px]">{activeFile}</span>
                     </div>
                 </div>
@@ -238,6 +246,12 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                         {isEditing ? <Check size={14} /> : <Lock size={14} />}
                     </button>
 
+                    <button type="button" disabled={busy || !projectRoot} onClick={() => void syncDisk()}
+                        className="flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-[#c1d1fa] hover:bg-white/10 disabled:opacity-40"
+                        title="从电脑重新读取当前项目，未保存的草稿会被覆盖">
+                        <RefreshCw size={14} className={busy ? "animate-spin" : ""}/><span className="hidden sm:inline text-[11px]">同步</span>
+                    </button>
+                    <button type="button" disabled={!projectRoot || busy} onClick={handleNewFolder} className="p-1.5 hover:bg-white/10 rounded text-slate-300 disabled:opacity-40" title="创建子文件夹"><FolderPlus size={14}/></button>
                     <button onClick={handleNewFile} className="p-1.5 hover:bg-white/10 rounded text-slate-300" title="New File"><Plus size={14} /></button>
                     <button onClick={toggleFullScreen} className="p-1.5 hover:bg-white/10 rounded text-slate-300" title="Fullscreen">
                         {isFullScreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -248,6 +262,20 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                 </div>
             </div>
 
+            {showProjectPicker && <div className="shrink-0 border-b border-[#6579a4]/40 bg-[#172543] px-4 py-3">
+                <p className="mb-2 text-[11px] text-[#a9b9dc]">项目位于 Shiorivia/IDE。切换项目不会迁移或删除原文件。</p>
+                <div className="flex flex-wrap gap-2">
+                    {projects.map(name => <button type="button" key={name} onClick={() => {
+                        onBindProject(name); setShowProjectPicker(false);
+                    }} className={`rounded-lg border px-3 py-1.5 text-xs ${name === projectRoot ? "border-[#acbbf6] bg-[#3d4a79] text-white" : "border-[#495b82] bg-[#202f52] hover:bg-[#36466a]"}`}>
+                        <Folder size={12} className="mr-1 inline"/>{name}
+                    </button>)}
+                    <button type="button" onClick={createAndBind} className="rounded-lg border border-[#7b89bb] bg-[#3b4670] px-3 py-1.5 text-xs hover:bg-[#4d5b89]">
+                        <Plus size={12} className="mr-1 inline"/> 新建项目
+                    </button>
+                </div>
+            </div>}
+            {status && <div role="status" className="shrink-0 border-b border-[#526587]/30 bg-[#17223c] px-4 py-1.5 text-[10px] text-[#b9c7e6]">{status}</div>}
             <div className="flex flex-1 min-h-0 relative">
                 {showSidebar && (
                     <div className="w-1/3 md:w-56 bg-[#121c36] border-r border-[#879bcc]/20 flex flex-col absolute inset-y-0 left-0 z-10 md:static">
@@ -258,10 +286,17 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-1 space-y-0.5">
+                            {tree.filter(entry => entry.type === "directory" && entry.path.toLowerCase().includes(searchTerm.toLowerCase())).map(entry =>
+                                <div key={`folder:${entry.path}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-[#98adce]"
+                                    style={{ paddingLeft: Math.min(45, 8 + entry.path.split("/").length * 7) }}>
+                                    <Folder size={12} className="shrink-0 text-[#879be0]"/><span className="truncate" title={entry.path}>{entry.path.split("/").pop()}</span>
+                                </div>
+                            )}
                             {Object.keys(files).filter(f => f.toLowerCase().includes(searchTerm.toLowerCase())).map(fileName => (
                                 <div
                                     key={fileName}
                                     onClick={() => { setActiveFile(fileName); setFileMenu(null); if (window.innerWidth < 768) setShowSidebar(false); }} // 手机上选完文件自动收起
+                                    style={{ paddingLeft: Math.min(45, 8 + fileName.split("/").length * 7) }}
                                     className={`flex justify-between items-center px-2 py-1.5 rounded cursor-pointer group ${activeFile === fileName ? 'bg-[#34476e] text-white' : 'hover:bg-[#253557]'}`}
                                 >
                                     <span className="flex items-center gap-2 truncate text-[11px]">
@@ -358,7 +393,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
     );
 };
 
-export const CodeRepositoryModal = ({ isOpen, onClose, repository, onUpdate }: any) => {
+export const CodeRepositoryModal = ({ isOpen, onClose, repository, onUpdate, projectRoot, onBindProject }: any) => {
     const [isFullScreen, setIsFullScreen] = useState(false);
     return (
         <AnimatePresence>
@@ -374,6 +409,7 @@ export const CodeRepositoryModal = ({ isOpen, onClose, repository, onUpdate }: a
                         <CodeEditor
                             repository={repository}
                             onUpdate={onUpdate}
+                            projectRoot={projectRoot} onBindProject={onBindProject}
                             onClose={onClose}
                             isFullScreen={isFullScreen}
                             toggleFullScreen={() => setIsFullScreen(!isFullScreen)}
