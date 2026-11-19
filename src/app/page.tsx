@@ -31,7 +31,7 @@ import { useLocalFileSync } from "../hooks/useLocalFileSync";
 import { DEFAULT_SYNC_PREFERENCES, readLocalSyncPreferences } from "../lib/localSyncPreferences";
 import { DEFAULT_IMAGE_SETTINGS, capabilityFor, type ImageSettings, type ProviderCapability } from "../lib/imageSettings";
 import { useLanguage } from "../context/LanguageContext";
-import { defaultSessionTitle, sessionGreeting } from "../lib/sessionTitles";
+import { defaultSessionTitle, sessionGreeting, officinaUnassignedWelcome } from "../lib/sessionTitles";
 import { isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { characterDisplayName } from "../lib/characterNames";
 import { useChatEngine } from "../hooks/useChatEngine";
@@ -290,7 +290,7 @@ export default function Home() {
                 memoryMode: "infinite",
                 messages: [{
                     role: "assistant",
-                    content: "欢迎来到 Shiorivia。请先从右侧栏选择一位角色工程师，再开始合作。",
+                    content: officinaUnassignedWelcome(locale),
                     modelName: "System"
                 }],
                 updatedAt: Date.now()
@@ -310,7 +310,8 @@ export default function Home() {
         const base = allChars.find(c => c.id === activeCharacterId) || CHAR_DATA[0];
 
         // Officina uses the selected character’s original identity, never a variant disguise.
-        if (currentSession?.memoryMode === "infinite") return { ...base };
+        if (currentSession?.memoryMode === "infinite") return currentSession.characterId
+            ? { ...base } : { ...base, id: "", name: "Officina", sub: "Character Engineer", avatar: "🛠️", hex: "#879baa" };
         let finalChar = { ...base };
 
         if (activeCharacterId === 'sakiko') {
@@ -455,7 +456,7 @@ export default function Home() {
                 memoryMode: "infinite",
                 messages: [{
                     role: "assistant",
-                    content: "欢迎来到 Shiorivia。请先从右侧栏选择一位角色工程师，再开始合作。",
+                    content: officinaUnassignedWelcome(locale),
                     modelName: "System"
                 }],
                 updatedAt: Date.now()
