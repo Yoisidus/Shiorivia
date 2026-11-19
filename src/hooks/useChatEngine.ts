@@ -475,6 +475,14 @@ export const useChatEngine = ({
                     };
                 }
                 currentText = stripNovelState(currentText);
+                // The session title and chapter title are generated in the
+                // SAME response. Keep the first chapter's meta aligned when
+                // the new session title was reviewed this turn.
+                if (titleFromSameGeneration.title && mayReviewSessionTitle(currentSession, "novel")) {
+                    const safeTitle = titleFromSameGeneration.title.replace(/["<>]/g, "").slice(0, 100);
+                    currentText = currentText.replace(/^(\\s*<meta\\s+title=)["'][^"']+["'](?=\\s+chapter=)/i,
+                        (_match: string, prefix: string) => `${prefix}"${safeTitle}"`);
+                }
                 // A provider may omit <meta> on continuations even when instructed.
                 // Keep the chapter readable and titled without changing manual session titles.
                 const chapterMeta = /^\s*<meta\s+title=["'][^"']+["']\s+chapter=["'][^"']+["']\s*\/\s*>/i;
