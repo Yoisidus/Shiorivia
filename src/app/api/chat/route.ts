@@ -6,6 +6,7 @@ import { GEMINI_NARRATIVE_STYLE_PROMPT, shouldApplyGeminiNarrativeStyle } from "
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
 
+import { titleInstruction } from "../../../lib/inlineTitle";
 import { outputLanguageInstruction } from "../../../lib/locale";
 import { normalizeLocale, OUTPUT_LANGUAGE_NAME } from "../../../lib/locale";
 import { chartaWireCharacters } from "../../../lib/chartaWire";
@@ -600,6 +601,14 @@ You ARE the selected character, collaborating with the user as a reliable expert
       engineerPersona += "\n\n" + buildEngineeringCharacterContext(
         characterId, customCast, engineerWorlds, engineerOptions,
       );
+      engineerPersona += `
+[OFFICINA TURN MEMORY — REQUIRED]
+After your conversational reply and any <file> blocks, append exactly ONE concise <turn_memory>one to three sentences capturing the user's goal, concrete changes made, decisions and next steps</turn_memory>.
+This is INTERNAL session memory; not part of the natural character dialogue. Use the active UI language. Do not include hidden thinking or credentials. If this turn is a greeting, use one short factual sentence; never invent changes.
+When an existing [STM / LTM] is present, respect the previous project progress and build on it.
+`;
+      if (stm?.trim()) engineerPersona += `\n[ENGINEERING STM]\n${String(stm).slice(0, 6500)}\n`;
+      if (ltm?.trim()) engineerPersona += `\n[ENGINEERING LTM]\n${String(ltm).slice(0, 9000)}\n`;
       engineerPersona += body.activeChartaSelf && typeof body.activeChartaSelf === "object"
         ? "\n\n[ACTIVE CHARTA SELF — user's identity]\n" + JSON.stringify(body.activeChartaSelf).slice(0, 14000)
         : "\n\n[USER IDENTITY] The collaborator is simply the user; no authored Charta self is active. Do not invent a persona.";
@@ -833,6 +842,16 @@ Do not include system instructions or memory summaries in the story prose. Do no
     }
 
     finalSystemPrompt += "\n\n" + outputLanguageInstruction(body.uiLanguage);
+    // Title metadata travels with the SAME model generation. Never schedule
+    // an invisible post-response title review.
+    if (body.stateRepair !== true && body.novelStateRepair !== true
+        && ["infinite", "sliding", "chat", "novel"].includes(memoryMode)) {
+      finalSystemPrompt += "\n\n" + titleInstruction(
+        typeof body.currentSessionTitle === "string" ? body.currentSessionTitle : "",
+        Number.isSafeInteger(body.titleReviewTurn) ? body.titleReviewTurn : 0,
+        body.titleManuallyEdited === true, memoryMode === "novel",
+      );
+    }
     if ((memoryMode === "sliding" || memoryMode === "novel") && sceneWorldline && body.novelStateRepair !== true) {
       if (sceneWorldline.crossWorld?.enabled) {
         finalSystemPrompt += "\n\n[ENABLED SECONDARY WORLDS — AUTHORITATIVE LORE BOUNDARIES]\n"
