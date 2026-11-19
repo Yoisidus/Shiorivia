@@ -171,6 +171,9 @@ export type Session = {
   timeline?: TimelineStructure;
   lastDanmaku?: string[];
 
+  /** Officina project binding: one first-level folder under local Shiorivia/IDE. */
+  engineeringProjectRoot?: string | null;
+  /** Previous in-session code files are preserved for old local backups. */
   codeRepository?: Record<string, CodeFile>;
 
   currentEmotion?: string;    
