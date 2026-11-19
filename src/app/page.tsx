@@ -106,6 +106,8 @@ export default function Home() {
         engineeringTransition: false,
         curtainTransition: true,
         geminiNarrativeStyle: false,
+        engineeringLoreRelationships: false,
+        engineeringLoreExperiences: false,
         storyTheme: "sky" as StoryTheme,
         imageSettings: DEFAULT_IMAGE_SETTINGS,
         selectedModel: "google/gemini-3-flash-preview",
@@ -147,6 +149,8 @@ export default function Home() {
                     engineeringTransition: typeof saved.engineeringTransition === "boolean" ? saved.engineeringTransition : false,
                     curtainTransition: saved.curtainTransition !== false,
                     geminiNarrativeStyle: saved.geminiNarrativeStyle === true,
+                    engineeringLoreRelationships: saved.engineeringLoreRelationships === true,
+                    engineeringLoreExperiences: saved.engineeringLoreExperiences === true,
                     storyTheme: (["sky", "sage", "rose"].includes(saved.storyTheme) ? saved.storyTheme : prev.storyTheme) as StoryTheme,
                 }));
             }
@@ -160,12 +164,12 @@ export default function Home() {
     useEffect(() => {
         if (!settingsHydrated) return;
         try {
-            const { webSearch, imageGen, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, storyTheme, imageSettings } = config;
-            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities }));
+            const { webSearch, imageGen, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, storyTheme, imageSettings } = config;
+            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities }));
         } catch {
             // Local settings are best-effort; chat saves use their own storage.
         }
-    }, [settingsHydrated, config.webSearch, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities]);
+    }, [settingsHydrated, config.webSearch, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities]);
 
     const visibleProviders = useMemo(() => getVisibleLocalProviders(allProviders.filter(p => !p.custom || capabilityFor(p.id, providerCapabilities).llm), disabledProviders), [allProviders, disabledProviders, providerCapabilities]);
     useEffect(() => { fetch('/api/check_env').then(r => r.json()).then(d => setFalConfigured(Boolean(d.hasFal))).catch(() => {}); }, []);
@@ -543,6 +547,10 @@ export default function Home() {
                     curtainTransitionEnabled={config.curtainTransition}
                     onToggleCurtainTransition={() => setConfig(prev => ({ ...prev, curtainTransition: !prev.curtainTransition }))}
                     geminiNarrativeStyleEnabled={config.geminiNarrativeStyle}
+                    engineeringLoreRelationshipsEnabled={config.engineeringLoreRelationships}
+                    engineeringLoreExperiencesEnabled={config.engineeringLoreExperiences}
+                    onToggleEngineeringLoreRelationships={() => setConfig(prev => ({ ...prev, engineeringLoreRelationships: !prev.engineeringLoreRelationships }))}
+                    onToggleEngineeringLoreExperiences={() => setConfig(prev => ({ ...prev, engineeringLoreExperiences: !prev.engineeringLoreExperiences }))}
                     onToggleGeminiNarrativeStyle={() => setConfig(prev => ({ ...prev, geminiNarrativeStyle: !prev.geminiNarrativeStyle }))}
                     onToggleEngineeringTransition={() => setConfig(prev => ({ ...prev, engineeringTransition: !prev.engineeringTransition }))}
                     onTestEffect={ui.setEffect}
@@ -607,6 +615,10 @@ export default function Home() {
                     curtainTransitionEnabled={config.curtainTransition}
                     onToggleCurtainTransition={() => setConfig(prev => ({ ...prev, curtainTransition: !prev.curtainTransition }))}
                     geminiNarrativeStyleEnabled={config.geminiNarrativeStyle}
+                    engineeringLoreRelationshipsEnabled={config.engineeringLoreRelationships}
+                    engineeringLoreExperiencesEnabled={config.engineeringLoreExperiences}
+                    onToggleEngineeringLoreRelationships={() => setConfig(prev => ({ ...prev, engineeringLoreRelationships: !prev.engineeringLoreRelationships }))}
+                    onToggleEngineeringLoreExperiences={() => setConfig(prev => ({ ...prev, engineeringLoreExperiences: !prev.engineeringLoreExperiences }))}
                     onToggleGeminiNarrativeStyle={() => setConfig(prev => ({ ...prev, geminiNarrativeStyle: !prev.geminiNarrativeStyle }))}
                     onToggleEngineeringTransition={() => setConfig(prev => ({ ...prev, engineeringTransition: !prev.engineeringTransition }))}
                     onTestEffect={ui.setEffect}
@@ -709,6 +721,10 @@ export default function Home() {
                 curtainTransitionEnabled={config.curtainTransition}
                 onToggleCurtainTransition={() => setConfig(prev => ({ ...prev, curtainTransition: !prev.curtainTransition }))}
                     geminiNarrativeStyleEnabled={config.geminiNarrativeStyle}
+                    engineeringLoreRelationshipsEnabled={config.engineeringLoreRelationships}
+                    engineeringLoreExperiencesEnabled={config.engineeringLoreExperiences}
+                    onToggleEngineeringLoreRelationships={() => setConfig(prev => ({ ...prev, engineeringLoreRelationships: !prev.engineeringLoreRelationships }))}
+                    onToggleEngineeringLoreExperiences={() => setConfig(prev => ({ ...prev, engineeringLoreExperiences: !prev.engineeringLoreExperiences }))}
                     onToggleGeminiNarrativeStyle={() => setConfig(prev => ({ ...prev, geminiNarrativeStyle: !prev.geminiNarrativeStyle }))}
                 onToggleEngineeringTransition={() => setConfig(prev => ({ ...prev, engineeringTransition: !prev.engineeringTransition }))}
                 onTestEffect={ui.setEffect}
@@ -1018,6 +1034,10 @@ export default function Home() {
                 curtainTransitionEnabled={config.curtainTransition}
                 onToggleCurtainTransition={() => setConfig(prev => ({ ...prev, curtainTransition: !prev.curtainTransition }))}
                     geminiNarrativeStyleEnabled={config.geminiNarrativeStyle}
+                    engineeringLoreRelationshipsEnabled={config.engineeringLoreRelationships}
+                    engineeringLoreExperiencesEnabled={config.engineeringLoreExperiences}
+                    onToggleEngineeringLoreRelationships={() => setConfig(prev => ({ ...prev, engineeringLoreRelationships: !prev.engineeringLoreRelationships }))}
+                    onToggleEngineeringLoreExperiences={() => setConfig(prev => ({ ...prev, engineeringLoreExperiences: !prev.engineeringLoreExperiences }))}
                     onToggleGeminiNarrativeStyle={() => setConfig(prev => ({ ...prev, geminiNarrativeStyle: !prev.geminiNarrativeStyle }))}
                 onToggleEngineeringTransition={() => setConfig(prev => ({ ...prev, engineeringTransition: !prev.engineeringTransition }))}
                 onTestEffect={ui.setEffect}
