@@ -10,6 +10,7 @@ const json = (value: unknown, status = 200) => NextResponse.json(value, { status
 export async function GET(req: Request) {
   const providerId = new URL(req.url).searchParams.get("models");
   if (!providerId) return json({ providers: publicLocalProviders() });
+  if (/^custom_[1-4]$/.test(providerId)) return json({ groups: [], source: "manual" });
   const provider = getServerLocalProvider(providerId);
   if (!provider) return json({ error: "Provider not configured" }, 400);
 
