@@ -544,7 +544,8 @@ ${lore || "(No profile supplied.)"}`;
         stm?.trim() ? `[CURRENT SPEAKER STM]\n${String(stm).slice(0, 5000)}` : "",
       ].filter(Boolean).join("\n\n");
       finalMessages = messages.slice(-24).map((message: any) => {
-        if (message.role !== "assistant") return { role: "user", content: message.content };
+        if (message.role !== "assistant") return { role: "user", content:
+          `[User message addressed to: ${speakerName(message.characterId || characterId)} | ID: ${message.characterId || characterId}]\n${typeof message.content === "string" ? message.content : JSON.stringify(message.content)}` };
         return { role: "assistant", content:
           `[Speaker: ${speakerName(message.characterId || characterId)} | ID: ${message.characterId || characterId}]\n${typeof message.content === "string" ? message.content : JSON.stringify(message.content)}` };
       });
