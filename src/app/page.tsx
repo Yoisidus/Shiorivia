@@ -24,7 +24,8 @@ import { ViaeInterface } from "../components/ViaeInterface";
 import { MemoryVaultModal } from "../components/MemoryVaultModal";
 import { ModeHub } from "../components/ModeHub";
 import { SettingsCenter, type SettingKey, type StoryTheme } from "../components/SettingsCenter";
-import { DEFAULT_LOCAL_PROVIDERS, defaultModelForProvider, getVisibleLocalProviders, type PublicLocalProvider } from "../lib/localProviders";
+import { DEFAULT_LOCAL_PROVIDERS, getVisibleLocalProviders, type PublicLocalProvider } from "../lib/localProviders";
+import { modelSelectionFor, parseProviderModelSelections, selectProviderModel, type ProviderModelSelections } from "../lib/providerModelSelection";
 
 import { useMusic } from "../context/MusicContext";
 import { useLocalFileSync } from "../hooks/useLocalFileSync";
@@ -110,12 +111,13 @@ export default function Home() {
         engineeringLoreExperiences: false,
         storyTheme: "sky" as StoryTheme,
         imageSettings: DEFAULT_IMAGE_SETTINGS,
-        selectedModel: "google/gemini-3-flash-preview",
+        selectedModel: "",
         customModelId: "",
         expandedGroups: ["Gemini (Google)"] as string[]
     });
 
     const [apiProvider, setApiProvider] = useState<string>('openrouter');
+    const [providerModels, setProviderModels] = useState<ProviderModelSelections>({});
     const [settingsHydrated, setSettingsHydrated] = useState(false);
     const [disabledProviders, setDisabledProviders] = useState<string[]>([]);
     const [providerCapabilities, setProviderCapabilities] = useState<Record<string, ProviderCapability>>({});
@@ -127,7 +129,10 @@ export default function Home() {
             const saved = raw ? JSON.parse(raw) : null;
             if (saved && typeof saved === "object") {
                 if (Array.isArray(saved.disabledProviders)) setDisabledProviders(saved.disabledProviders.filter((x: unknown) => typeof x === "string"));
+                const restoredProvider = typeof saved.apiProvider === "string" ? saved.apiProvider : "openrouter";
                 if (typeof saved.apiProvider === "string") setApiProvider(saved.apiProvider);
+                const restoredModels = parseProviderModelSelections(saved.providerModels);
+                setProviderModels(restoredModels);
                 if (saved.providerCapabilities && typeof saved.providerCapabilities === "object") {
                     const caps: Record<string, ProviderCapability> = {};
                     for (const [id, entry] of Object.entries(saved.providerCapabilities as Record<string, any>)) {
@@ -152,6 +157,7 @@ export default function Home() {
                     engineeringLoreRelationships: saved.engineeringLoreRelationships === true,
                     engineeringLoreExperiences: saved.engineeringLoreExperiences === true,
                     storyTheme: (["sky", "sage", "rose"].includes(saved.storyTheme) ? saved.storyTheme : prev.storyTheme) as StoryTheme,
+                    ...modelSelectionFor(restoredModels, restoredProvider),
                 }));
             }
         } catch {
@@ -165,11 +171,11 @@ export default function Home() {
         if (!settingsHydrated) return;
         try {
             const { webSearch, imageGen, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, storyTheme, imageSettings } = config;
-            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities }));
+            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels }));
         } catch {
             // Local settings are best-effort; chat saves use their own storage.
         }
-    }, [settingsHydrated, config.webSearch, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities]);
+    }, [settingsHydrated, config.webSearch, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels]);
 
     const visibleProviders = useMemo(() => getVisibleLocalProviders(allProviders.filter(p => !p.custom || capabilityFor(p.id, providerCapabilities).llm), disabledProviders), [allProviders, disabledProviders, providerCapabilities]);
     useEffect(() => { fetch('/api/check_env').then(r => r.json()).then(d => setFalConfigured(Boolean(d.hasFal))).catch(() => {}); }, []);
@@ -186,14 +192,22 @@ export default function Home() {
             const nextId = visibleProviders[0]?.id || '';
             if (nextId === apiProvider) return;
             setApiProvider(nextId);
-            setConfig(prev => ({ ...prev, selectedModel: defaultModelForProvider(nextId), customModelId: '' }));
+            setConfig(prev => ({ ...prev, ...modelSelectionFor(providerModels, nextId) }));
         }
-    }, [settingsHydrated, visibleProviders, apiProvider, allProviders]);
+    }, [settingsHydrated, visibleProviders, apiProvider, allProviders, providerModels]);
     const selectProvider = (id: string) => {
         if (!visibleProviders.some(p => p.id === id)) return;
         if (id === apiProvider) return;
         setApiProvider(id);
-        setConfig(prev => ({ ...prev, selectedModel: defaultModelForProvider(id), customModelId: '' }));
+        setConfig(prev => ({ ...prev, ...modelSelectionFor(providerModels, id) }));
+    };
+    const selectCatalogModel = (id: string) => {
+        setProviderModels(prev => selectProviderModel(prev, apiProvider, "catalog", id));
+        setConfig(prev => ({ ...prev, selectedModel: id, customModelId: "" }));
+    };
+    const selectCustomModel = (id: string) => {
+        setProviderModels(prev => selectProviderModel(prev, apiProvider, "custom", id));
+        setConfig(prev => ({ ...prev, customModelId: id, selectedModel: "" }));
     };
     const toggleProviderDisabled = (id: string) => setDisabledProviders(prev =>
         prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
@@ -606,8 +620,8 @@ export default function Home() {
                     onProviderChange={selectProvider}
                     model={config.selectedModel}
                     customModel={config.customModelId}
-                    onModelChange={id => setConfig(prev => ({ ...prev, selectedModel: id, customModelId: '' }))}
-                    onCustomModelChange={id => setConfig(prev => ({ ...prev, customModelId: id }))}
+                    onModelChange={selectCatalogModel}
+                    onCustomModelChange={selectCustomModel}
                     notify={ui.showToast}
                 />
                 <SettingsCenter
@@ -666,8 +680,8 @@ export default function Home() {
                 onProviderChange={selectProvider}
                 selectedModel={config.selectedModel}
                 customModelId={config.customModelId}
-                onModelChange={(id: string) => setConfig(prev => ({ ...prev, selectedModel: id, customModelId: "" }))}
-                onCustomModelChange={(id: string) => setConfig(prev => ({ ...prev, customModelId: id }))}
+                onModelChange={selectCatalogModel}
+                onCustomModelChange={selectCustomModel}
                 onImportNovelSession={(source: Session, draft?: NovelDraft) => {
                     // Always create a distinct session; imported JSON must not overwrite existing saves.
                     const importedId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-novel`;
@@ -829,9 +843,9 @@ export default function Home() {
                         });
                     }}
                     selectedModel={config.selectedModel}
-                    setSelectedModel={(v: string) => setConfig(prev => ({ ...prev, selectedModel: v }))}
+                    setSelectedModel={selectCatalogModel}
                     customModelId={config.customModelId}
-                    setCustomModelId={(v: string) => setConfig(prev => ({ ...prev, customModelId: v }))}
+                    setCustomModelId={selectCustomModel}
 
                     folders={cloud.folders} setFolders={cloud.setFolders}
                     sessions={cloud.sessions} currentSessionId={currentSessionId} setCurrentSessionId={setCurrentSessionId}
