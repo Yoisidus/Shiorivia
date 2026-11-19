@@ -60,8 +60,9 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
             void syncDisk(projectRoot);
         }
         if (typeof window !== "undefined" && window.innerWidth < 768) setShowSidebar(false);
-        // Bindings, not unrelated parent rerenders, determine disk ownership.
-    }, [projectRoot, repository]);
+        // A parent rerender must not re-fetch and silently discard unsaved edits.
+        // The project binding, not the new identity of an empty {} prop, controls sync.
+    }, [projectRoot]);
 
     const [isRunning, setIsRunning] = useState(false);
     const [consoleOutput, setConsoleOutput] = useState<string | null>(null);
