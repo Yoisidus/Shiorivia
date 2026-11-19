@@ -937,6 +937,21 @@ Do not include system instructions or memory summaries in the story prose. Do no
     }
     // Unselected Charta profiles must not leak into other spaces. Their lore is
     // supplied by the story/novel cast selector, or by VIAE's fixed members.
+    if (body.stateRepair !== true && body.novelStateRepair !== true
+        && ["infinite", "sliding", "chat", "novel"].includes(memoryMode)) {
+      const review = body.titleManuallyEdited !== true && shouldReviewInlineTitle(body.titleReviewTurn);
+      finalSystemPrompt += "\n\n[FINAL OUTPUT METADATA CHECK]\n"
+        + (review
+          ? "The CURRENT response MUST include exactly one <session_title>meaningful new title or KEEP</session_title> before visible prose; for NOVEL, place it immediately AFTER the first-line <meta title=... chapter=... />. It is part of this SAME response. Do not make a second title generation."
+          : "Do not output any <session_title> block this turn.")
+        + (memoryMode === "infinite"
+          ? "\nEvery Officina reply, whether code or ordinary conversation, MUST end with one <turn_memory>concise factual memory</turn_memory> block."
+          : "")
+        + (memoryMode === "novel"
+          ? "\nEvery novel chapter MUST start with complete <meta title=\"...\" chapter=\"...\" /> metadata and a chapter-specific title, even when no session-title review is due."
+          : "")
+        + "\n[END FINAL OUTPUT METADATA CHECK]";
+    }
     const selectedProvider = getServerLocalProvider(provider);
     if (!selectedProvider) return new Response(JSON.stringify({ error: "Provider not configured" }), { status: 400 });
     const routedModel = typeof model === "string" ? model.trim() : "";
