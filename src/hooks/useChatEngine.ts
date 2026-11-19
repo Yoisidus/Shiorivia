@@ -767,7 +767,7 @@ export const useChatEngine = ({
             const fileRegex = /<file name="(.*?)">([\s\S]*?)<\/file>/g;
             currentText = currentText.replace(fileRegex, (match, fileName, fileContent) => {
                 const ext = fileName.split('.').pop()?.toLowerCase() || '';
-                if (['txt', 'md', 'markdown', 'log'].includes(ext)) {
+                if (['txt', 'md', 'markdown', 'log'].includes(ext) && fileName.toLowerCase() !== 'requirements.txt') {
                     return `\n**[Document: ${fileName}]**\n\`\`\`${ext}\n${fileContent}\n\`\`\`\n`;
                 }
                 newFiles[fileName] = { name: fileName, language: ext || 'text',
