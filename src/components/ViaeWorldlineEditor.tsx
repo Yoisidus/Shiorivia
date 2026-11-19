@@ -19,7 +19,7 @@ export function ViaeWorldlineEditor({ value, onChange, worlds, saved }: {
 }) {
   const available = worldsList(worlds);
   const primaryLocked = Boolean(saved);
-  const safeChange = (next: StoryWorldline) => { if (canExtendWorldline(saved, next)) onChange(next); };
+  const safeChange = (next: StoryWorldline) => { if (!saved || canExtendWorldline(saved, next)) onChange(next); };
   const protectedSecondary = new Set(saved?.crossWorld?.secondary.map(w => w.worldId) || []);
   const stages = value.canonTimeline || [];
   const cross = value.crossWorld || { enabled: false, includeUniversal: false, secondary: [] };
