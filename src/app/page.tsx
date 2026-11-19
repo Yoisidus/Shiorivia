@@ -383,6 +383,7 @@ export default function Home() {
         }
         cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? {
             ...s, storyWorldline: next,
+            ...(s.characterId && !s.chatCharacterMemories && (s.stm || s.ltm) ? { chatCharacterMemories: { [s.characterId]: { stm: s.stm || "", ltm: s.ltm || "" } } } : {}),
             characterId: s.characterId && [...CHARACTERS, ...charta.characters].some(char =>
                 char.id === s.characterId && storyCastAllowed(char, next)) ? s.characterId : "",
         } : s));
@@ -1023,7 +1024,9 @@ export default function Home() {
                         setActiveCharacterId(id);
                         setVoiceVariant("default");
                         cloud.setSessions(prev => prev.map(s => s.id === currentSessionId
-                            ? { ...s, characterId: id } : s));
+                            ? { ...s, characterId: id,
+                                ...(s.memoryMode === "chat" && s.characterId && !s.chatCharacterMemories && (s.stm || s.ltm)
+                                    ? { chatCharacterMemories: { [s.characterId]: { stm: s.stm || "", ltm: s.ltm || "" } } } : {}) } : s));
                     }}
                     dbChars={allChars}
                 />
