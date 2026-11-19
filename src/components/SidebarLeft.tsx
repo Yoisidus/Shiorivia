@@ -17,6 +17,8 @@ import { localText } from "../lib/i18nLocal";
 import { SessionItem } from "./Common";
 import { deepText } from "../lib/i18nDeep";
 import { BatchDeleteModal } from "./BatchDeleteModal";
+import { StoryWorldlineFateModal } from "./StoryWorldlineFateModal";
+import { describeStoryWorldline, type StoryWorldline } from "../lib/storyWorldline";
 
 const checkEnv = async (feature: 'openrouter' | 'google' | 'tavily' | 'sd' | 'tts' | 'music') => {
     try {
@@ -88,11 +90,13 @@ export const SidebarLeft = ({
     useTTS, toggleTTS,
     syncStatus, onManualSync,
     apiProvider, setApiProvider, providers = [],
+    currentMode, chatWorldline, onSaveChatWorldline, storyWorlds = [],
 }: any) => {
     const { locale } = useLanguage();
     const importInputRef = useRef<HTMLInputElement>(null);
 
     const [showNewChatMenu, setShowNewChatMenu] = useState(false);
+    const [chatWorldlineOpen, setChatWorldlineOpen] = useState(false);
     const showSession = (session: any) => session.memoryMode !== 'lime';
     const [isBatchMode, setIsBatchMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -140,6 +144,17 @@ export const SidebarLeft = ({
                     </div>
 
                     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                            {currentMode === "chat" && <div className="shrink-0 border-b border-[#e4e9e5] bg-white px-3 pb-3 pt-2">
+                                <button type="button" onClick={() => setChatWorldlineOpen(true)}
+                                    className="flex w-full items-center justify-between gap-2 rounded-xl border border-[#dae6df] bg-[#f8faf8] px-3 py-3 text-left transition hover:border-[#9eb8a9]">
+                                    <span className="min-w-0"><span className="block text-[10px] font-semibold tracking-widest text-[#537566]">UMBRA · WORLDLINE</span>
+                                        <span className="mt-1 block truncate text-xs text-[#486453]">{chatWorldline ? describeStoryWorldline(chatWorldline) : "尚未配置世界线 · 点击选择"}</span>
+                                    </span><Globe size={17} className="shrink-0 text-[#6a9680]"/>
+                                </button>
+                                <StoryWorldlineFateModal isOpen={chatWorldlineOpen} value={chatWorldline}
+                                    worlds={storyWorlds} showEvent={false} onSave={(next: StoryWorldline) => onSaveChatWorldline(next)}
+                                    onClose={() => setChatWorldlineOpen(false)} />
+                            </div>}
                             <div className="h-[42%] min-h-[160px] shrink-0 overflow-y-auto border-b border-slate-200 bg-white p-3 scrollbar-thin">
                                 <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500"><span>Models · 模型</span><Package size={13} /></div>
 
