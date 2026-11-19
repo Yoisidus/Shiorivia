@@ -269,6 +269,8 @@ export const ChatInterface = ({
 
     const { locale } = useLanguage();
     const requiresWorldline = currentSession?.memoryMode === "sliding" && !parseStoryWorldline(currentSession.storyWorldline);
+    const requiresEngineer = currentSession?.memoryMode === "infinite" && !currentSession.characterId;
+    const inputLocked = requiresWorldline || requiresEngineer;
     const savedSelf = currentSession?.memoryMode === "sliding" && currentSession.storyRole === "participant"
         ? currentSession.storySelfSnapshot : null;
     const selfColors: Record<string, string> = savedSelf?.hex && savedSelf?.names
@@ -391,7 +393,7 @@ export const ChatInterface = ({
     );
 
     return (
-        <div className="flex-1 flex flex-col relative min-w-0" style={{ backgroundColor: currentCharacter.hex + "08" }}>
+        <div className="flex-1 flex flex-col relative min-w-0" style={{ backgroundColor: requiresEngineer ? "#f3f6f8" : currentCharacter.hex + "08" }}>
 
             <header className={`
           flex items-center justify-between px-3 md:px-4 bg-white/95 md:bg-white/80 md:backdrop-blur z-20 border-b border-gray-100/50 shrink-0 relative
@@ -419,7 +421,7 @@ export const ChatInterface = ({
                                 <span className="flex items-center gap-2 truncate text-[#365b75]">
                                     <Hammer size={18} className="shrink-0 text-[#6487a1]" aria-hidden="true" />
                                     <span className="font-semibold tracking-wide">Officina</span>
-                                    <span className="truncate text-[11px] text-slate-500">· {characterDisplayName(currentCharacter.id, currentCharacter.name, locale)}</span>
+                                    {!requiresEngineer && <span className="truncate text-[11px] text-slate-500">· {characterDisplayName(currentCharacter.id, currentCharacter.name, locale)}</span>}
                                 </span>
                             )}
                         </span>
@@ -711,6 +713,10 @@ export const ChatInterface = ({
             </div>
 
             <div className="p-4 bg-white/50 backdrop-blur-sm shrink-0">
+                {requiresEngineer && <div role="status" className="mx-auto mb-3 flex max-w-3xl items-center gap-2 rounded-xl border border-[#dce4ea] bg-[#f7fafb] px-4 py-3 text-xs text-[#5b7588]">
+                    <Hammer size={16} />请选择右侧栏中的角色工程师，之后就可以开始编程对话。
+                    <button type="button" className="ml-auto rounded-lg border border-[#d6e3e9] bg-white px-3 py-2 text-xs font-semibold" onClick={() => setRightSidebarOpen(true)}>选择角色</button>
+                </div>}
                 {requiresWorldline && <div role="status" className="mx-auto mb-3 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border border-[#dcccae] bg-[#fbf7ee] px-4 py-3 text-xs text-[#776342]">
                     <span className="flex items-center gap-2"><AlertTriangle size={16}/>请先铭刻世界线，再开始编织故事。</span>
                     <button type="button" onClick={onOpenStoryWorldline} className="rounded-lg bg-[#324d42] px-3 py-2 font-semibold text-[#f7ecd0] hover:bg-[#203d32]">设定世界线 ↗</button>
@@ -725,11 +731,11 @@ export const ChatInterface = ({
                         boxShadow: isLoading ? `0 0 10px ${currentCharacter.hex}20` : 'none'
                     }}
                 >
-                    <textarea value={input} disabled={requiresWorldline} style={{ caretColor: currentCharacter.hex }} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!requiresWorldline) handleSend() } }} placeholder={requiresWorldline ? "请先设定世界线（WORLD / ERA / PERIOD）" : currentSession?.memoryMode === 'sliding' ? "Start your dream..." : currentSession?.memoryMode === 'chat' ? `和${currentCharacter.name}聊聊天...` : `Speak to ${currentCharacter.name}...`} className="w-full bg-transparent border-none outline-none py-3 pl-4 pr-20 resize-none min-h-[50px] max-h-32 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f6f1] disabled:text-[#9a988c]" />
+                    <textarea value={input} disabled={inputLocked} style={{ caretColor: currentCharacter.hex }} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!inputLocked) handleSend() } }} placeholder={requiresEngineer ? "请先在右侧栏选择角色工程师" : requiresWorldline ? "请先设定世界线（WORLD / ERA / PERIOD）" : currentSession?.memoryMode === 'sliding' ? "Start your dream..." : currentSession?.memoryMode === 'chat' ? `和${currentCharacter.name}聊聊天...` : `Speak to ${currentCharacter.name}...`} className="w-full bg-transparent border-none outline-none py-3 pl-4 pr-20 resize-none min-h-[50px] max-h-32 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f6f1] disabled:text-[#9a988c]" />
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,text/plain,.txt" />
                     <div className="absolute bottom-2 right-2 flex gap-1">
-                        {isMultimodal && <button disabled={requiresWorldline} onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-emerald-500 disabled:opacity-30"><Paperclip size={18} /></button>}
-                        {isLoading ? <button onClick={stopGeneration} className="p-1.5 bg-red-500 text-white rounded animate-pulse"><Square size={18} fill="currentColor" /></button> : (!requiresWorldline && !input.trim() && !selectedFile && currentSession && currentSession.messages.length > 1) ? <button onClick={() => handleRegenerate(currentSession.messages.length - 1)} className="p-1.5 text-white rounded hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><RotateCcw size={18} /></button> : <button onClick={() => handleSend()} disabled={requiresWorldline || (!input.trim() && !selectedFile)} className="p-1.5 text-white rounded disabled:opacity-30 hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><Send size={18} /></button>}
+                        {isMultimodal && <button disabled={inputLocked} onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-emerald-500 disabled:opacity-30"><Paperclip size={18} /></button>}
+                        {isLoading ? <button onClick={stopGeneration} className="p-1.5 bg-red-500 text-white rounded animate-pulse"><Square size={18} fill="currentColor" /></button> : (!inputLocked && !input.trim() && !selectedFile && currentSession && currentSession.messages.length > 1) ? <button onClick={() => handleRegenerate(currentSession.messages.length - 1)} className="p-1.5 text-white rounded hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><RotateCcw size={18} /></button> : <button onClick={() => handleSend()} disabled={inputLocked || (!input.trim() && !selectedFile)} className="p-1.5 text-white rounded disabled:opacity-30 hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><Send size={18} /></button>}
                     </div>
                 </div>
                 {selectedFile && <div className="text-xs text-gray-400 mt-1 ml-2 flex items-center gap-2">{selectedFile.type === 'text' ? <FileText size={12} /> : <Paperclip size={12} />} <span>{selectedFile.name}</span><button onClick={() => setSelectedFile(null)} className="text-red-400">×</button></div>}
