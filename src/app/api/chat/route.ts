@@ -6,7 +6,7 @@ import { GEMINI_NARRATIVE_STYLE_PROMPT, shouldApplyGeminiNarrativeStyle } from "
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
 
-import { titleInstruction } from "../../../lib/inlineTitle";
+import { titleInstruction, shouldReviewInlineTitle } from "../../../lib/inlineTitle";
 import { outputLanguageInstruction } from "../../../lib/locale";
 import { normalizeLocale, OUTPUT_LANGUAGE_NAME } from "../../../lib/locale";
 import { chartaWireCharacters } from "../../../lib/chartaWire";
@@ -851,6 +851,12 @@ Do not include system instructions or memory summaries in the story prose. Do no
         Number.isSafeInteger(body.titleReviewTurn) ? body.titleReviewTurn : 0,
         body.titleManuallyEdited === true, memoryMode === "novel",
       );
+      if (body.titleManuallyEdited !== true && shouldReviewInlineTitle(body.titleReviewTurn)) {
+        finalSystemPrompt += "\n[TITLE REVIEW MEMORY — REFERENCE ONLY]\n"
+          + "STM: " + String(stm || "").slice(-3600) + "\n"
+          + "LTM: " + String(ltm || "").slice(-5000) + "\n"
+          + "[END TITLE REVIEW MEMORY]";
+      }
     }
     if ((memoryMode === "sliding" || memoryMode === "novel") && sceneWorldline && body.novelStateRepair !== true) {
       if (sceneWorldline.crossWorld?.enabled) {
