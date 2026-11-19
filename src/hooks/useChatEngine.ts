@@ -202,7 +202,8 @@ export const useChatEngine = ({
                     useMusicControl: configOverride?.useMusicControl ?? config.musicControl,
                     useImageGen: config.imageGen,
                     charStatus: currentSession.charStatus,
-                    codeRepository: currentSession.codeRepository,
+                    codeRepository: currentSession.engineeringProjectRoot ? undefined : currentSession.codeRepository,
+                    engineeringProjectRoot: currentSession.memoryMode === "infinite" ? currentSession.engineeringProjectRoot || "" : "",
                     provider: apiProvider, 
                     uiLanguage: locale,
                     debugRequestPayload: config.terminalRequestLog === true,
@@ -773,14 +774,52 @@ export const useChatEngine = ({
                 return ""; 
             }).trim();
 
+            // AI-produced source is saved into a real root under Shiorivia/IDE,
+            // not silently flattened into the session's in-memory dictionary.
+            let outputProject = currentSession.memoryMode === "infinite"
+                ? String(currentSession.engineeringProjectRoot || "") : "";
+            let diskWriteSucceeded = false;
+            if (currentSession.memoryMode === "infinite" && Object.keys(newFiles).length) {
+                const rootTag = currentText.match(/<project\\s+name=["']([^"']+)["']\\s*\\/\\s*>/i);
+                currentText = currentText.replace(/<project\\s+name=["'][^"']+["']\\s*\\/\\s*>/gi, "").trim();
+                const idePost = async (action: string, detail: Record<string, unknown>) => {
+                    const response = await fetch("/api/ide", { method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action, ...detail }) });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || "IDE 文件操作失败");
+                    return data;
+                };
+                try {
+                    if (!outputProject) {
+                        const fallback = `officina-${String(currentSessionId).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 18) || "project"}`;
+                        const created = await idePost("createProject", { name: rootTag?.[1] || fallback });
+                        outputProject = created.project;
+                    }
+                    for (const [relative, file] of Object.entries(newFiles) as [string, any][]) {
+                        await idePost("write", { project: outputProject,
+                            path: relative, content: file.content });
+                    }
+                    diskWriteSucceeded = true;
+                    showToast(`已写入 IDE/${outputProject} · ${Object.keys(newFiles).length} 个文件`);
+                } catch (error: any) {
+                    console.warn("Officina project write failed:", error);
+                    showToast(`IDE 文件写入失败；代码保留在会话里：${error.message}`);
+                }
+            } else if (currentSession.memoryMode === "infinite") {
+                currentText = currentText.replace(/<project\\s+name=["'][^"']+["']\\s*\\/\\s*>/gi, "").trim();
+            }
 
             setSessions((prev: any) => prev.map((s: any) => {
                 if (s.id === currentSessionId) {
                     const oldRepo = s.codeRepository || {};
-                    const updatedRepo = { ...oldRepo, ...newFiles };
-                    
+                    const updatedRepo = diskWriteSucceeded && outputProject
+                        ? oldRepo : { ...oldRepo, ...newFiles };
+
                     return {
                         ...s,
+                        ...(s.memoryMode === "infinite" && outputProject
+                            ? { engineeringProjectRoot: outputProject } : {}),
                         messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing }],
                         codeRepository: updatedRepo,
                         ...(s.memoryMode === "novel" && novelState ? {
