@@ -44,6 +44,8 @@ const SidebarRightComponent = ({
     const [pageIndex, setPageIndex] = useState(0);
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, text: string }>({ isOpen: false, text: "" });
     const [worldlineOpen, setWorldlineOpen] = useState(false);
+    const [personaWorldFilter, setPersonaWorldFilter] = useState("all");
+    useEffect(() => { setPersonaWorldFilter("all"); }, [currentSession?.memoryMode]);
     useEffect(() => { if (worldlineOpenSignal > 0) setWorldlineOpen(true); }, [worldlineOpenSignal]);
 
     useEffect(() => {
@@ -56,6 +58,15 @@ const SidebarRightComponent = ({
         const char = (dbChars?.length ? dbChars : CHAR_DATA).find((item: any) => item.id === id);
         return char ? [char] : [];
     });
+    const isEngineeringMode = currentSession?.memoryMode === "infinite";
+    const worldNameFor = (worldId: string | null | undefined): string => !worldId ? "通用角色"
+        : worldId === "bang-dream" ? "BanG Dream!" : worlds.find((w: any) => w.id === worldId)?.name || "未知世界观";
+    const charWorldId = (id: string): string | null =>
+        customCharacters.find((char: any) => char.id === id)?.worldId || (CHAR_DATA.some(char => char.id === id) ? "bang-dream" : null);
+    const personaCatalog = (dbChars?.length ? dbChars : CHAR_DATA) as Array<{ id: string; name: string; avatar: string; hex: string; sub: string }>;
+    const personaWorldChoices = [...new Set(personaCatalog.map(char => charWorldId(char.id) || "universal"))];
+    const filteredPersonas = personaCatalog.filter(char => !isEngineeringMode || personaWorldFilter === "all"
+        || (charWorldId(char.id) || "universal") === personaWorldFilter);
     const { locale } = useLanguage();
     const currentChar = charList[pageIndex];
 
@@ -234,8 +245,18 @@ const SidebarRightComponent = ({
                         ) : (
                             <div className="p-2 space-y-4">
                                 <div className="space-y-2">
+                                    {isEngineeringMode && <label className="block rounded-xl border border-[#e5e9ed] bg-[#fafbf9] px-3 py-3 text-[11px] font-semibold text-[#5c7180]">
+                                        <span className="mb-2 block">按世界观筛选 · WORLD</span>
+                                        <select value={personaWorldFilter} onChange={e => setPersonaWorldFilter(e.target.value)}
+                                            className="w-full rounded-lg border border-[#e0e7e9] bg-white px-3 py-2 text-xs text-[#314c63] outline-none focus:border-[#9cacaa]">
+                                            <option value="all">全部世界观 · All worlds</option>
+                                            {personaWorldChoices.map(worldId => <option key={worldId} value={worldId}>
+                                                {worldNameFor(worldId === "universal" ? null : worldId)}
+                                            </option>)}
+                                        </select>
+                                    </label>}
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">{currentSession?.memoryMode === 'chat' ? 'Umbra · Characters' : 'Officina · Persona'}</div>
-                                    {(dbChars.length > 0 ? dbChars : CHAR_DATA).map((char: any, index: number) => (
+                                    {filteredPersonas.map((char: any, index: number) => (
                                         <div
                                             key={char.id || index}
                                             onClick={() => {
@@ -256,17 +277,11 @@ const SidebarRightComponent = ({
                                             <div className="text-left z-10 flex-1 min-w-0">
                                                 <div className="text-xs font-bold truncate">{characterDisplayName(char.id, char.name, locale)}</div>
                                                 <div className={`text-[9px] truncate ${activeCharacterId === char.id ? 'text-white/80' : 'text-gray-400'}`}>
-                                                    {char.sub}
+                                                    {isEngineeringMode ? worldNameFor(charWorldId(char.id)) : char.sub}
                                                 </div>
                                             </div>
 
-                                            {activeCharacterId === char.id && (
-                                                <div className="z-20 flex gap-1 ml-1" onClick={(e) => e.stopPropagation()}>
-                                                    {char.id === 'sakiko' && <button onClick={handleToggleVariant} className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 text-white transition-all">{voiceVariant === 'white' ? <Sparkles size={12} /> : <Moon size={12} />}</button>}
-                                                    {char.id === 'mutsu' && <button onClick={handleToggleVariant} className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 text-white transition-all">{voiceVariant === 'mortis' ? <Ghost size={12} /> : <Bot size={12} />}</button>}
-                                                    {char.id === 'soyo' && <button onClick={handleToggleVariant} className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 text-white transition-all">{voiceVariant === 'down' ? <ToggleRight size={12} /> : <ToggleLeft size={12} />}</button>}
-                                                </div>
-                                            )}
+
                                             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                         </div>
                                     ))}
