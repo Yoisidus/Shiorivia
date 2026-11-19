@@ -25,7 +25,6 @@ import { MemoryVaultModal } from "../components/MemoryVaultModal";
 import { ModeHub } from "../components/ModeHub";
 import { SettingsCenter, type SettingKey, type StoryTheme } from "../components/SettingsCenter";
 import { DEFAULT_LOCAL_PROVIDERS, defaultModelForProvider, getVisibleLocalProviders, type PublicLocalProvider } from "../lib/localProviders";
-import { EffectType } from "../components/TransitionEffects";
 
 import { useMusic } from "../context/MusicContext";
 import { useLocalFileSync } from "../hooks/useLocalFileSync";
@@ -306,6 +305,8 @@ export default function Home() {
     const dynamicCharacter = useMemo(() => {
         const base = allChars.find(c => c.id === activeCharacterId) || CHAR_DATA[0];
 
+        // Officina uses the selected character’s original identity, never a variant disguise.
+        if (currentSession?.memoryMode === "infinite") return { ...base };
         let finalChar = { ...base };
 
         if (activeCharacterId === 'sakiko') {
@@ -343,7 +344,7 @@ export default function Home() {
         }
 
         return finalChar;
-    }, [activeCharacterId, voiceVariant, allChars]);
+    }, [activeCharacterId, voiceVariant, allChars, currentSession?.memoryMode]);
 
     const triggerCurtain = () => {
         if (!config.curtainTransition) return;
@@ -964,13 +965,6 @@ export default function Home() {
                     onOpenMemory={() => setShowMemoryVault(true)}
                     activeCharacterId={activeCharacterId} setActiveCharacterId={setActiveCharacterId}
                     createNewSession={createNewSession} handleSend={engine.handleSend} setSessions={cloud.setSessions} currentSessionId={currentSessionId}
-                    handleToggleVariant={() => {
-                        let n = "default", e: EffectType = "none";
-                        if (activeCharacterId === "sakiko") { n = voiceVariant === "black" ? "white" : "black"; e = n === "white" ? "rain" : "curtain"; }
-                        else if (activeCharacterId === "mutsu") { n = voiceVariant === "normal" ? "mortis" : "normal"; e = n === "mortis" ? "curtain" : "math"; }
-                        else if (activeCharacterId === "soyo") { n = voiceVariant === "up" ? "down" : "up"; }
-                        setVoiceVariant(n); ui.setEffect(e);
-                    }}
                     voiceVariant={voiceVariant} onRepoUpdate={engine.handleRepoUpdate}
                     onCharSwitch={(id: string) => { setActiveCharacterId(id); setVoiceVariant("default"); cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, characterId: id } : s)) }}
                     dbChars={allChars}
