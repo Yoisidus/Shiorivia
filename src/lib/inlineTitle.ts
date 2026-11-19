@@ -25,7 +25,10 @@ export function titleInstruction(currentTitle: string, userTurn: number, manual:
 export function extractInlineTitle(text: string): { text: string; title: string | null } {
   let candidate: string | null = null;
   const clean = String(text || "").replace(/<session_title\s*>([\s\S]*?)<\/session_title\s*>/gi,
-    (_, raw: string) => {
+    (match: string, raw: string, index: number, source: string) => {
+      // Metadata belongs at the start (or after novel <meta>). Never remove
+      // a literal XML example embedded in a source file or normal prose.
+      if (index > 500 || /<file\b/i.test(source.slice(0, index))) return match;
       if (candidate === null) {
         const value = raw.trim().replace(/[<>\r\n]/g, " ").trim();
         candidate = value && value.length <= 100 && !/^KEEP$/i.test(value) ? value : "";
