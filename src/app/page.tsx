@@ -32,7 +32,7 @@ import { useLocalFileSync } from "../hooks/useLocalFileSync";
 import { DEFAULT_SYNC_PREFERENCES, readLocalSyncPreferences } from "../lib/localSyncPreferences";
 import { DEFAULT_IMAGE_SETTINGS, capabilityFor, type ImageSettings, type ProviderCapability } from "../lib/imageSettings";
 import { useLanguage } from "../context/LanguageContext";
-import { defaultSessionTitle, sessionGreeting, officinaUnassignedWelcome } from "../lib/sessionTitles";
+import { defaultSessionTitle, sessionGreeting, officinaUnassignedWelcome, umbraUnassignedWelcome } from "../lib/sessionTitles";
 import { isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { canExtendWorldline } from "../lib/worldlineLock";
 import { storyCastAllowed } from "../lib/storyCast";
@@ -399,7 +399,7 @@ export default function Home() {
 
         let initContent = "";
         if (nextMode === 'infinite') initContent = "欢迎来到 Shiorivia。请从右侧栏选择一位角色工程师，再开始合作。";
-        if (nextMode === 'chat') initContent = "欢迎来到 Umbra。请先在左侧配置世界线，再在右侧选择聊天角色。";
+        if (nextMode === 'chat') initContent = umbraUnassignedWelcome(locale);
 
         const initialMessages: any[] = [];
         if (initContent) {
