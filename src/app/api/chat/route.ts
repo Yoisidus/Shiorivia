@@ -6,7 +6,7 @@ import { GEMINI_NARRATIVE_STYLE_PROMPT, shouldApplyGeminiNarrativeStyle } from "
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
 import { inspectIdeProject } from "../../../lib/ideInspection";
-import { validProjectName } from "../../../lib/ideWorkspace";
+import { validProjectName } from "../../../lib/idePathPolicy";
 
 import { titleInstruction, shouldReviewInlineTitle } from "../../../lib/inlineTitle";
 import { outputLanguageInstruction } from "../../../lib/locale";
