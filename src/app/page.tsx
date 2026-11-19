@@ -34,6 +34,8 @@ import { DEFAULT_IMAGE_SETTINGS, capabilityFor, type ImageSettings, type Provide
 import { useLanguage } from "../context/LanguageContext";
 import { defaultSessionTitle, sessionGreeting, officinaUnassignedWelcome } from "../lib/sessionTitles";
 import { isEngineeringCharacterLocked } from "../lib/engineeringSession";
+import { canExtendWorldline } from "../lib/worldlineLock";
+import { storyCastAllowed } from "../lib/storyCast";
 import { characterDisplayName } from "../lib/characterNames";
 import { useChatEngine } from "../hooks/useChatEngine";
 import { useChartaSelves } from "../hooks/useChartaSelves";
@@ -371,17 +373,30 @@ export default function Home() {
         ui.setEffect("curtain");
     };
 
+    const saveChatWorldline = (next: import("../lib/storyWorldline").StoryWorldline) => {
+        if (currentSession?.memoryMode !== "chat") return;
+        if (!canExtendWorldline(currentSession.storyWorldline, next)) {
+            ui.showToast("已保存的主世界线不可更改；附属世界观只能追加。");
+            return;
+        }
+        cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? {
+            ...s, storyWorldline: next,
+            characterId: s.characterId && [...CHARACTERS, ...charta.characters].some(char =>
+                char.id === s.characterId && storyCastAllowed(char, next)) ? s.characterId : "",
+        } : s));
+    };
+
     const createNewSession = (charId: string = activeCharacterId, targetMode?: 'sliding' | 'infinite' | 'novel' | 'chat' | 'lime') => {
         const newId = Date.now().toString();
         const currentMode = currentSession?.memoryMode || 'sliding';
         const nextMode = targetMode || currentMode;
-        const sessionCharId = nextMode === "infinite" ? "" : charId;
+        const sessionCharId = nextMode === "infinite" || nextMode === "chat" ? "" : charId;
 
         const charName = charta.characters.some(c => c.id === charId) ? nameForCharta(charta.characters.find(c => c.id === charId)!, locale) : characterDisplayName(charId, CHARACTERS.find(c => c.id === charId)?.name, locale);
 
         let initContent = "";
         if (nextMode === 'infinite') initContent = "欢迎来到 Shiorivia。请从右侧栏选择一位角色工程师，再开始合作。";
-        if (nextMode === 'chat') initContent = sessionGreeting("chat", charName, locale);
+        if (nextMode === 'chat') initContent = "欢迎来到 Umbra。请先在左侧配置世界线，再在右侧选择聊天角色。";
 
         const initialMessages: any[] = [];
         if (initContent) {
@@ -833,6 +848,10 @@ export default function Home() {
 
                 <SidebarLeft
                     isOpen={ui.leftSidebarOpen} onClose={() => ui.setLeftSidebarOpen(false)}
+                    currentMode={currentSession?.memoryMode}
+                    chatWorldline={currentSession?.memoryMode === "chat" ? currentSession.storyWorldline : undefined}
+                    onSaveChatWorldline={saveChatWorldline}
+                    storyWorlds={worldLibrary.worlds}
 
                     expandedGroups={Array.isArray(config.expandedGroups) ? config.expandedGroups : []}
                     setExpandedGroups={(action: any) => {
@@ -938,6 +957,7 @@ export default function Home() {
 
                     handleSend={engine.handleSend} stopGeneration={engine.stopGeneration}
                     handleRegenerate={engine.handleRegenerate} handleDeleteMessage={engine.handleDeleteMessage}
+                    onCompleteEngineeringOutput={engine.completeEngineeringOutput}
                     onGenerateDraw={engine.generateDraw} imageSettings={config.imageSettings} useImageGen={config.imageGen}
                     handleCopy={(t: string, i: number) => {
                         navigator.clipboard.writeText(t);
