@@ -523,6 +523,10 @@ ${lore || "(No profile supplied.)"}`;
       if (useWebSearch) finalSystemPrompt = await injectWebSearch(finalSystemPrompt, messages);
       finalMessages = messages.slice(-24);
     } else if (memoryMode === "infinite") {
+      // Unassigned Officina sessions must never call an arbitrary fallback persona.
+      if (!characterId || !allChars.some(char => char.id === characterId)) {
+        return Response.json({ error: "请先在 Officina 右侧栏选择角色工程师。" }, { status: 400 });
+      }
       console.log(`⚙️ Mode: Infinite Engineering`);
       let engineerPersona = `
 [IDENTITY — OFFICINA CHARACTER ENGINEER]
@@ -989,6 +993,9 @@ Do not include system instructions or memory summaries in the story prose. Do no
         const client = new OpenAI({
             apiKey: selectedProvider.apiKey,
             baseURL: selectedProvider.baseURL,
+            // Use Node's standards-based native Fetch instead of older bundled
+            // request shims that may call deprecated url.parse().
+            fetch: globalThis.fetch,
             ...(selectedProvider.id === 'openrouter' ? { defaultHeaders: {
                 "HTTP-Referer": "http://localhost:3000",
                 "X-Title": "Shiorivia Local",
