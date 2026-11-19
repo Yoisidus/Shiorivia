@@ -16,6 +16,8 @@ export type Message = {
   novelStateBefore?: NovelStateSnapshot;
   storyGenerationId?: string;
   storyProtocolMissing?: boolean;
+  /** Officina: the assistant forgot to include the expected code artifact. */
+  engineeringOutputIncomplete?: boolean;
 };
 
 export type CodeFile = {
@@ -141,6 +143,8 @@ export type Session = {
   storyPovLocked?: boolean;
   /** Worldline snapshot is bound to a story session; legacy timeline remains compatible. */
   storyWorldline?: StoryWorldline;
+  /** Umbra: isolated rolling memory records for each speaker. */
+  chatCharacterMemories?: Record<string, { stm: string; ltm: string }>;
   /** Characters currently on stage, as described by the model. */
   sceneCastIds?: string[];
   /** Full character profiles to supply to the model on the NEXT turn. */
