@@ -18,6 +18,7 @@ import { completeStoryProtagonist } from "../lib/storyProtagonist";
 import { mayReviewSessionTitle } from "../lib/titleReview";
 import { extractInlineTitle } from "../lib/inlineTitle";
 import { extractEngineeringTurnMemory } from "../lib/engineeringTurnMemory";
+import { lastStoryGameState, storyProseWithoutState, stripStoryThinking } from "../lib/storyResponseProtocol";
 import { aiConversationMessages, isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { engineeringOutputIncomplete, OFFICINA_COMPLETION_REQUEST } from "../lib/engineeringCompletion";
 
@@ -262,6 +263,7 @@ export const useChatEngine = ({
             }
 
             
+            if (currentSession.memoryMode === "sliding") fullText = stripStoryThinking(fullText);
             const titleFromSameGeneration = extractInlineTitle(fullText);
             fullText = titleFromSameGeneration.text;
             const extractedEngineerMemory = currentSession.memoryMode === "infinite"
@@ -344,13 +346,13 @@ export const useChatEngine = ({
             // narrative but before the trailing structured state. Ask for ONE brief
             // state-only extraction; do not regenerate/overwrite the story prose.
             let storyProtocolMissing = false;
-            const existingGameBlock = fullText.match(/<game_state>([\s\S]*?)<\/game_state>/i);
+            const existingGameBlock = lastStoryGameState(fullText);
             let validGameJson = false;
             if (existingGameBlock) {
                 try {
-                    const value = normalizeStoryProtocol(JSON.parse(existingGameBlock[1]));
+                    const value = normalizeStoryProtocol(JSON.parse(existingGameBlock.json));
                     validGameJson = isUsableStoryProtocol(value);
-                } catch { /* A broken trailing JSON block must not be accepted. */ }
+                } catch (error) { console.warn("Rejected story state JSON (repair if needed):", error); }
             }
             if (currentSession.memoryMode === "sliding" && !validGameJson) {
                 try {
@@ -395,17 +397,16 @@ export const useChatEngine = ({
                     if (!isUsableStoryProtocol(recovered)) {
                         throw new Error("State repair returned incomplete fields: " + storyProtocolIssues(recovered).join("; "));
                     }
-                    // Replace malformed completed blocks so the first-match parser sees the repaired state.
-                    const openTagIndex = fullText.toLowerCase().lastIndexOf("<game_state>");
-                    const preservedProse = existingGameBlock ? fullText.replace(existingGameBlock[0], "").trimEnd()
-                        : openTagIndex >= 0 ? fullText.slice(0, openTagIndex).trimEnd() : fullText;
+                    // State recovery cannot replace user-visible prose. A literal
+                    // <game_state> mentioned in <thinking> is NOT the state anchor.
+                    const preservedProse = storyProseWithoutState(fullText);
                     fullText = `${preservedProse}\n\n<game_state>${JSON.stringify(recovered)}</game_state>`;
                 } catch (error) {
                     console.warn("Story state recovery skipped:", error);
                 }
-                const finalGameBlock = fullText.match(/<game_state>([\s\S]*?)<\/game_state>/i);
+                const finalGameBlock = lastStoryGameState(fullText);
                 try {
-                    const state = finalGameBlock ? normalizeStoryProtocol(JSON.parse(finalGameBlock[1])) : null;
+                    const state = finalGameBlock ? normalizeStoryProtocol(JSON.parse(finalGameBlock.json)) : null;
                     storyProtocolMissing = !isUsableStoryProtocol(state);
                 } catch { storyProtocolMissing = true; }
                 if (storyProtocolMissing) showToast("本轮故事没有返回完整状态；已保留正文和上一轮状态，建议重试本轮。");
@@ -607,7 +608,7 @@ export const useChatEngine = ({
             }
 
             const gameRegex = /<game_state>([\s\S]*?)<\/game_state>/i;
-            const gameMatch = currentText.match(gameRegex);
+            const gameMatch = currentSession.memoryMode === "sliding" ? lastStoryGameState(currentText) : currentText.match(gameRegex);
             if (currentSession.memoryMode === "novel") {
                 // Novel owns <novel_state>; a stray Story protocol must not mutate
                 // novel character/status fields or leak into the reading view.
@@ -615,8 +616,8 @@ export const useChatEngine = ({
             }
             if (gameMatch && currentSession.memoryMode === "sliding") {
                 try {
-                    const parsed = normalizeStoryProtocol(JSON.parse(gameMatch[1]));
-                    currentText = currentText.replace(gameRegex, "").trim();
+                    const parsed = normalizeStoryProtocol(JSON.parse("json" in gameMatch ? gameMatch.json : gameMatch[1]));
+                    currentText = storyProseWithoutState(currentText).trim();
                     if (currentSession.memoryMode === "sliding" && !isUsableStoryProtocol(parsed)) {
                         throw new Error("Incomplete game_state JSON: " + storyProtocolIssues(parsed).join("; "));
                     }
