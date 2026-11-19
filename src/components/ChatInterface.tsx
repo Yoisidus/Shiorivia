@@ -607,6 +607,10 @@ export const ChatInterface = ({
                             )}
 
                             <div className="flex flex-col gap-1.5 max-w-[85%] items-start w-full">
+                                {currentSession.memoryMode === "chat" && msg.role === "assistant" && msg.modelName !== "System" &&
+                                  <span className="px-1 text-[10px] font-semibold text-[#638671]">
+                                    {characterDisplayName(msgChar.id, msgChar.name, locale)} · {msgChar.sub || "Umbra"}
+                                  </span>}
 
                                 {files.length > 0 && <div className="flex gap-2 justify-end w-full flex-wrap">{files.map((f: any, idx: number) => <IllustratedImage key={idx} src={f} alt="附加图片" compact onOpen={setPreviewImage} />)}</div>}
 
