@@ -934,7 +934,8 @@ export default function Home() {
                 <ChatInterface
                     onOpenHub={() => setShowModeHub(true)}
                     onOpenSettings={() => setShowSettingsCenter(true)}
-                    onOpenMemory={() => setShowMemoryVault(true)}
+                    onOpenMemory={() => currentSession?.memoryMode === "chat" && !currentSession.characterId
+                        ? ui.showToast("请先在 Umbra 选择一位角色，再查看其独立记忆。") : setShowMemoryVault(true)}
                     leftSidebarOpen={ui.leftSidebarOpen} setLeftSidebarOpen={ui.setLeftSidebarOpen}
                     rightSidebarOpen={ui.rightSidebarOpen} setRightSidebarOpen={ui.setRightSidebarOpen}
                     setShowLocalWorld={ui.setShowLocalWorld} setShowGlobalWorld={ui.setShowGlobalWorld}
@@ -1011,7 +1012,8 @@ export default function Home() {
                     storySelf={currentSession?.storySelfSnapshot || selfLibrary.selves.find(self => self.id === currentSession?.storySelfId) || null}
                     onStoryRoleChange={changeStoryRole} onStoryPovChange={changeStoryPov}
                     currentCharacter={dynamicCharacter} currentSession={currentSession}
-                    onOpenMemory={() => setShowMemoryVault(true)}
+                    onOpenMemory={() => currentSession?.memoryMode === "chat" && !currentSession.characterId
+                        ? ui.showToast("请先在 Umbra 选择一位角色，再查看其独立记忆。") : setShowMemoryVault(true)}
                     activeCharacterId={activeCharacterId} setActiveCharacterId={setActiveCharacterId}
                     createNewSession={createNewSession} handleSend={engine.handleSend} setSessions={cloud.setSessions} currentSessionId={currentSessionId}
                     voiceVariant={voiceVariant} onRepoUpdate={engine.handleRepoUpdate}
