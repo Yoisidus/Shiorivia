@@ -1,6 +1,7 @@
 "use client";
 import { Plus, Trash2, Globe2 } from "lucide-react";
 import type { ChartaWorld } from "../lib/chartaWorld";
+import { canExtendWorldline } from "../lib/worldlineLock";
 import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, BANG_DREAM_CANON, worldlineFor, type StoryWorldline } from "../lib/storyWorldline";
 
 const selectStyle = "mt-1 w-full rounded-lg border border-[#dfe6eb] bg-white px-3 py-2.5 text-xs text-[#253f58] outline-none focus:border-[#bfaa7b]";
@@ -10,22 +11,28 @@ const worldsList = (worlds: ChartaWorld[]) => [
   ...worlds,
 ];
 
-export function ViaeWorldlineEditor({ value, onChange, worlds }: {
+export function ViaeWorldlineEditor({ value, onChange, worlds, saved }: {
   value: StoryWorldline;
   onChange: (next: StoryWorldline) => void;
   worlds: ChartaWorld[];
+  saved?: StoryWorldline;
 }) {
   const available = worldsList(worlds);
+  const primaryLocked = Boolean(saved);
+  const safeChange = (next: StoryWorldline) => { if (canExtendWorldline(saved, next)) onChange(next); };
+  const protectedSecondary = new Set(saved?.crossWorld?.secondary.map(w => w.worldId) || []);
   const stages = value.canonTimeline || [];
   const cross = value.crossWorld || { enabled: false, includeUniversal: false, secondary: [] };
-  const modifyCross = (next: typeof cross) => onChange({ ...value, crossWorld: next });
+  const modifyCross = (next: typeof cross) => safeChange({ ...value, crossWorld: next });
   const changeWorld = (id: string) => {
+    if (primaryLocked) return;
     const chosen = available.find(w => w.id === id);
     const next = chosen?.id === BANG_DREAM_WORLD_ID ? worldlineFor(null)
       : worldlineFor(worlds.find(w => w.id === id) || null);
     onChange(next);
   };
   const chooseSecondary = (index: number, id: string) => {
+    if (protectedSecondary.has(cross.secondary[index]?.worldId)) return;
     const w = available.find(item => item.id === id);
     if (!w) return;
     modifyCross({ ...cross, secondary: cross.secondary.map((entry, i) => i === index
@@ -48,14 +55,14 @@ export function ViaeWorldlineEditor({ value, onChange, worlds }: {
     <div className="space-y-4 text-[#29445c]">
       <div className="flex items-center gap-2 text-xs font-semibold"><Globe2 size={15} className="text-[#b69a64]"/> WORLDLINE / 道路世界线</div>
       <label className="block text-[11px] font-medium text-[#64788a]">主世界观 · WORLD *
-        <select value={value.worldId} onChange={e => changeWorld(e.target.value)} className={selectStyle}>
+        <select disabled={primaryLocked} value={value.worldId} onChange={e => changeWorld(e.target.value)} className={selectStyle}>
           {available.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
         </select>
       </label>
       <div className="flex gap-2">
         {(["canon", "au"] as const).map(kind =>
           <button key={kind} type="button" aria-pressed={value.kind === kind}
-            onClick={() => onChange({ ...value, kind, era: "", period: "", baseEra: undefined, basePeriod: undefined })}
+            disabled={primaryLocked} onClick={() => safeChange({ ...value, kind, era: "", period: "", baseEra: undefined, basePeriod: undefined })}
             className={`rounded-lg border px-4 py-2 text-xs ${value.kind === kind ? "border-[#bda475] bg-[#fff8e9] text-[#795e2f]" : "border-[#e1e6eb] bg-white text-[#8090a1]"}`}>
             {kind === "canon" ? "原作 · ORIGINAL" : "平行世界 · AU"}</button>)}
       </div>
@@ -63,27 +70,27 @@ export function ViaeWorldlineEditor({ value, onChange, worlds }: {
         <p className="mb-2 text-[11px] text-[#718495]">AU 原作基准 · 角色认知截至这一时期</p>
         <div className="grid grid-cols-2 gap-2">
           <label className="text-[11px]">基准 ERA *<select value={value.baseEra || ""} className={selectStyle}
-            onChange={e => onChange({ ...value, baseEra: e.target.value, basePeriod: undefined })}>
+            disabled={primaryLocked} onChange={e => safeChange({ ...value, baseEra: e.target.value, basePeriod: undefined })}>
             <option value="">选择 ERA</option>{eras.map(v => <option key={v} value={v}>{v}</option>)}</select></label>
           <label className="text-[11px]">基准 PERIOD *<select value={value.basePeriod || ""} className={selectStyle}
-            onChange={e => onChange({ ...value, basePeriod: e.target.value, baseEra: stages.find(s => s.period === e.target.value)?.era || value.baseEra })}>
+            disabled={primaryLocked} onChange={e => safeChange({ ...value, basePeriod: e.target.value, baseEra: stages.find(s => s.period === e.target.value)?.era || value.baseEra })}>
             <option value="">选择 PERIOD</option>{base.map(s => <option key={s.period} value={s.period}>{s.period}</option>)}</select></label>
         </div>
       </div>}
       <div className="grid grid-cols-2 gap-2">
         <label className="text-[11px]">ERA · 时代 *{value.kind === "canon"
-          ? <select value={value.era} className={selectStyle} onChange={e => onChange({ ...value, era: e.target.value, period: "" })}>
+          ? <select disabled={primaryLocked} value={value.era} className={selectStyle} onChange={e => safeChange({ ...value, era: e.target.value, period: "" })}>
               <option value="">选择 ERA</option>{eras.map(v => <option key={v} value={v}>{v}</option>)}</select>
-          : <input value={value.era} maxLength={100} onChange={e => onChange({ ...value, era: e.target.value })} className={selectStyle} placeholder="AU 时代"/>}</label>
+          : <input disabled={primaryLocked} value={value.era} maxLength={100} onChange={e => safeChange({ ...value, era: e.target.value })} className={selectStyle} placeholder="AU 时代"/>}</label>
         <label className="text-[11px]">PERIOD · 时期 *{value.kind === "canon"
-          ? <select value={value.period} className={selectStyle} onChange={e => onChange({
+          ? <select disabled={primaryLocked} value={value.period} className={selectStyle} onChange={e => onChange({
               ...value, period: e.target.value, era: stages.find(s => s.period === e.target.value)?.era || value.era })}>
               <option value="">选择 PERIOD</option>{periods.map(s => <option key={s.period} value={s.period}>{s.period}</option>)}</select>
-          : <input value={value.period} maxLength={100} onChange={e => onChange({ ...value, period: e.target.value })} className={selectStyle} placeholder="AU 时期"/>}</label>
+          : <input disabled={primaryLocked} value={value.period} maxLength={100} onChange={e => safeChange({ ...value, period: e.target.value })} className={selectStyle} placeholder="AU 时期"/>}</label>
       </div>
       <div className={rowStyle}>
         <label className="flex items-center justify-between gap-2 text-xs font-semibold">
-          跨世界观 · CROSS-WORLD <input type="checkbox" checked={cross.enabled}
+          跨世界观 · CROSS-WORLD <input type="checkbox" disabled={Boolean(saved?.crossWorld?.enabled)} checked={cross.enabled}
             onChange={e => modifyCross({ ...cross, enabled: e.target.checked, includeUniversal: e.target.checked && cross.includeUniversal,
               secondary: e.target.checked ? cross.secondary : [] })} className="h-4 w-4 accent-[#b59b66]"/>
         </label>
@@ -95,17 +102,17 @@ export function ViaeWorldlineEditor({ value, onChange, worlds }: {
             return <div key={index} className="space-y-2 rounded-lg border border-[#e4e7e7] bg-white p-3">
               <div className="flex items-center justify-between text-xs font-medium">
                 <span>其他世界观 {index + 1}</span>
-                <button type="button" aria-label="移除附属世界观" onClick={() => modifyCross({ ...cross, secondary: cross.secondary.filter((_, i) => i !== index) })}><Trash2 size={14}/></button>
+                <button type="button" disabled={protectedSecondary.has(entry.worldId)} aria-label="移除附属世界观" onClick={() => modifyCross({ ...cross, secondary: cross.secondary.filter((_, i) => i !== index) })}><Trash2 size={14}/></button>
               </div>
-              <select value={entry.worldId} className={selectStyle} onChange={e => chooseSecondary(index, e.target.value)}>
+              <select disabled={protectedSecondary.has(entry.worldId)} value={entry.worldId} className={selectStyle} onChange={e => chooseSecondary(index, e.target.value)}>
                 {available.filter(w => w.id === entry.worldId || (w.id !== value.worldId && !cross.secondary.some(s => s.worldId === w.id))).map(w =>
                   <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-[11px]">基准 ERA *<select value={entry.baseEra} className={selectStyle}
+                <label className="text-[11px]">基准 ERA *<select disabled={protectedSecondary.has(entry.worldId)} value={entry.baseEra} className={selectStyle}
                   onChange={e => modifyCross({ ...cross, secondary: cross.secondary.map((s, i) => i === index ? { ...s, baseEra: e.target.value, basePeriod: "" } : s) })}>
                   <option value="">选择 ERA</option>{eras.map(era => <option key={era} value={era}>{era}</option>)}</select></label>
-                <label className="text-[11px]">基准 PERIOD *<select value={entry.basePeriod} className={selectStyle}
+                <label className="text-[11px]">基准 PERIOD *<select disabled={protectedSecondary.has(entry.worldId)} value={entry.basePeriod} className={selectStyle}
                   onChange={e => modifyCross({ ...cross, secondary: cross.secondary.map((s, i) => i === index
                     ? { ...s, basePeriod: e.target.value, baseEra: s.canonTimeline.find(t => t.period === e.target.value)?.era || s.baseEra } : s) })}>
                   <option value="">选择 PERIOD</option>{periods.map(p => <option key={p.period} value={p.period}>{p.period}</option>)}</select></label>
