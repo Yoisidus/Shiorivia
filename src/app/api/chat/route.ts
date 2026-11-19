@@ -5,7 +5,7 @@ import { loreForBangDreamPeriod } from "../../../lib/loreTimeline";
 import { GEMINI_NARRATIVE_STYLE_PROMPT, shouldApplyGeminiNarrativeStyle } from "../../../lib/geminiNarrativeStyle";
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
-import { defaultModelForProvider } from "../../../lib/localProviders";
+
 import { outputLanguageInstruction } from "../../../lib/locale";
 import { normalizeLocale, OUTPUT_LANGUAGE_NAME } from "../../../lib/locale";
 import { chartaWireCharacters } from "../../../lib/chartaWire";
@@ -883,7 +883,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
     // supplied by the story/novel cast selector, or by VIAE's fixed members.
     const selectedProvider = getServerLocalProvider(provider);
     if (!selectedProvider) return new Response(JSON.stringify({ error: "Provider not configured" }), { status: 400 });
-    const routedModel = (typeof model === "string" && model.trim()) || defaultModelForProvider(selectedProvider.id);
+    const routedModel = typeof model === "string" ? model.trim() : "";
     if (!routedModel) return new Response(JSON.stringify({ error: "Select a model for this provider" }), { status: 400 });
 
     // Local-only, opt-in diagnostics. Never include API keys in the request log.
