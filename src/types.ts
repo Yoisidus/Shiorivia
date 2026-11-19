@@ -124,6 +124,8 @@ export type Session = {
   titleAutoManaged?: boolean;
   folderId: string | null; 
   characterId: string;
+  /** Officina: the selected character becomes immutable when first user turn is confirmed. */
+  engineeringCharacterLocked?: boolean;
   voiceVariant?: string; 
   messages: Message[]; 
   updatedAt: number;
