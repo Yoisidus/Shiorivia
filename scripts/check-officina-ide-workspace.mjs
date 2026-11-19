@@ -20,7 +20,8 @@ for (const invalid of ["../.env", "src/../../.env", "src/.env.local", "src/.git/
 assert.equal(isWorkspaceTextFile("src/components/App.tsx"), true);
 assert.equal(isWorkspaceTextFile("assets/logo.png"), false);
 assert.equal(isWorkspaceTextFile("private.pem"), false);
-assert.equal(isWorkspaceTextFile("package-lock.json"), false);
+assert.equal(isWorkspaceTextFile("package-lock.json"), true);
+assert.equal(isWorkspaceTextFile("Cargo.lock"), true);
 
 const read = path => readFileSync(new URL("../" + path, import.meta.url), "utf8");
 const fs = read("src/lib/ideWorkspace.ts");
