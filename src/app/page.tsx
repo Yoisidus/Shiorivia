@@ -744,7 +744,7 @@ export default function Home() {
                 setSessions={cloud.setSessions}
                 onExit={() => { setShowModeHub(true); triggerCurtain(); }}
                 onOpenSettings={() => setShowSettingsCenter(true)}
-                updateSessionTitle={(id: string, t: string) => cloud.setSessions(p => p.map(s => s.id === id ? { ...s, title: t } : s))}
+                updateSessionTitle={(id: string, t: string) => cloud.setSessions(p => p.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false } : s))}
                 deleteMessage={engine.handleDeleteMessage}
                 updateSessionInfo={(id: string, up: any) => cloud.setSessions(p => p.map(s => s.id === id ? { ...s, ...up } : s))}
             />
