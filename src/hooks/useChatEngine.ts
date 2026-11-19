@@ -16,6 +16,7 @@ import { storyCastAllowed, selectStoryCastIds } from "../lib/storyCast";
 import { snapshotStoryState, restoreStoryState, emptyStoryState, isUsableStoryProtocol, normalizeStoryProtocol, storyProtocolIssues } from "../lib/storyStateRecovery";
 import { completeStoryProtagonist } from "../lib/storyProtagonist";
 import { mayReviewSessionTitle, shouldReviewTitleAtTurn } from "../lib/titleReview";
+import { aiConversationMessages, isEngineeringCharacterLocked } from "../lib/engineeringSession";
 
 export const useChatEngine = ({
     currentSession, currentSessionId, setSessions,
@@ -95,6 +96,17 @@ export const useChatEngine = ({
         const isRegen = overrideMessages !== undefined;
         const txt = overrideInput !== undefined ? overrideInput : input.trim();
         if (!isRegen && !txt && !selectedFile) return;
+        if (currentSession.memoryMode === "infinite") {
+            const engineerId = currentSession.characterId || "";
+            if (!engineerId || engineerId !== activeCharacterId ||
+                ![...CHARACTERS, ...customCharacters].some((char: any) => char.id === engineerId)) {
+                showToast("请先在右侧栏选择一位角色工程师，再发送消息。");
+                return;
+            }
+            if (!isRegen && !isEngineeringCharacterLocked(currentSession)) {
+                if (!window.confirm("确认与当前角色开启 Officina 工程会话吗？\n发送第一条消息后，将永久绑定此角色，当前会话无法切换。")) return;
+            }
+        }
         const novelMode = currentSession.memoryMode === "novel";
         const novelLegacySelfId = novelMode && currentSession.storyRole === undefined ? currentSession.novelDraft?.selfId : null;
         const storyRole = (currentSession.memoryMode === "sliding" || novelMode)
@@ -153,15 +165,18 @@ export const useChatEngine = ({
                 } : {}),
             } : {}),
             updatedAt: Date.now(),
-            voiceVariant 
+            ...(s.memoryMode === "infinite" ? { engineeringCharacterLocked: true } : {}),
+            voiceVariant
         } : s));
 
         abortControllerRef.current = new AbortController();
 
-        let payloadMessages = msgs;
+        // Shiorivia's initial system greeting stays visible in the interface but
+        // must never be used as AI conversation context, including legacy saves.
+        let payloadMessages = aiConversationMessages(msgs);
         const MAX_CONTEXT_MSG = 20;
-        if (msgs.length > MAX_CONTEXT_MSG) {
-            payloadMessages = [msgs[0], ...msgs.slice(-MAX_CONTEXT_MSG)];
+        if (payloadMessages.length > MAX_CONTEXT_MSG) {
+            payloadMessages = payloadMessages.slice(-MAX_CONTEXT_MSG);
             console.log(`✂️ Context Trimmed: ${msgs.length} -> ${payloadMessages.length}`);
         }
 
