@@ -40,7 +40,11 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
   const stop = () => abortRef.current?.abort();
 
   const send = async (regenerate = false) => {
-    if (busyRef.current || !activeGroup || !provider || !model) return;
+    if (busyRef.current || !activeGroup || !provider) return;
+    if (!model.trim()) {
+      window.alert("请先为当前供应商选择模型，确认后再发送。");
+      return;
+    }
     if (activeGroup.pov === "insider" && !activeSelf) { notify?.("参与模式需要当前 Charta 启用的自设。"); return; }
     if (activeGroup.type === "direct" && activeGroup.members.length !== (activeGroup.pov === "outsider" ? 2 : 1)) {
       notify?.(activeGroup.pov === "outsider" ? "旁观小径需要两位角色" : "参与小径需要一位角色");
