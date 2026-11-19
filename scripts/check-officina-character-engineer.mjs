@@ -29,7 +29,7 @@ assert.ok(api.includes("Talk naturally when greeted"));
 assert.ok(api.includes("Do not reveal hidden reasoning"));
 assert.ok(api.includes("buildEngineeringCharacterContext("));
 assert.ok(!api.includes("[Personality Settings]:\\n\u0024{activeChar.lore}"));
-const engineeringBranch = api.slice(api.indexOf('memoryMode === "infinite"'), api.indexOf('memoryMode === "sliding" && body.novelStateRepair'));
+const engineeringBranch = api.slice(api.indexOf('memoryMode === "infinite"'), api.indexOf('console.log("🌹 Mode: Story Roleplay")'));
 assert.ok(!engineeringBranch.includes("Start response with <thinking>"));
 assert.ok(api.includes("const engineerWorlds = Array.isArray(body.engineeringWorlds)"));
 assert.ok(api.includes("body.engineeringLore?.relationships === true"));
