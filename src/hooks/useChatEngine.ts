@@ -15,7 +15,9 @@ import { stripNovelSuggestions } from "../lib/novelSuggestions";
 import { storyCastAllowed, selectStoryCastIds } from "../lib/storyCast";
 import { snapshotStoryState, restoreStoryState, emptyStoryState, isUsableStoryProtocol, normalizeStoryProtocol, storyProtocolIssues } from "../lib/storyStateRecovery";
 import { completeStoryProtagonist } from "../lib/storyProtagonist";
-import { mayReviewSessionTitle, shouldReviewTitleAtTurn } from "../lib/titleReview";
+import { mayReviewSessionTitle } from "../lib/titleReview";
+import { extractInlineTitle } from "../lib/inlineTitle";
+import { extractEngineeringTurnMemory } from "../lib/engineeringTurnMemory";
 import { aiConversationMessages, isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { engineeringOutputIncomplete, OFFICINA_COMPLETION_REQUEST } from "../lib/engineeringCompletion";
 
@@ -41,42 +43,6 @@ export const useChatEngine = ({
             abortControllerRef.current.abort(); 
             setIsLoading(false); 
         } 
-    };
-
-    const requestAutomaticTitle = (history: any[], answer: string, modelName: string, generationId: string) => {
-        const mode = currentSession?.memoryMode;
-        // Review all four conversation modes; never overwrite user-authored titles.
-        const originalTitle = currentSession.title;
-        if (!mayReviewSessionTitle(currentSession, mode)) return;
-        const userTurns = history.filter(message => message.role === "user").length;
-        if (!shouldReviewTitleAtTurn(userTurns)) return;
-        const recent = [...aiConversationMessages(history), { role: "assistant", content: answer }].slice(-12)
-            .map(message => {
-                const role = message.role === "assistant" ? "ASSISTANT" : "USER";
-                const raw = typeof message.content === "string" ? message.content : JSON.stringify(message.content || "");
-                const clean = stripNovelSuggestions(stripNovelState(raw))
-                    .replace(/<file\b[^>]*>[\s\S]*?<\/file>/gi, " [code] ")
-                    .replace(/<game_state\b[^>]*>[\s\S]*?<\/game_state>/gi, "")
-                    .replace(/<draw\b[^>]*>[\s\S]*?<\/draw>/gi, "")
-                    .replace(/<meta\b[^>]*\/?\s*>/gi, "")
-                    .replace(/<audio\b[^>]*>[\s\S]*?<\/audio>/gi, "").trim();
-                return `${role}: ${clean.slice(0, 500)}`;
-            }).join("\n");
-        void fetch("/api/summarize", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mode: "title", currentTitle: originalTitle,
-                text: recent.slice(-3500), model: modelName, provider: apiProvider, uiLanguage: locale }),
-        }).then(response => response.ok ? response.json() : null).then(result => {
-            const title = typeof result?.summary === "string" ? result.summary.trim().slice(0, 60) : "";
-            if (!title || title === "KEEP" || title === originalTitle || title.length < 2) return;
-            setSessions((prev: Session[]) => prev.map(session => {
-                if (session.id !== currentSessionId || !mayReviewSessionTitle(session, mode) ||
-                    session.title !== originalTitle ||
-                    !session.messages.some((message: any) => message.storyGenerationId === generationId) ||
-                    session.messages.filter(message => message.role === "user").length !== userTurns) return session;
-                return { ...session, title, titleAutoManaged: true };
-            }));
-        }).catch(error => console.warn("Automatic title review skipped:", error));
     };
 
     const handleSend = async (
@@ -205,6 +171,9 @@ export const useChatEngine = ({
                 body: JSON.stringify({
                     messages: payloadMessages.map((m: any) => ({ role: m.role, content: m.content, characterId: m.characterId })),
                     model: modelToUse,
+                    currentSessionTitle: currentSession.title,
+                    titleReviewTurn: msgs.filter((m: any) => m.role === "user").length,
+                    titleManuallyEdited: !mayReviewSessionTitle(currentSession, currentSession.memoryMode),
                     characterId: activeCharacterId,
                     variant: voiceVariant,
                     globalWorldInfo,
@@ -288,11 +257,27 @@ export const useChatEngine = ({
                 fullText += chunk;
 
                 setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? {
-                    ...s, messages: [...msgs, { role: "assistant", content: fullText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }]
+                    ...s, messages: [...msgs, { role: "assistant", content: extractInlineTitle(fullText).text, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }]
                 } : s));
             }
 
             
+            const titleFromSameGeneration = extractInlineTitle(fullText);
+            fullText = titleFromSameGeneration.text;
+            const extractedEngineerMemory = currentSession.memoryMode === "infinite"
+                ? extractEngineeringTurnMemory(fullText) : { text: fullText, memory: null };
+            fullText = extractedEngineerMemory.text;
+            if (titleFromSameGeneration.title && mayReviewSessionTitle(currentSession, currentSession.memoryMode)) {
+                const proposal = titleFromSameGeneration.title;
+                const expectedUserTurns = msgs.filter((m: any) => m.role === "user").length;
+                const oldTitle = currentSession.title;
+                setSessions((prev: Session[]) => prev.map(s => s.id === currentSessionId
+                    && s.title === oldTitle && mayReviewSessionTitle(s, s.memoryMode)
+                    && s.messages.filter(m => m.role === "user").length === expectedUserTurns
+                    && s.messages.some(m => m.storyGenerationId === generationId)
+                        ? { ...s, title: proposal, titleAutoManaged: true } : s));
+            }
+
             if (currentSession.memoryMode === "chat") {
                 // Character Chat preserves distinct speaker IDs and memory ownership.
                 setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? {
@@ -301,7 +286,6 @@ export const useChatEngine = ({
                     updatedAt: Date.now(),
                 } : s));
 
-                if (fullText.trim()) requestAutomaticTitle(msgs, fullText, modelToUse, generationId);
                 // The active provider summarizes Chat memories without changing Local JSON format.
                 // Run this after the visible response so memory work does not block the conversation.
                 if (fullText.trim()) {
@@ -851,7 +835,18 @@ export const useChatEngine = ({
                     } : s));
                 }
             }
-            if (currentText.trim()) requestAutomaticTitle(msgs, currentText, modelToUse, generationId);
+            if (currentSession.memoryMode === "infinite" && extractedEngineerMemory.memory) {
+                const summaryLine = `• ${extractedEngineerMemory.memory}`;
+                setSessions((prev: Session[]) => prev.map(s => s.id !== currentSessionId
+                    || !s.messages.some(m => m.storyGenerationId === generationId) ? s : {
+                        ...s,
+                        stm: formatLocalMemoryEntries([
+                            ...parseLocalMemoryEntries(s.stm || ""), summaryLine,
+                        ].slice(-LOCAL_STM_SLOTS)),
+                        turnCount: (s.turnCount || 0) + 1,
+                        updatedAt: Date.now(),
+                    }));
+            }
             if ((currentSession.memoryMode === 'sliding' && !storyProtocolMissing) || currentSession.memoryMode === 'novel') {
                 const textToSummarize = currentSession.memoryMode === 'novel' ? stripNovelSuggestions(currentText) : `User: ${txt}\nAI: ${currentText}\n`;
                 const summarizeMode = currentSession.memoryMode === 'novel' ? 'novel_chapter' : 'micro';
