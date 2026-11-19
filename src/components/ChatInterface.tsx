@@ -599,8 +599,8 @@ export const ChatInterface = ({
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} key={i} className={`group flex gap-4 max-w-3xl md:max-w-4xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             {msg.role === 'assistant' && (
                                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs border-2 border-white flex-shrink-0 shadow-sm relative group/avatar"
-                                    style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : msgChar.hex }}>
-                                    {currentSession?.memoryMode === 'sliding' ? <Guitar size={14} /> : msgChar.avatar}
+                                    style={{ backgroundColor: msg.modelName === "System" ? "#8da2b4" : currentSession?.memoryMode === 'sliding' ? '#e11e54' : msgChar.hex }}>
+                                    {msg.modelName === "System" ? <Hammer size={14} /> : currentSession?.memoryMode === 'sliding' ? <Guitar size={14} /> : msgChar.avatar}
                                 </div>
                             )}
 
@@ -613,7 +613,7 @@ export const ChatInterface = ({
                                 {answer && (msg.role !== 'assistant' || Boolean(cleanDrawTag(answer).trim())) && (
                                     <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm w-fit ${msg.role === 'user' ? 'bg-slate-800 text-white rounded-br-none ml-auto' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'}`}>
                                         {msg.role === 'assistant' ? renderContent(answer, setPreviewImage, selfColors) : <div className="whitespace-pre-wrap">{answer}</div>}
-                                        {msg.role === 'assistant' && msg.modelName && <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-1.5 text-[9px] font-bold tracking-wider opacity-40 uppercase"><Cpu size={10} /> {msg.modelName.split('/').pop()}</div>}
+                                        {msg.role === 'assistant' && msg.modelName && msg.modelName !== "System" && <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-1.5 text-[9px] font-bold tracking-wider opacity-40 uppercase"><Cpu size={10} /> {msg.modelName.split('/').pop()}</div>}
                                     </div>
                                 )}
                                 {msg.role === 'assistant' && msg.storyProtocolMissing && (
@@ -649,7 +649,7 @@ export const ChatInterface = ({
                                                 <button onClick={() => handleDeleteMessage(i, 'user')} className="p-1 hover:text-red-500 rounded"><Trash2 size={12} /></button>
                                             </>
                                         )
-                                    ) : (
+                                    ) : msg.modelName === "System" ? null : (
                                         <>
                                             {useTTS && (
                                                 <div className="relative">
