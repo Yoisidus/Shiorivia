@@ -3,30 +3,64 @@ import { useState, useEffect } from "react";
 import {
     Lock, Check, FileCode, Plus, Trash2, Copy,
     Search, Terminal, X, Maximize2, Minimize2,
-    Sidebar, Play, RefreshCw, Layers, MoreHorizontal, Download, Sparkles
+    Sidebar, Play, RefreshCw, Layers, MoreHorizontal, Download, Sparkles, FolderPlus, Folder, HardDrive
 } from "lucide-react";
 import { CodeFile } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
 
-const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScreen }: any) => {
+const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScreen, projectRoot, onBindProject }: any) => {
     const [files, setFiles] = useState<Record<string, CodeFile>>({});
     const [activeFile, setActiveFile] = useState<string>("");
     const [isEditing, setIsEditing] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [fileMenu, setFileMenu] = useState<string | null>(null);
+    const [diskBaseline, setDiskBaseline] = useState<Record<string, CodeFile>>({});
+    const [tree, setTree] = useState<{ path: string; type: "file" | "directory" }[]>([]);
+    const [projects, setProjects] = useState<string[]>([]);
+    const [busy, setBusy] = useState(false);
+    const [status, setStatus] = useState("");
+    const ideRequest = async (action: string, args: Record<string, unknown> = {}) => {
+        const response = await fetch("/api/ide", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action, ...args }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "IDE 操作失败");
+        return result;
+    };
+    const syncDisk = async (target = projectRoot) => {
+        if (!target) return;
+        setBusy(true);
+        try {
+            const [filesResponse, treeResponse] = await Promise.all([
+                fetch(`/api/ide?action=snapshot&project=${encodeURIComponent(target)}`, { cache: "no-store" }),
+                fetch(`/api/ide?action=tree&project=${encodeURIComponent(target)}`, { cache: "no-store" }),
+            ]);
+            const snapshots = await filesResponse.json(), folders = await treeResponse.json();
+            if (!filesResponse.ok || !treeResponse.ok) throw new Error(snapshots.error || folders.error || "读取失败");
+            const nextFiles = snapshots.files || {};
+            setFiles(nextFiles);
+            setDiskBaseline(nextFiles);
+            setTree(Array.isArray(folders.entries) ? folders.entries : []);
+            setActiveFile(current => current in nextFiles ? current : Object.keys(nextFiles)[0] || "");
+            setIsEditing(false);
+            setStatus(`已同步 IDE/${target} · ${Object.keys(nextFiles).length} 个文件`);
+        } catch (error: any) { setStatus(error.message); alert(error.message); }
+        finally { setBusy(false); }
+    };
 
     const [showSidebar, setShowSidebar] = useState(true);
 
     useEffect(() => {
-        if (repository) {
-            setFiles(repository);
-            if (!activeFile && Object.keys(repository).length > 0) setActiveFile(Object.keys(repository)[0]);
+        if (!projectRoot) {
+            setFiles(repository || {});
+            setDiskBaseline(repository || {});
+            setTree([]);
+            setActiveFile(Object.keys(repository || {})[0] || "");
+        } else {
+            void syncDisk(projectRoot);
         }
-
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
-            setShowSidebar(false);
-        }
-    }, [repository]);
+        if (typeof window !== "undefined" && window.innerWidth < 768) setShowSidebar(false);
+        // Bindings, not unrelated parent rerenders, determine disk ownership.
+    }, [projectRoot, repository]);
 
     const [isRunning, setIsRunning] = useState(false);
     const [consoleOutput, setConsoleOutput] = useState<string | null>(null);
@@ -66,36 +100,80 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         alert("目前仅支持预览 HTML 或运行 Python 哦~");
     };
 
-    const handleSave = () => {
-        if (confirm("⚠️ Commit Changes to Repository?")) {
+    const handleSave = async () => {
+        if (!window.confirm("确认保存所修改的工程文件吗？")) return;
+        if (!projectRoot) {
             onUpdate(files);
             setIsEditing(false);
+            return;
         }
+        setBusy(true);
+        try {
+            for (const [name, file] of Object.entries(files) as [string, CodeFile][]) {
+                if (diskBaseline[name]?.content !== file.content) {
+                    await ideRequest("write", { project: projectRoot, path: name, content: file.content });
+                }
+            }
+            await syncDisk(projectRoot);
+        } catch (error: any) { alert(error.message); }
+        finally { setBusy(false); }
     };
 
     const handleCancel = () => {
-        setFiles(repository || {});
+        setFiles(projectRoot ? diskBaseline : repository || {});
         setIsEditing(false);
     };
 
     const handleNewFile = () => {
-        const name = prompt("Filename (e.g. main.py):");
-        if (name) {
-            setFiles(prev => ({ ...prev, [name]: { name, language: "text", content: "# New File" } }));
-            setActiveFile(name);
-            setIsEditing(true);
-            setShowSidebar(true); 
+        const name = window.prompt("文件路径（例如 src/components/App.tsx）：");
+        if (!name) return;
+        if (!/^[^\\/:*?"<>|]+(?:\/[^\\/:*?"<>|]+)*$/.test(name) || name.split("/").includes("..")) {
+            alert("文件路径不可用。"); return;
         }
+        setFiles(prev => ({ ...prev, [name]: { name, language: name.split(".").pop() || "text", content: "" } }));
+        setActiveFile(name);
+        setIsEditing(true);
+        setShowSidebar(true);
+    };
+    const handleNewFolder = async () => {
+        if (!projectRoot) { alert("请先绑定项目根目录。"); return; }
+        const relative = window.prompt("新建文件夹（支持 src/components 这样的多级路径）：");
+        if (!relative) return;
+        try {
+            await ideRequest("createFolder", { project: projectRoot, path: relative });
+            await syncDisk(projectRoot);
+        } catch (e: any) { alert(e.message); }
+    };
+    const loadProjects = async () => {
+        try {
+            const response = await fetch("/api/ide?action=projects", { cache: "no-store" });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "读取项目失败");
+            setProjects(result.projects || []);
+        } catch (e: any) { alert(e.message); }
+    };
+    const createAndBind = async () => {
+        const name = window.prompt("项目根目录名（存放在 Shiorivia/IDE 下）：");
+        if (!name) return;
+        try {
+            const created = await ideRequest("createProject", { name });
+            onBindProject(created.project);
+            setProjects(prev => [...new Set([...prev, created.project])]);
+        } catch (e: any) { alert(e.message); }
     };
 
-    const handleDelete = (e: React.MouseEvent, name: string) => {
+    const handleDelete = async (e: React.MouseEvent, name: string) => {
         e.stopPropagation();
         setFileMenu(null);
         if (!window.confirm(`确认删除 ${name} 吗？删除后将从当前工程文件库移除。`)) return;
         const updated = { ...files };
         delete updated[name];
+        if (projectRoot && name in diskBaseline) {
+            try { await ideRequest("delete", { project: projectRoot, path: name }); }
+            catch (error: any) { alert(error.message); return; }
+        } else if (!projectRoot) onUpdate(updated);
         setFiles(updated);
-        onUpdate(updated);
+        if (projectRoot) setDiskBaseline(prev => { const next = { ...prev }; delete next[name]; return next; });
         if (activeFile === name) setActiveFile(Object.keys(updated)[0] || "");
     };
     const handleDownload = (e: React.MouseEvent, name: string) => {
