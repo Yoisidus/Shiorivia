@@ -556,6 +556,7 @@ export default function Home() {
                     onToggleEngineeringTransition={() => setConfig(prev => ({ ...prev, engineeringTransition: !prev.engineeringTransition }))}
                     onTestEffect={ui.setEffect}
                     isStory={false}
+                activeMode="hub"
                     storyTheme={config.storyTheme}
                     onStoryThemeChange={(value) => setConfig(prev => ({ ...prev, storyTheme: value }))}
                     activeProvider={apiProvider}
@@ -624,6 +625,7 @@ export default function Home() {
                     onToggleEngineeringTransition={() => setConfig(prev => ({ ...prev, engineeringTransition: !prev.engineeringTransition }))}
                     onTestEffect={ui.setEffect}
                     isStory={false}
+                activeMode="lime"
                     storyTheme={config.storyTheme}
                     onStoryThemeChange={value => setConfig(prev => ({ ...prev, storyTheme: value }))}
                     activeProvider={apiProvider}
@@ -730,6 +732,7 @@ export default function Home() {
                 onToggleEngineeringTransition={() => setConfig(prev => ({ ...prev, engineeringTransition: !prev.engineeringTransition }))}
                 onTestEffect={ui.setEffect}
                 isStory={false}
+                activeMode="novel"
                 storyTheme={config.storyTheme}
                 onStoryThemeChange={value => setConfig(prev => ({ ...prev, storyTheme: value }))}
                 activeProvider={apiProvider}
@@ -1036,6 +1039,7 @@ export default function Home() {
                 onToggleEngineeringTransition={() => setConfig(prev => ({ ...prev, engineeringTransition: !prev.engineeringTransition }))}
                 onTestEffect={ui.setEffect}
                 isStory={currentSession?.memoryMode === 'sliding'}
+                activeMode={currentSession?.memoryMode || "hub"}
                 storyTheme={config.storyTheme}
                 onStoryThemeChange={(value) => setConfig(prev => ({ ...prev, storyTheme: value }))}
                 activeProvider={apiProvider}
