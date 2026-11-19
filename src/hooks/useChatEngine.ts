@@ -780,8 +780,8 @@ export const useChatEngine = ({
                 ? String(currentSession.engineeringProjectRoot || "") : "";
             let diskWriteSucceeded = false;
             if (currentSession.memoryMode === "infinite" && Object.keys(newFiles).length) {
-                const rootTag = currentText.match(/<project\\s+name=["']([^"']+)["']\\s*\\/\\s*>/i);
-                currentText = currentText.replace(/<project\\s+name=["'][^"']+["']\\s*\\/\\s*>/gi, "").trim();
+                const rootTag = currentText.match(/<project\s+name=["']([^"']+)["']\s*\/\s*>/i);
+                currentText = currentText.replace(/<project\s+name=["'][^"']+["']\s*\/\s*>/gi, "").trim();
                 const idePost = async (action: string, detail: Record<string, unknown>) => {
                     const response = await fetch("/api/ide", { method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -807,7 +807,7 @@ export const useChatEngine = ({
                     showToast(`IDE 文件写入失败；代码保留在会话里：${error.message}`);
                 }
             } else if (currentSession.memoryMode === "infinite") {
-                currentText = currentText.replace(/<project\\s+name=["'][^"']+["']\\s*\\/\\s*>/gi, "").trim();
+                currentText = currentText.replace(/<project\s+name=["'][^"']+["']\s*\/\s*>/gi, "").trim();
             }
 
             setSessions((prev: any) => prev.map((s: any) => {
