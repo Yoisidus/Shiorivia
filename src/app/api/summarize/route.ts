@@ -1,7 +1,7 @@
 import { OpenAI } from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
-import { defaultModelForProvider } from "../../../lib/localProviders";
+
 import { outputLanguageInstruction } from "../../../lib/locale";
 
 export const runtime = 'nodejs';
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     if (!text) return new Response(JSON.stringify({ error: "No text provided" }), { status: 400 });
     const selectedProvider = getServerLocalProvider(provider);
     if (!selectedProvider) return new Response(JSON.stringify({ error: "Provider not configured" }), { status: 400 });
-    const routedModel = (typeof model === "string" && model.trim()) || defaultModelForProvider(selectedProvider.id);
+    const routedModel = typeof model === "string" ? model.trim() : "";
     if (!routedModel) return new Response(JSON.stringify({ error: "Select a model for summarization" }), { status: 400 });
 
     let systemPrompt = "";
