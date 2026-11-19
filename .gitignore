@@ -45,3 +45,7 @@ next-env.d.ts
 # User-owned audio is never distributed or tracked in Git.
 /music/*
 !/music/.gitkeep
+
+# Officina local projects are user-owned and must not be committed.
+/IDE/*
+!/IDE/.gitkeep
