@@ -1,42 +1,15 @@
 import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { validProjectName, validRelativePath, isWorkspaceTextFile } from "./idePathPolicy";
 
 export const IDE_ROOT = path.join(process.cwd(), "IDE");
 const MAX_FILE_BYTES = 512 * 1024;
 const MAX_PROJECT_FILES = 500;
-const MAX_DEPTH = 14;
-const BLOCKED_PARTS = /^(?:node_modules|\.git|\.next|\.env(?:\..*)?|\.ssh|\.npmrc|\.gitconfig|id_rsa|id_ed25519|credentials(?:\..*)?|secrets?(?:\..*)?|private[-_.]?key(?:\..*)?)$/i;
-const BLOCKED_EXT = /\.(?:pem|p12|pfx|key|crt|cer|der|sqlite|db|png|jpe?g|gif|webp|ico|pdf|zip|gz|7z|exe|dll|so|wasm|mp3|mp4|woff2?)$/i;
-const WINDOWS_RESERVED = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
 type TreeEntry = { path: string; type: "file" | "directory"; size?: number };
 export type WorkspaceFile = { name: string; language: string; content: string };
+const MAX_DEPTH = 14;
 
-function cleanPart(part: string): string {
-  const name = part.trim();
-  if (!name || name === "." || name === ".." || name.startsWith(".")
-      || name.endsWith(".") || name.endsWith(" ") || /[<>:"\\|?*\x00-\x1f]/.test(name)
-      || BLOCKED_PARTS.test(name) || WINDOWS_RESERVED.test(name)
-      || name.length > 100) throw new Error("不允许访问该项目路径或隐藏文件。");
-  return name;
-}
-export function validProjectName(value: unknown): string {
-  if (typeof value !== "string" || value.includes("/") || value.includes("\\"))
-    throw new Error("项目名称只能是一个文件夹名称。");
-  return cleanPart(value);
-}
-export function validRelativePath(value: unknown): string {
-  if (typeof value !== "string" || !value || value.length > 500 || value.startsWith("/")
-    || value.includes("\\") || value.includes("//"))
-    throw new Error("项目文件路径无效。");
-  const parts = value.split("/");
-  if (parts.length > MAX_DEPTH) throw new Error("项目目录层级过深。");
-  for (const part of parts) cleanPart(part);
-  return parts.join("/");
-}
-function fileAllowed(relative: string): boolean {
-  return !BLOCKED_EXT.test(relative) && !relative.toLowerCase().endsWith(".lock");
-}
 async function baseDirectory(): Promise<string> {
   const stat = await fs.lstat(IDE_ROOT).catch(error => error.code === "ENOENT" ? null : Promise.reject(error));
   if (!stat) await fs.mkdir(IDE_ROOT, { recursive: true });
@@ -93,7 +66,7 @@ export async function listWorkspaceFiles(project: unknown): Promise<TreeEntry[]>
       if (entry.isDirectory()) {
         result.push({ path: rel, type: "directory" });
         await walk(path.join(folder, entry.name), rel, depth + 1);
-      } else if (entry.isFile() && fileAllowed(rel)) {
+      } else if (entry.isFile() && isWorkspaceTextFile(rel)) {
         const stat = await fs.stat(path.join(folder, entry.name));
         if (stat.size <= MAX_FILE_BYTES) result.push({ path: rel, type: "file", size: stat.size });
       }
@@ -104,7 +77,7 @@ export async function listWorkspaceFiles(project: unknown): Promise<TreeEntry[]>
 }
 export async function readWorkspaceFile(project: unknown, relative: unknown, startLine = 1, endLine = 160) {
   const rel = validRelativePath(relative);
-  if (!fileAllowed(rel)) throw new Error("不支持读取此类文件。");
+  if (!isWorkspaceTextFile(rel)) throw new Error("不支持读取此类文件。");
   const filename = await safePath(project, rel);
   const stat = await fs.stat(filename);
   if (!stat.isFile() || stat.size > MAX_FILE_BYTES) throw new Error("文件过大或不是文本文件。");
@@ -151,7 +124,7 @@ export async function createWorkspaceFolder(project: unknown, relative: unknown)
 }
 export async function writeWorkspaceFile(project: unknown, relative: unknown, content: unknown): Promise<void> {
   const rel = validRelativePath(relative);
-  if (!fileAllowed(rel)) throw new Error("不支持写入此类文件。");
+  if (!isWorkspaceTextFile(rel)) throw new Error("不支持写入此类文件。");
   if (typeof content !== "string" || Buffer.byteLength(content, "utf8") > MAX_FILE_BYTES)
     throw new Error("文件内容过大。");
   await createProject(project);
