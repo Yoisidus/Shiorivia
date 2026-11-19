@@ -426,9 +426,9 @@ export const ChatInterface = ({
                             )}
                         </span>
 
-                        <span className="text-[10px] text-gray-400 truncate max-w-[120px] md:max-w-xs block">
+                        {!requiresEngineer && <span className="text-[10px] text-gray-400 truncate max-w-[120px] md:max-w-xs block">
                             {customModelId || selectedModel.split('/').pop()}
-                        </span>
+                        </span>}
                     </div>
                 </div>
 
