@@ -79,7 +79,7 @@ export const SidebarLeft = ({
     editingSessionId, setEditingSessionId,
     tempTitle, setTempTitle,
     activeMenuSessionId, setActiveMenuSessionId,
-    updateSessionTitle, moveSessionToFolder,
+    updateSessionTitle, moveSessionToFolder, onBindEngineeringProject,
     handleExportData, handleImportData,
     useWebSearch, toggleWebSearch,
     useImageGen, toggleImageGen,
@@ -102,6 +102,35 @@ export const SidebarLeft = ({
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showBatchConfirm, setShowBatchConfirm] = useState(false);
     const [showDebug, setShowDebug] = useState(false);
+    const [bindingSessionId, setBindingSessionId] = useState<string | null>(null);
+    const [ideProjects, setIdeProjects] = useState<string[]>([]);
+    const [projectLoading, setProjectLoading] = useState(false);
+    const loadBindingProjects = async (sessionId: string) => {
+        setActiveMenuSessionId(null);
+        setBindingSessionId(sessionId);
+        setProjectLoading(true);
+        try {
+            const response = await fetch("/api/ide?action=projects", { cache: "no-store" });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "读取 IDE 项目失败");
+            setIdeProjects(Array.isArray(data.projects) ? data.projects : []);
+        } catch (e: any) { alert(e.message); }
+        finally { setProjectLoading(false); }
+    };
+    const createBindingProject = async () => {
+        const name = window.prompt("新项目根目录名称（创建在 Shiorivia/IDE 下）：");
+        if (!name) return;
+        try {
+            const response = await fetch("/api/ide", { method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "createProject", name }) });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            setIdeProjects(prev => [...new Set([...prev, data.project])].sort());
+            if (bindingSessionId) onBindEngineeringProject(bindingSessionId, data.project);
+            setBindingSessionId(null);
+        } catch (e: any) { alert(e.message); }
+    };
     const [modelGroups, setModelGroups] = useState<LocalModelGroup[]>(fallbackModelGroups(apiProvider));
     const [catalogSource, setCatalogSource] = useState("fallback");
     const { savedModels, saveModel, forgetModel } = useSavedModels();
@@ -254,7 +283,7 @@ export const SidebarLeft = ({
                                                                 </button>
                                                             )}
                                                             <div className="flex-1 min-w-0">
-                                                                <SessionItem session={s} isActive={currentSessionId === s.id} isEditing={editingSessionId === s.id} tempTitle={tempTitle} showMenu={activeMenuSessionId === s.id} folders={folders} onSelect={() => setCurrentSessionId(s.id)} onEditStart={() => { setEditingSessionId(s.id); setTempTitle(s.title); setActiveMenuSessionId(null) }} onEditSave={() => updateSessionTitle(s.id, tempTitle)} onDelete={(e: any) => deleteSession(e, s.id)} onMenuToggle={(e: any) => { e.stopPropagation(); setActiveMenuSessionId(activeMenuSessionId === s.id ? null : s.id) }} onMoveTo={(fid: any) => moveSessionToFolder(s.id, fid)} setTempTitle={setTempTitle} />
+                                                                <SessionItem session={s} isActive={currentSessionId === s.id} isEditing={editingSessionId === s.id} tempTitle={tempTitle} showMenu={activeMenuSessionId === s.id} folders={folders} onSelect={() => setCurrentSessionId(s.id)} onEditStart={() => { setEditingSessionId(s.id); setTempTitle(s.title); setActiveMenuSessionId(null) }} onEditSave={() => updateSessionTitle(s.id, tempTitle)} onDelete={(e: any) => deleteSession(e, s.id)} onMenuToggle={(e: any) => { e.stopPropagation(); setActiveMenuSessionId(activeMenuSessionId === s.id ? null : s.id) }} onMoveTo={(fid: any) => moveSessionToFolder(s.id, fid)} onBindProject={loadBindingProjects} setTempTitle={setTempTitle} />
                                                             </div>
                                                         </div>
                                                     ))}
@@ -271,7 +300,7 @@ export const SidebarLeft = ({
                                                 </button>
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <SessionItem session={s} isActive={currentSessionId === s.id} isEditing={editingSessionId === s.id} tempTitle={tempTitle} showMenu={activeMenuSessionId === s.id} folders={folders} onSelect={() => setCurrentSessionId(s.id)} onEditStart={() => { setEditingSessionId(s.id); setTempTitle(s.title); setActiveMenuSessionId(null) }} onEditSave={() => updateSessionTitle(s.id, tempTitle)} onDelete={(e: any) => deleteSession(e, s.id)} onMenuToggle={(e: any) => { e.stopPropagation(); setActiveMenuSessionId(activeMenuSessionId === s.id ? null : s.id) }} onMoveTo={(fid: any) => moveSessionToFolder(s.id, fid)} setTempTitle={setTempTitle} />
+                                                <SessionItem session={s} isActive={currentSessionId === s.id} isEditing={editingSessionId === s.id} tempTitle={tempTitle} showMenu={activeMenuSessionId === s.id} folders={folders} onSelect={() => setCurrentSessionId(s.id)} onEditStart={() => { setEditingSessionId(s.id); setTempTitle(s.title); setActiveMenuSessionId(null) }} onEditSave={() => updateSessionTitle(s.id, tempTitle)} onDelete={(e: any) => deleteSession(e, s.id)} onMenuToggle={(e: any) => { e.stopPropagation(); setActiveMenuSessionId(activeMenuSessionId === s.id ? null : s.id) }} onMoveTo={(fid: any) => moveSessionToFolder(s.id, fid)} onBindProject={loadBindingProjects} setTempTitle={setTempTitle} />
                                             </div>
                                         </div>
                                     ))}
@@ -280,6 +309,32 @@ export const SidebarLeft = ({
                     </div>
 
 
+                    {bindingSessionId && <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-950/35 p-4" onClick={() => setBindingSessionId(null)}>
+                        <div role="dialog" aria-modal="true" aria-label="绑定工程项目根目录"
+                            className="w-full max-w-sm rounded-2xl border border-[#d8deea] bg-white p-5 shadow-2xl"
+                            onClick={e => e.stopPropagation()}>
+                            <div className="mb-3 flex items-center justify-between">
+                                <span className="text-sm font-semibold text-[#465675]">绑定 Officina 项目</span>
+                                <button type="button" onClick={() => setBindingSessionId(null)} className="rounded-lg p-1.5 hover:bg-slate-100"><X size={16}/></button>
+                            </div>
+                            <p className="mb-3 text-xs leading-5 text-slate-500">选择 Shiorivia/IDE 下的一个一级文件夹。每个工程会话只绑定一个项目，可在此重新绑定。</p>
+                            <div className="max-h-60 space-y-1 overflow-y-auto">
+                                {projectLoading ? <div className="p-3 text-xs text-slate-400">正在读取项目…</div>
+                                    : ideProjects.length ? ideProjects.map(project => (
+                                        <button key={project} type="button" onClick={() => {
+                                            onBindEngineeringProject(bindingSessionId, project);
+                                            setBindingSessionId(null);
+                                        }} className="flex w-full items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-left text-xs text-slate-700 hover:bg-indigo-50">
+                                            <Folder size={14} className="text-indigo-400"/> {project}
+                                        </button>
+                                    )) : <p className="p-3 text-xs text-slate-400">还没有项目，先创建一个吧。</p>}
+                            </div>
+                            <button type="button" onClick={createBindingProject}
+                                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+                                <FolderPlus size={14}/> 新建并绑定项目
+                            </button>
+                        </div>
+                    </div>}
                     <div className="p-3">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1">
