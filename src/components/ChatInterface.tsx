@@ -256,7 +256,7 @@ export const ChatInterface = ({
     toggleWardrobe,
     apiProvider, setApiProvider,
     debugMode, setDebugMode,
-    onGenerateDraw, imageSettings, useImageGen,
+    onGenerateDraw, imageSettings, useImageGen, onCompleteEngineeringOutput,
     triggerEffect,
 
     currentOutfitId,
@@ -614,6 +614,14 @@ export const ChatInterface = ({
                                     <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm w-fit ${msg.role === 'user' ? 'bg-slate-800 text-white rounded-br-none ml-auto' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'}`}>
                                         {msg.role === 'assistant' ? renderContent(answer, setPreviewImage, selfColors) : <div className="whitespace-pre-wrap">{answer}</div>}
                                         {msg.role === 'assistant' && msg.modelName && msg.modelName !== "System" && <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-1.5 text-[9px] font-bold tracking-wider opacity-40 uppercase"><Cpu size={10} /> {msg.modelName.split('/').pop()}</div>}
+                                    </div>
+                                )}
+                                {currentSession.memoryMode === "infinite" && msg.role === "assistant" && msg.engineeringOutputIncomplete && (
+                                    <div role="status" className="mt-2 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+                                        <AlertTriangle size={15} className="shrink-0"/>
+                                        <span className="flex-1">本轮可能缺少完整代码文件或文件块未闭合。</span>
+                                        <button type="button" disabled={isLoading} onClick={() => onCompleteEngineeringOutput?.(i)}
+                                            className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold disabled:opacity-40">确认补全</button>
                                     </div>
                                 )}
                                 {msg.role === 'assistant' && msg.storyProtocolMissing && (
