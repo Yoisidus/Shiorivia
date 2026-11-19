@@ -94,6 +94,11 @@ export const useChatEngine = ({
             return;
         }
         const isRegen = overrideMessages !== undefined;
+        const modelToUse = (config.customModelId || config.selectedModel || "").trim();
+        if (!modelToUse) {
+            window.alert("请先在模型配置中选择当前供应商的模型，确认后再发送。");
+            return;
+        }
         const txt = overrideInput !== undefined ? overrideInput : input.trim();
         if (!isRegen && !txt && !selectedFile) return;
         if (currentSession.memoryMode === "infinite") {
@@ -137,7 +142,7 @@ export const useChatEngine = ({
         setIsLoading(true);
 
         let msgs = overrideMessages ? [...overrideMessages] : [...currentSession.messages];
-        const modelToUse = configOverride?.modelOverride || config.customModelId?.trim() || config.selectedModel || "";
+        // Model selection is global and provider-scoped; do not accept stale mode overrides.
 
         if (!isRegen) {
             let content: any = txt;
