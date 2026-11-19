@@ -136,17 +136,17 @@ export const SidebarLeft = ({
                             <img src="/shiorivia-app-icon.png" alt="" width={24} height={24} className="h-6 w-6 rounded-md" />
                             <span className="text-xs uppercase tracking-widest">Shiorivia</span>
                         </div>
-                        <button onClick={onClose} className="rounded-lg bg-[#f4f6f2] p-2 text-[#76877c] transition hover:bg-[#e7ede6] hover:text-[#456c56]" title="收起左侧栏" aria-label="收起左侧栏"><PanelLeftClose size={15} /></button>
+                        <button onClick={onClose} className="rounded-lg bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700" title="收起左侧栏" aria-label="收起左侧栏"><PanelLeftClose size={15} /></button>
                     </div>
 
                     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                            <div className="h-[42%] min-h-[160px] shrink-0 overflow-y-auto border-b border-[#e6e9e2] bg-white p-3 scrollbar-thin">
-                                <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-[#728578]"><span>Models · 模型</span><Package size={13} /></div>
+                            <div className="h-[42%] min-h-[160px] shrink-0 overflow-y-auto border-b border-slate-200 bg-white p-3 scrollbar-thin">
+                                <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500"><span>Models · 模型</span><Package size={13} /></div>
 
                                 <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg border border-[#edf0ef] bg-[#fafbfb] p-1 text-xs font-bold">
                                     {(providers as PublicLocalProvider[]).map((p) => (
                                         <button key={p.id} type="button" onClick={() => setApiProvider(p.id)}
-                                            className={`truncate rounded px-2 py-1.5 transition-all ${apiProvider === p.id ? 'bg-white text-emerald-700 shadow' : 'text-gray-500 hover:text-gray-800'}`} title={p.label}>
+                                            className={`truncate rounded px-2 py-1.5 transition-all ${apiProvider === p.id ? 'bg-white text-slate-800 shadow' : 'text-gray-500 hover:text-gray-800'}`} title={p.label}>
                                             {p.label}
                                         </button>
                                     ))}
@@ -163,7 +163,7 @@ export const SidebarLeft = ({
                                         {expandedGroups.includes(g.groupName) && (
                                             <div className="pl-2 border-l border-gray-100 ml-1">
                                                 {g.models.map((m: any) => (
-                                                    <button key={m.id} onClick={() => { setSelectedModel(m.id); setCustomModelId("") }} className={`block w-full text-left text-[11px] py-1 truncate ${selectedModel === m.id && !customModelId ? 'text-emerald-600 font-bold' : 'text-gray-400 hover:text-gray-900'}`}>
+                                                    <button key={m.id} onClick={() => { setSelectedModel(m.id); setCustomModelId("") }} className={`block w-full text-left text-[11px] py-1 truncate ${selectedModel === m.id && !customModelId ? 'text-slate-800 font-bold' : 'text-gray-400 hover:text-gray-900'}`}>
                                                         {m.name}
                                                     </button>
                                                 ))}
@@ -174,19 +174,19 @@ export const SidebarLeft = ({
 
                                 {apiProvider.startsWith("custom_") && <p className="mb-2 text-[11px] leading-5 text-[#70818c]">自定义供应商不获取在线模型列表。请手动输入并保存你需要的模型 ID。</p>}
                                 <div className="mt-3 border-t border-[#e7ebee] pt-3">
-                                    <div className="mb-2 flex items-center justify-between text-[10px] text-[#6f8175]"><span className="font-semibold tracking-wide">自定义模型</span><span>当前供应商</span></div>
+                                    <div className="mb-2 flex items-center justify-between text-[10px] text-slate-500"><span className="font-semibold tracking-wide">自定义模型</span><span>当前供应商</span></div>
                                     <div className="flex gap-1.5">
-                                        <input aria-label="自定义模型 ID" value={customModelId} onChange={(e: any) => setCustomModelId(e.target.value)} placeholder="输入模型 ID" className="min-w-0 flex-1 rounded-lg border border-[#dfe7df] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#8ba897]" />
+                                        <input aria-label="自定义模型 ID" value={customModelId} onChange={(e: any) => setCustomModelId(e.target.value)} placeholder="输入模型 ID" className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-slate-400" />
                                         <button type="button" onClick={saveCustomModel} disabled={!apiProvider || !String(customModelId || "").trim() || String(customModelId).length > 200 || (savedModels[apiProvider] || []).includes(String(customModelId).trim())}
-                                            className="shrink-0 rounded-lg border border-[#bcd2c1] bg-[#e8f1e9] px-2.5 py-1.5 text-[11px] font-medium text-[#456c55] transition hover:bg-[#d9e9dc] disabled:opacity-40">保存</button>
+                                            className="shrink-0 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-200 disabled:opacity-40">保存</button>
                                     </div>
                                     {(savedModels[apiProvider] || []).length > 0 && (
                                         <div className="mt-2 space-y-1">
                                             {(savedModels[apiProvider] || []).map(id => (
-                                                <div key={id} className={`flex items-center gap-1 rounded-lg px-1.5 py-1 ${customModelId === id ? 'bg-[#e9f2e9]' : 'hover:bg-white'}`}>
-                                                    <button type="button" onClick={() => setCustomModelId(id)} title={id} className="flex min-w-0 flex-1 items-center gap-2 text-left text-[11px] text-[#60756a]">
+                                                <div key={id} className={`flex items-center gap-1 rounded-lg px-1.5 py-1 ${customModelId === id ? 'bg-slate-100' : 'hover:bg-white'}`}>
+                                                    <button type="button" onClick={() => setCustomModelId(id)} title={id} className="flex min-w-0 flex-1 items-center gap-2 text-left text-[11px] text-slate-600">
                                                         <span className="min-w-0 flex-1 truncate">{id}</span>
-                                                        <span className="shrink-0 rounded border border-[#d5e1d7] px-1 py-0.5 text-[9px] text-[#829987]">自定义</span>
+                                                        <span className="shrink-0 rounded border border-slate-200 px-1 py-0.5 text-[9px] text-slate-500">自定义</span>
                                                     </button>
                                                     <button type="button" onClick={() => forgetCustomModel(id)} title={`移除保存的模型 ${id}`} aria-label={`移除保存的模型 ${id}`} className="rounded p-1 text-[#b5bdb7] hover:bg-[#f9e9e5] hover:text-[#aa6857]"><X size={12} /></button>
                                                 </div>
@@ -202,7 +202,7 @@ export const SidebarLeft = ({
                                         <button onClick={createFolder} className="p-1 hover:bg-gray-50 rounded text-gray-400" title={deepText(locale, "explorer.newFolder")}><FolderPlus size={14} /></button>
                                         <button onClick={() => { setIsBatchMode(!isBatchMode); setSelectedIds(new Set()); }} className={`p-1 rounded transition-colors ${isBatchMode ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'text-gray-400 hover:bg-gray-50'}`} title={deepText(locale, "explorer.batch")}><ListChecks size={14} /></button>
                                         <div className="relative">
-                                            <button onClick={() => setShowNewChatMenu(!showNewChatMenu)} title={deepText(locale, "explorer.new")} className="p-1 hover:bg-emerald-50 rounded text-emerald-600 flex items-center gap-0.5"><Plus size={14} /><ChevronDown size={10} /></button>
+                                            <button onClick={() => setShowNewChatMenu(!showNewChatMenu)} title={deepText(locale, "explorer.new")} className="p-1 hover:bg-emerald-50 rounded text-slate-800 flex items-center gap-0.5"><Plus size={14} /><ChevronDown size={10} /></button>
                                             <AnimatePresence>
                                                 {showNewChatMenu && (
                                                     <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden">
@@ -292,7 +292,7 @@ export const SidebarLeft = ({
                                     : syncStatus === 'error'
                                         ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
                                         : syncStatus === 'success'
-                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                            ? 'bg-emerald-50 border-emerald-200 text-slate-800'
                                             : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md active:scale-[0.98]'
                                 }
                             `}
