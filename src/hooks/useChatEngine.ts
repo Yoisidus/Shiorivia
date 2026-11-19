@@ -263,7 +263,7 @@ export const useChatEngine = ({
             }
 
             
-            if (currentSession.memoryMode === "sliding") fullText = stripStoryThinking(fullText);
+            if (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel") fullText = stripStoryThinking(fullText);
             const titleFromSameGeneration = extractInlineTitle(fullText);
             fullText = titleFromSameGeneration.text;
             const extractedEngineerMemory = currentSession.memoryMode === "infinite"
