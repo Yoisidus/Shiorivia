@@ -10,6 +10,7 @@ import { StoryWorldlineFateModal } from "./StoryWorldlineFateModal";
 import { StoryCastPicker } from "./StoryCastPicker";
 import { describeStoryWorldline, type StoryWorldline } from "../lib/storyWorldline";
 import { storyCastAllowed } from "../lib/storyCast";
+import { isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { selfName } from "../lib/chartaSelf";
 
 const SidebarRightComponent = ({
@@ -57,6 +58,7 @@ const SidebarRightComponent = ({
         return char ? [char] : [];
     });
     const isEngineeringMode = currentSession?.memoryMode === "infinite";
+    const roleLocked = isEngineeringCharacterLocked(currentSession);
     const worldNameFor = (worldId: string | null | undefined): string => !worldId ? "通用角色"
         : worldId === "bang-dream" ? "BanG Dream!" : worlds.find((w: any) => w.id === worldId)?.name || "未知世界观";
     const charWorldId = (id: string): string | null =>
@@ -254,14 +256,17 @@ const SidebarRightComponent = ({
                                         </select>
                                     </label>}
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">{currentSession?.memoryMode === 'chat' ? 'Umbra · Characters' : 'Officina · Persona'}</div>
+                                    {isEngineeringMode && <p className="px-1 text-[11px] leading-5 text-slate-500">{roleLocked ? "角色已随首次发送锁定。新建工程会话可选择其他角色。" : "先选择角色；第一条消息发送前可自由更换，确认后本会话永久绑定。"}</p>}
                                     {filteredPersonas.map((char: any, index: number) => (
                                         <div
                                             key={char.id || index}
                                             onClick={() => {
-                                                if (activeCharacterId === char.id) return;
+                                                if ((isEngineeringMode && roleLocked) || isGenerating || activeCharacterId === char.id) return;
                                                 onCharSwitch(char.id);
                                             }}
-                                            className="w-full flex items-center gap-3 p-2 rounded-lg transition-all border relative overflow-hidden group cursor-pointer"
+                                            title={isEngineeringMode && roleLocked && activeCharacterId !== char.id ? "当前工程会话的角色已锁定" : undefined}
+                                            aria-disabled={isEngineeringMode && roleLocked && activeCharacterId !== char.id}
+                                            className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all border relative overflow-hidden group ${isEngineeringMode && roleLocked && activeCharacterId !== char.id ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                                             style={{
                                                 backgroundColor: activeCharacterId === char.id ? char.hex : `${char.hex}08`,
                                                 borderColor: activeCharacterId === char.id ? char.hex : 'transparent',
@@ -280,6 +285,9 @@ const SidebarRightComponent = ({
                                             </div>
 
 
+                                            {isEngineeringMode && roleLocked && activeCharacterId === char.id && <span className="relative z-10 flex shrink-0 items-center gap-1 rounded-md bg-white/20 px-2 py-1 text-[10px] font-semibold" title="当前工程会话已绑定该角色">
+                                                <Lock size={12} /> 已绑定
+                                            </span>}
                                             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                         </div>
                                     ))}
