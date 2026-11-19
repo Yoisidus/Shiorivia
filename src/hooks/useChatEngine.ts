@@ -815,7 +815,7 @@ export const useChatEngine = ({
                         .filter((item: any) => item.type === "file").map((item: any) => item.path));
                     const collisions = Object.keys(newFiles).filter(name => previousPaths.has(name));
                     if (collisions.length && !window.confirm(
-                        `当前 IDE 项目已有以下同名文件，是否覆盖？\\n${collisions.slice(0, 10).join("\\n")}`
+                        `当前 IDE 项目已有以下同名文件，是否覆盖？\n${collisions.slice(0, 10).join("\n")}`
                     )) {
                         throw new Error("用户取消覆盖，生成代码已保留在本轮会话的备用文件库。");
                     }
