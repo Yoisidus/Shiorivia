@@ -54,6 +54,7 @@ assert.ok(api.includes("UMBRA — MULTI-CHARACTER CONVERSATION"));
 assert.ok(api.includes("Previous character speaker"));
 assert.ok(api.includes("User message addressed to"));
 assert.ok(api.includes("CURRENT SPEAKER STM") && api.includes("ACTIVE CHARTA SELF"));
+assert.ok(api.includes('memoryMode === "sliding" || memoryMode === "chat" ? finalMessages : messages'), "Model adapters must receive annotated Umbra history");
 assert.ok(modal.includes("canExtendWorldline(value, next)"));
 assert.ok(viae.includes("canExtendWorldline(viaeWorldline(activeGroup), parsed)"));
 assert.ok(viaeEditor.includes("protectedSecondary"));
