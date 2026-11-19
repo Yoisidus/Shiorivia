@@ -351,7 +351,9 @@ export const useChatEngine = ({
             if (existingGameBlock) {
                 try {
                     const value = normalizeStoryProtocol(JSON.parse(existingGameBlock.json));
-                    validGameJson = isUsableStoryProtocol(value);
+                    const issues = storyProtocolIssues(value);
+                    validGameJson = issues.length === 0;
+                    if (issues.length) console.warn("Story state recovery required, missing fields:", issues);
                 } catch (error) { console.warn("Rejected story state JSON (repair if needed):", error); }
             }
             if (currentSession.memoryMode === "sliding" && !validGameJson) {
