@@ -26,5 +26,5 @@ export function validRelativePath(value: unknown): string {
   return parts.join("/");
 }
 export function isWorkspaceTextFile(relative: string): boolean {
-  return !BLOCKED_EXT.test(relative) && !relative.toLowerCase().endsWith(".lock");
+  return !BLOCKED_EXT.test(relative);
 }
