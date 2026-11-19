@@ -959,7 +959,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
 
     // Other modes keep their existing history behavior; Viae uses tagged director
     // messages and the deliberate 18-turn context prepared above.
-    const routedMessages = memoryMode === "lime" || memoryMode === "sliding" ? finalMessages : messages;
+    const routedMessages = memoryMode === "lime" || memoryMode === "sliding" || memoryMode === "chat" ? finalMessages : messages;
     if (selectedProvider.id === 'google') {
         const genAI = new GoogleGenerativeAI(selectedProvider.apiKey);
         const cleanModel = routedModel.replace(/^google\//, "");
