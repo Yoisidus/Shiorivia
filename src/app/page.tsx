@@ -518,7 +518,7 @@ export default function Home() {
 
     const effectiveConfig = useMemo(() => {
         // Live2D is on hold; an empty config is expected, not a missing asset error.
-        if (process.env.NEXT_PUBLIC_ENABLE_LOCAL_LIVE2D !== "true") return null;
+        if (process.env.NEXT_PUBLIC_ENABLE_LOCAL_LIVE2D !== "true" || !stageCharId) return null;
         const rawConfig = LOCAL_LIVE2D_CONFIG as Record<string, any>;
         
         if (rawConfig[stageCharId]) {
