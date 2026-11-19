@@ -21,7 +21,7 @@ export const ThinkingBlock = ({ thought }: { thought: string }) => {
   );
 };
 
-export const SessionItem = ({ session, isActive, isEditing, tempTitle, showMenu, folders, onSelect, onEditStart, onEditSave, onDelete, onMenuToggle, onMoveTo, setTempTitle, props }: any) => (
+export const SessionItem = ({ session, isActive, isEditing, tempTitle, showMenu, folders, onSelect, onEditStart, onEditSave, onDelete, onMenuToggle, onMoveTo, onBindProject, setTempTitle, props }: any) => (
   <div className={`relative group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${isActive ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`} onClick={onSelect}>
     {session.memoryMode === 'novel' ? <BookMarked size={15} className="shrink-0 text-[#b49760]" /> :
       session.memoryMode === 'sliding' ? <BookOpen size={15} className="shrink-0 text-[#c07c98]" /> :
@@ -39,6 +39,12 @@ export const SessionItem = ({ session, isActive, isEditing, tempTitle, showMenu,
             <div className="border-t border-gray-100 my-1"></div>
             <button onClick={(e) => { e.stopPropagation(); onMoveTo(null); }} className="w-full text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2"><CornerDownRight size={12} /> 最外层</button>
             {folders.map((f: any) => <button key={f.id} onClick={(e) => { e.stopPropagation(); onMoveTo(f.id); }} className="w-full text-left px-3 py-1.5 hover:bg-gray-50 flex items-center gap-2 truncate"><Folder size={12} /> {f.name}</button>)}
+            {session.memoryMode === "infinite" && <>
+              <div className="border-t border-gray-100 my-1"></div>
+              <button type="button" onClick={(e) => { e.stopPropagation(); onBindProject?.(session.id); }}
+                className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-[#506487] flex items-center gap-2"><Folder size={12} /> 绑定 IDE 项目</button>
+              {session.engineeringProjectRoot && <p className="truncate px-3 pb-2 text-[10px] text-slate-500" title={session.engineeringProjectRoot}>IDE/{session.engineeringProjectRoot}</p>}
+            </>}
             <div className="border-t border-gray-100 my-1"></div>
             <button onClick={onDelete} className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-500 flex items-center gap-2"><Trash2 size={12} /> 删除</button>
           </div>
