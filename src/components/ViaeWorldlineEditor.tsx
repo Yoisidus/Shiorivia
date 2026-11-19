@@ -23,7 +23,8 @@ export function ViaeWorldlineEditor({ value, onChange, worlds, saved }: {
   const protectedSecondary = new Set(saved?.crossWorld?.secondary.map(w => w.worldId) || []);
   const stages = value.canonTimeline || [];
   const cross = value.crossWorld || { enabled: false, includeUniversal: false, secondary: [] };
-  const modifyCross = (next: typeof cross) => safeChange({ ...value, crossWorld: next });
+  // Secondary-world drafts temporarily lack baselines; validate the full snapshot only on Save.
+  const modifyCross = (next: typeof cross) => onChange({ ...value, crossWorld: next });
   const changeWorld = (id: string) => {
     if (primaryLocked) return;
     const chosen = available.find(w => w.id === id);
