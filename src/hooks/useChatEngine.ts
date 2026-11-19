@@ -142,6 +142,11 @@ export const useChatEngine = ({
         setIsLoading(true);
 
         let msgs = overrideMessages ? [...overrideMessages] : [...currentSession.messages];
+        if (currentSession.memoryMode === "infinite" && !isRegen) {
+            // The unassigned welcome disappears from the conversation as soon as
+            // its first real user message is submitted. Never send it to the model.
+            msgs = msgs.filter(message => !(message.role === "assistant" && message.modelName === "System"));
+        }
         // Model selection is global and provider-scoped; do not accept stale mode overrides.
 
         if (!isRegen) {
