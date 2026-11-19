@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react"; 
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, User, Heart, Zap, Skull, Thermometer, Shirt, Footprints, Sparkles, ChevronLeft, Send, Copy, Lock, Check, Brain, X } from "lucide-react";
+import { ChevronRight, User, Heart, Zap, Skull, Thermometer, Shirt, Footprints, Sparkles, ChevronLeft, Send, Copy, Lock, Check, Brain, TreeDeciduous, X } from "lucide-react";
 import { CHAR_DATA } from "../data/char_config";
 import { useLanguage } from "../context/LanguageContext";
 import { characterDisplayName } from "../lib/characterNames";
@@ -9,6 +9,7 @@ import { SuggestionModal } from "./Modals";
 import { StoryWorldlineFateModal } from "./StoryWorldlineFateModal";
 import { StoryCastPicker } from "./StoryCastPicker";
 import { describeStoryWorldline, type StoryWorldline } from "../lib/storyWorldline";
+import { canExtendWorldline } from "../lib/worldlineLock";
 import { storyCastAllowed } from "../lib/storyCast";
 import { isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { selfName } from "../lib/chartaSelf";
@@ -58,6 +59,8 @@ const SidebarRightComponent = ({
         return char ? [char] : [];
     });
     const isEngineeringMode = currentSession?.memoryMode === "infinite";
+    const isChatMode = currentSession?.memoryMode === "chat";
+    const hasChatWorldline = isChatMode && !!currentSession?.storyWorldline;
     const roleLocked = isEngineeringCharacterLocked(currentSession);
     const worldNameFor = (worldId: string | null | undefined): string => !worldId ? "通用角色"
         : worldId === "bang-dream" ? "BanG Dream!" : worlds.find((w: any) => w.id === worldId)?.name || "未知世界观";
@@ -65,8 +68,11 @@ const SidebarRightComponent = ({
         customCharacters.find((char: any) => char.id === id)?.worldId || (CHAR_DATA.some(char => char.id === id) ? "bang-dream" : null);
     const personaCatalog = (dbChars?.length ? dbChars : CHAR_DATA) as Array<{ id: string; name: string; avatar: string; hex: string; sub: string }>;
     const personaWorldChoices = [...new Set(personaCatalog.map(char => charWorldId(char.id) || "universal"))];
-    const filteredPersonas = personaCatalog.filter(char => !isEngineeringMode || personaWorldFilter === "all"
-        || (charWorldId(char.id) || "universal") === personaWorldFilter);
+    const filteredPersonas = !isChatMode
+        ? personaCatalog.filter(char => !isEngineeringMode || personaWorldFilter === "all"
+            || (charWorldId(char.id) || "universal") === personaWorldFilter)
+        : !hasChatWorldline ? [] : personaCatalog.filter(char =>
+            storyCastAllowed({ id: char.id, worldId: charWorldId(char.id) }, currentSession.storyWorldline));
     const { locale } = useLanguage();
     const currentChar = charList[pageIndex];
 
@@ -82,6 +88,7 @@ const SidebarRightComponent = ({
 
     const handleWorldlineUpdate = (next: StoryWorldline) => {
         if (!setSessions || !currentSessionId) return;
+        if (!canExtendWorldline(currentSession?.storyWorldline, next)) return;
         const allowed = new Set([...CHAR_DATA, ...customCharacters].filter(char =>
             storyCastAllowed(char, next)).map(char => char.id));
         setSessions((prev: any) => prev.map((s: any) => {
@@ -245,7 +252,7 @@ const SidebarRightComponent = ({
                         ) : (
                             <div className="p-2 space-y-4">
                                 <div className="space-y-2">
-                                    {isEngineeringMode && <label className="block rounded-xl border border-[#e5e9ed] bg-[#fafbf9] px-3 py-3 text-[11px] font-semibold text-[#5c7180]">
+                                    {isEngineeringMode && <label className="block rounded-xl border border-slate-200 bg-white px-3 py-3 text-[11px] font-semibold text-slate-600">
                                         <span className="mb-2 block">按世界观筛选 · WORLD</span>
                                         <select value={personaWorldFilter} onChange={e => setPersonaWorldFilter(e.target.value)}
                                             className="w-full rounded-lg border border-[#e0e7e9] bg-white px-3 py-2 text-xs text-[#314c63] outline-none focus:border-[#9cacaa]">
@@ -255,6 +262,10 @@ const SidebarRightComponent = ({
                                             </option>)}
                                         </select>
                                     </label>}
+                                    {isChatMode && !hasChatWorldline && <div className="rounded-xl border border-dashed border-[#cadad0] bg-[#f7faf8] px-4 py-5 text-center text-xs leading-6 text-[#728f80]">
+                                        <TreeDeciduous size={20} className="mx-auto mb-2"/>
+                                        请先在左侧栏配置 Umbra 世界线。<br/>完成后这里会显示该世界线中的可聊天角色。
+                                    </div>}
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">{currentSession?.memoryMode === 'chat' ? 'Umbra · Characters' : 'Officina · Persona'}</div>
                                     {isEngineeringMode && <p className="px-1 text-[11px] leading-5 text-slate-500">{roleLocked ? "角色已随首次发送锁定。新建工程会话可选择其他角色。" : "先选择角色；第一条消息发送前可自由更换，确认后本会话永久绑定。"}</p>}
                                     {filteredPersonas.map((char: any, index: number) => (
@@ -280,7 +291,7 @@ const SidebarRightComponent = ({
                                             <div className="text-left z-10 flex-1 min-w-0">
                                                 <div className="text-xs font-bold truncate">{characterDisplayName(char.id, char.name, locale)}</div>
                                                 <div className={`text-[9px] truncate ${activeCharacterId === char.id ? 'text-white/80' : 'text-gray-400'}`}>
-                                                    {isEngineeringMode ? worldNameFor(charWorldId(char.id)) : char.sub}
+                                                    {isEngineeringMode || isChatMode ? worldNameFor(charWorldId(char.id)) : char.sub}
                                                 </div>
                                             </div>
 
