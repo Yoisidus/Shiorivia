@@ -816,17 +816,30 @@ export const useChatEngine = ({
                     } : s));
                 }
             }
-            if (currentSession.memoryMode === "infinite" && extractedEngineerMemory.memory) {
-                const summaryLine = `• ${extractedEngineerMemory.memory}`;
-                setSessions((prev: Session[]) => prev.map(s => s.id !== currentSessionId
-                    || !s.messages.some(m => m.storyGenerationId === generationId) ? s : {
+            if (currentSession.memoryMode === "infinite" && currentText.trim()) {
+                // A model may skip the requested memory tag; retain a conservative
+                // factual record from the user prompt and response, without an
+                // extra hidden model request or fabricated project decisions.
+                const prompt = [...msgs].reverse().find((m: any) => m.role === "user");
+                const userContent = typeof prompt?.content === "string" ? prompt.content : "[attachment]";
+                const fallback = `用户：${userContent.slice(0, 180)}；本轮答复：${currentText.replace(/\\s+/g, " ").slice(0, 220)}`;
+                const summaryLine = `• ${extractedEngineerMemory.memory || fallback}`;
+                setSessions((prev: Session[]) => prev.map(s => {
+                    if (s.id !== currentSessionId || !s.messages.some(m => m.storyGenerationId === generationId)) return s;
+                    const records = [...parseLocalMemoryEntries(s.stm || ""), summaryLine];
+                    const archive = records.length > LOCAL_STM_SLOTS ? records.slice(0, records.length - LOCAL_STM_SLOTS) : [];
+                    const priorLtm = String(s.ltm || "");
+                    const consolidatedLtm = archive.length
+                        ? [priorLtm, ...archive].filter(Boolean).join("\\n").slice(-16000)
+                        : priorLtm;
+                    return {
                         ...s,
-                        stm: formatLocalMemoryEntries([
-                            ...parseLocalMemoryEntries(s.stm || ""), summaryLine,
-                        ].slice(-LOCAL_STM_SLOTS)),
+                        stm: formatLocalMemoryEntries(records.slice(-LOCAL_STM_SLOTS)),
+                        ltm: consolidatedLtm, // Keep project history when STM fills up.
                         turnCount: (s.turnCount || 0) + 1,
                         updatedAt: Date.now(),
-                    }));
+                    };
+                }));
             }
             if ((currentSession.memoryMode === 'sliding' && !storyProtocolMissing) || currentSession.memoryMode === 'novel') {
                 const textToSummarize = currentSession.memoryMode === 'novel' ? stripNovelSuggestions(currentText) : `User: ${txt}\nAI: ${currentText}\n`;
