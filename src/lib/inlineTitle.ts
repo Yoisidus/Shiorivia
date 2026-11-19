@@ -28,7 +28,9 @@ export function extractInlineTitle(text: string): { text: string; title: string 
     (match: string, raw: string, index: number, source: string) => {
       // Metadata belongs at the start (or after novel <meta>). Never remove
       // a literal XML example embedded in a source file or normal prose.
-      if (index > 500 || /<file\b/i.test(source.slice(0, index))) return match;
+      const prefix = source.slice(0, index).trim();
+      const afterNovelMeta = /^<meta\s+title=["'][^"']+["']\s+chapter=["'][^"']+["']\s*\/\s*>$/i.test(prefix);
+      if (index > 500 || (prefix.length > 0 && !afterNovelMeta)) return match;
       if (candidate === null) {
         const value = raw.trim().replace(/[<>\r\n]/g, " ").trim();
         candidate = value && value.length <= 100 && !/^KEEP$/i.test(value) ? value : "";
