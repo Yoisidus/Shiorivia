@@ -32,6 +32,7 @@ import { DEFAULT_SYNC_PREFERENCES, readLocalSyncPreferences } from "../lib/local
 import { DEFAULT_IMAGE_SETTINGS, capabilityFor, type ImageSettings, type ProviderCapability } from "../lib/imageSettings";
 import { useLanguage } from "../context/LanguageContext";
 import { defaultSessionTitle, sessionGreeting } from "../lib/sessionTitles";
+import { isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { characterDisplayName } from "../lib/characterNames";
 import { useChatEngine } from "../hooks/useChatEngine";
 import { useChartaSelves } from "../hooks/useChartaSelves";
@@ -229,8 +230,10 @@ export default function Home() {
 
     // Switching sessions must also restore the character on the Live2D stage.
     useEffect(() => {
-        if (currentSession?.characterId) setActiveCharacterId(currentSession.characterId);
-    }, [currentSession?.id, currentSession?.characterId]);
+        if (!currentSession) return;
+        setActiveCharacterId(currentSession.memoryMode === "infinite"
+            ? currentSession.characterId || "" : currentSession.characterId || "mutsu");
+    }, [currentSession?.id, currentSession?.characterId, currentSession?.memoryMode]);
     const changeStoryRole = (role: "observer" | "participant") => {
         if (!currentSessionId || currentSession?.memoryMode !== "sliding") return;
         if (currentSession.messages.some(message => message.role === "user")) return;
@@ -281,19 +284,20 @@ export default function Home() {
                 id: newId,
                 title: defaultSessionTitle("infinite", locale),
                 folderId: null,
-                characterId: "mutsu", 
+                characterId: "",
+                engineeringCharacterLocked: false,
                 voiceVariant: "default",
                 memoryMode: "infinite",
                 messages: [{
                     role: "assistant",
-                    content: sessionGreeting("infinite", characterDisplayName("mutsu", "若叶 睦", locale), locale),
+                    content: "欢迎来到 Shiorivia。请先从右侧栏选择一位角色工程师，再开始合作。",
                     modelName: "System"
                 }],
                 updatedAt: Date.now()
             };
             cloud.setSessions([genesisSession]);
             setCurrentSessionId(newId);
-            setActiveCharacterId("mutsu");
+            setActiveCharacterId("");
             if (config.engineeringTransition) ui.setEffect("math");
         }
         else if (cloud.sessions.length > 0 && (!currentSessionId || !cloud.sessions.find(s => s.id === currentSessionId))) {
@@ -355,12 +359,13 @@ export default function Home() {
     const createNewSession = (charId: string = activeCharacterId, targetMode?: 'sliding' | 'infinite' | 'novel' | 'chat' | 'lime') => {
         const newId = Date.now().toString();
         const currentMode = currentSession?.memoryMode || 'sliding';
-        const nextMode = targetMode || currentMode; 
+        const nextMode = targetMode || currentMode;
+        const sessionCharId = nextMode === "infinite" ? "" : charId;
 
         const charName = charta.characters.some(c => c.id === charId) ? nameForCharta(charta.characters.find(c => c.id === charId)!, locale) : characterDisplayName(charId, CHARACTERS.find(c => c.id === charId)?.name, locale);
 
         let initContent = "";
-        if (nextMode === 'infinite') initContent = sessionGreeting("infinite", charName, locale);
+        if (nextMode === 'infinite') initContent = "欢迎来到 Shiorivia。请从右侧栏选择一位角色工程师，再开始合作。";
         if (nextMode === 'chat') initContent = sessionGreeting("chat", charName, locale);
 
         const initialMessages: any[] = [];
@@ -377,7 +382,8 @@ export default function Home() {
             title: nextMode === 'lime' ? "VIAE Workspace" : defaultSessionTitle(nextMode, locale),
             titleAutoManaged: nextMode === "sliding" || nextMode === "infinite" || nextMode === "chat" || nextMode === "novel",
             folderId: null,
-            characterId: charId,
+            characterId: sessionCharId,
+            ...(nextMode === "infinite" ? { engineeringCharacterLocked: false } : {}),
             voiceVariant: "default",
             messages: initialMessages,
             updatedAt: Date.now(),
@@ -387,7 +393,7 @@ export default function Home() {
 
         cloud.setSessions(prev => [newSession, ...prev]);
         setCurrentSessionId(newId);
-        setActiveCharacterId(charId);
+        setActiveCharacterId(sessionCharId);
 
         if (targetMode) {
             if (targetMode === 'infinite' && config.engineeringTransition) ui.setEffect("math");
@@ -399,7 +405,7 @@ export default function Home() {
         const existing = cloud.sessions.find(session => session.memoryMode === mode);
         if (existing) {
             setCurrentSessionId(existing.id);
-            setActiveCharacterId(existing.characterId || "mutsu");
+            setActiveCharacterId(mode === "infinite" ? existing.characterId || "" : existing.characterId || "mutsu");
         } else {
             createNewSession(activeCharacterId, mode);
         }
@@ -443,12 +449,13 @@ export default function Home() {
                 id: genesisId,
                 title: defaultSessionTitle("infinite", locale),
                 folderId: null,
-                characterId: "mutsu",
+                characterId: "",
+                engineeringCharacterLocked: false,
                 voiceVariant: "default",
                 memoryMode: "infinite",
                 messages: [{
                     role: "assistant",
-                    content: sessionGreeting("infinite", characterDisplayName("mutsu", "若叶 睦", locale), locale),
+                    content: "欢迎来到 Shiorivia。请先从右侧栏选择一位角色工程师，再开始合作。",
                     modelName: "System"
                 }],
                 updatedAt: Date.now()
@@ -456,7 +463,7 @@ export default function Home() {
 
             finalSessions = [genesisSession];
             nextSessionId = genesisId;
-            nextCharId = "mutsu";
+            nextCharId = "";
 
             if (config.engineeringTransition) ui.setEffect("math");
             ui.showToast("♻️ System Reset");
@@ -466,7 +473,7 @@ export default function Home() {
 
         if (nextSessionId !== currentSessionId) {
             setCurrentSessionId(nextSessionId);
-            if (nextCharId) setActiveCharacterId(nextCharId);
+            setActiveCharacterId(nextCharId || "");
         }
 
         cloud.setSessions(finalSessions);
@@ -760,9 +767,10 @@ export default function Home() {
             onDrop={fileHandler.handleBgDrop}
             onDragOver={(e) => e.preventDefault()}
         >
-            <Background hex={currentSession?.memoryMode === 'sliding'
+            <Background hex={currentSession?.memoryMode === 'infinite' && !currentSession.characterId
+                ? "#dce4e9" : currentSession?.memoryMode === 'sliding'
                 ? ({ sky: "#e0f2fe", sage: "#b7d3b0", rose: "#f4c6d2" }[config.storyTheme])
-                : dynamicCharacter.hex} bgImage={cloud.bgImage} />
+                : dynamicCharacter.hex} bgImage={currentSession?.memoryMode === 'infinite' && !currentSession.characterId ? undefined : cloud.bgImage} />
 
             {stageDbChar && (
                 customStage ? (
@@ -969,7 +977,17 @@ export default function Home() {
                     activeCharacterId={activeCharacterId} setActiveCharacterId={setActiveCharacterId}
                     createNewSession={createNewSession} handleSend={engine.handleSend} setSessions={cloud.setSessions} currentSessionId={currentSessionId}
                     voiceVariant={voiceVariant} onRepoUpdate={engine.handleRepoUpdate}
-                    onCharSwitch={(id: string) => { setActiveCharacterId(id); setVoiceVariant("default"); cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, characterId: id } : s)) }}
+                    onCharSwitch={(id: string) => {
+                        if (engine.isLoading) return;
+                        if (currentSession?.memoryMode === "infinite" && isEngineeringCharacterLocked(currentSession)) {
+                            ui.showToast("当前工程会话已绑定角色；请创建新工程会话以选择其他角色。");
+                            return;
+                        }
+                        setActiveCharacterId(id);
+                        setVoiceVariant("default");
+                        cloud.setSessions(prev => prev.map(s => s.id === currentSessionId
+                            ? { ...s, characterId: id } : s));
+                    }}
                     dbChars={allChars}
                 />
             </div>
