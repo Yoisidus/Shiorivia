@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Check, CircleDot, Compass, Globe2, Orbit, RotateCcw, Sparkles, X, Plus, Trash2 } from "lucide-react";
 import type { ChartaWorld } from "../lib/chartaWorld";
+import { canExtendWorldline } from "../lib/worldlineLock";
 import {
   BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, describeStoryWorldline,
   parseStoryWorldline, worldlineFor, type StoryWorldline,
@@ -36,6 +37,8 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
 
+  const primaryLocked = Boolean(value && parseStoryWorldline(value));
+  const previousSecondary = new Set(value?.crossWorld?.secondary.map(w => w.worldId) || []);
   const choices = useMemo(() => {
     const list = [{ id: BANG_DREAM_WORLD_ID, name: BANG_DREAM_WORLD_NAME }, ...worlds];
     if (value && !list.some(world => world.id === value.worldId)) list.push({ id: value.worldId, name: value.worldName });
@@ -47,6 +50,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
   const baseEras = [...new Set(stages.map(s => s.era))];
   const basePeriods = stages.filter(s => !draft.baseEra || s.era === draft.baseEra);
   const chooseWorld = (id: string) => {
+    if (primaryLocked) return;
     const world = worlds.find(item => item.id === id) || null;
     if (id === draft.worldId) return;
     setDraft(worldlineFor(world)); setError("");
@@ -66,6 +70,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
       secondary: [...crossWorld.secondary, newWorld] } }));
   };
   const changeSecondary = (index: number, worldId: string) => {
+    if (previousSecondary.has(crossWorld.secondary[index]?.worldId)) return;
     const world = worlds.find(item => item.id === worldId);
     const next = { worldId, worldName: world?.name || BANG_DREAM_WORLD_NAME,
       worldDescription: world?.description || "",
@@ -75,16 +80,18 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
       secondary: crossWorld.secondary.map((item, i) => i === index ? next : item) } }));
   };
   const changeSecondaryBaseline = (index: number, era: string, period: string) =>
+    if (previousSecondary.has(crossWorld.secondary[index]?.worldId)) return;
     setDraft(prev => ({ ...prev, crossWorld: { ...crossWorld, secondary: crossWorld.secondary.map((item, i) =>
       i === index ? { ...item, baseEra: era, basePeriod: period } : item) } }));
-  const chooseEra = (era: string) => setDraft(prev => ({ ...prev, era,
-    period: !era || prev.canonTimeline.some(stage => stage.era === era && stage.period === prev.period) ? prev.period : "" }));
-  const choosePeriod = (period: string) => setDraft(prev => ({ ...prev, period,
-    era: !period || prev.canonTimeline.some(stage => stage.era === prev.era && stage.period === period) ? prev.era : "" }));
+  const chooseEra = (era: string) => { if (primaryLocked) return; setDraft(prev => ({ ...prev, era,
+    period: !era || prev.canonTimeline.some(stage => stage.era === era && stage.period === prev.period) ? prev.period : "" })); };
+  const choosePeriod = (period: string) => { if (primaryLocked) return; setDraft(prev => ({ ...prev, period,
+    era: !period || prev.canonTimeline.some(stage => stage.era === prev.era && stage.period === period) ? prev.era : "" })); };
   const save = () => {
     if (draft.kind === "au" && (!draft.baseEra || !draft.basePeriod)) { setError("AU 必须选择基准 ERA 和 PERIOD。"); return; }
     const next = parseStoryWorldline(showEvent ? draft : { ...draft, event: "" });
     if (!next) { setError("世界线尚未成立：请填写对应的 ERA 与 PERIOD。"); return; }
+    if (!canExtendWorldline(value, next)) { setError("已保存的主世界线无法修改；附属世界观只能新增，不能更改或删除。"); return; }
     onSave(next); onClose();
   };
 
@@ -123,7 +130,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
           {!value && legacyTimeline?.major && <div className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800">旧时间线仍保留：{legacyTimeline.major} / {legacyTimeline.medium || "未知时期"}。新世界线保存后将优先采用新设定。</div>}
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3"><label htmlFor="fate-world-select" className="text-xs font-bold tracking-[.14em]" style={geometric}><Globe2 size={15} className="mr-2 inline text-[#7a956e]"/>01 · WORLD / 世界观</label>{onOpenCharta && <button type="button" onClick={onOpenCharta} className="flex items-center gap-1 text-[11px] font-semibold text-[#667e6c] hover:underline">Charta · 创造世界 <ArrowUpRight size={12}/></button>}</div>
-            <select id="fate-world-select" value={draft.worldId} onChange={e=>chooseWorld(e.target.value)} className={inputStyle}>{choices.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>
+            <select id="fate-world-select" disabled={primaryLocked} value={draft.worldId} onChange={e=>chooseWorld(e.target.value)} className={inputStyle}>{choices.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>
             <p className="text-[11px] leading-6 text-[#7d9286]">{draft.worldDescription ? `${draft.worldDescription.slice(0,180)}${draft.worldDescription.length>180 ? "…" : ""}` : "世界观未添加补充设定。模型将根据已有知识与剧情上下文理解这一世界。"}</p>
           </section>
           <section className="rounded-2xl border border-[#dbe5d9] bg-white/75 p-4 space-y-4">
