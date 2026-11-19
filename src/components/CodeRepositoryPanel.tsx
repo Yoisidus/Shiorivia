@@ -136,6 +136,20 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         setIsEditing(true);
         setShowSidebar(true);
     };
+    const importLegacyRepository = async () => {
+        if (!projectRoot) return;
+        const legacy = Object.entries(repository || {}) as [string, CodeFile][];
+        if (!legacy.length) return;
+        if (!window.confirm(`将旧会话中 ${legacy.length} 个代码文件复制到 IDE/${projectRoot}？同名文件将被覆盖。`)) return;
+        setBusy(true);
+        try {
+            for (const [name, file] of legacy) {
+                await ideRequest("write", { project: projectRoot, path: name, content: file.content });
+            }
+            await syncDisk(projectRoot);
+        } catch (error: any) { alert(`导入中止：${error.message}`); }
+        finally { setBusy(false); }
+    };
     const handleNewFolder = async () => {
         if (!projectRoot) { alert("请先绑定项目根目录。"); return; }
         const relative = window.prompt("新建文件夹（支持 src/components 这样的多级路径）：");
@@ -252,6 +266,13 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                         <RefreshCw size={14} className={busy ? "animate-spin" : ""}/><span className="hidden sm:inline text-[11px]">同步</span>
                     </button>
                     <button type="button" disabled={!projectRoot || busy} onClick={handleNewFolder} className="p-1.5 hover:bg-white/10 rounded text-slate-300 disabled:opacity-40" title="创建子文件夹"><FolderPlus size={14}/></button>
+                    {projectRoot && Object.keys(repository || {}).length > 0 && (
+                        <button type="button" disabled={busy} onClick={importLegacyRepository}
+                            className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-indigo-300/30 px-2 py-1.5 text-[11px] text-[#b3c5f2] hover:bg-white/10 disabled:opacity-40"
+                            title="将会话历史文件库复制到当前磁盘项目">
+                            <HardDrive size={13}/> 迁入旧文件
+                        </button>
+                    )}
                     <button onClick={handleNewFile} className="p-1.5 hover:bg-white/10 rounded text-slate-300" title="New File"><Plus size={14} /></button>
                     <button onClick={toggleFullScreen} className="p-1.5 hover:bg-white/10 rounded text-slate-300" title="Fullscreen">
                         {isFullScreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
