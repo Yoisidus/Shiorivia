@@ -883,6 +883,7 @@ export default function Home() {
                     activeMenuSessionId={activeMenuSessionId} setActiveMenuSessionId={setActiveMenuSessionId}
                     updateSessionTitle={(id: string, t: string) => { cloud.setSessions(prev => prev.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false } : s)); setEditingSessionId(null) }}
                     moveSessionToFolder={(sid: string, fid: string | null) => { cloud.setSessions(prev => prev.map(s => s.id === sid ? { ...s, folderId: fid } : s)); setActiveMenuSessionId(null) }}
+                    onBindEngineeringProject={(sid: string, project: string) => cloud.setSessions(prev => prev.map(s => s.id === sid && s.memoryMode === "infinite" ? { ...s, engineeringProjectRoot: project, updatedAt: Date.now() } : s))}
 
                     handleExportData={() => { const d = { sessions: cloud.sessions, folders: cloud.folders, globalWorldInfo: cloud.globalWorldInfo, bgImage: cloud.bgImage }; const b = new Blob([JSON.stringify(d)], { type: "application/json" }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "backup.json"; a.click(); }}
                     handleImportData={fileHandler.handleImportData}
@@ -1036,7 +1037,12 @@ export default function Home() {
 
             <TransitionEffects key={curtainCycle} effect={ui.effect} onComplete={handleEffectComplete} />
 
-            <CodeRepositoryModal isOpen={ui.showCodeRepo} onClose={() => ui.setShowCodeRepo(false)} repository={currentSession?.codeRepository || {}} onUpdate={engine.handleRepoUpdate} />
+            <CodeRepositoryModal isOpen={ui.showCodeRepo} onClose={() => ui.setShowCodeRepo(false)}
+                repository={currentSession?.codeRepository || {}} onUpdate={engine.handleRepoUpdate}
+                projectRoot={currentSession?.memoryMode === "infinite" ? currentSession.engineeringProjectRoot || "" : ""}
+                onBindProject={(project: string) => cloud.setSessions(prev => prev.map(s =>
+                    s.id === currentSessionId && s.memoryMode === "infinite"
+                        ? { ...s, engineeringProjectRoot: project, updatedAt: Date.now() } : s))} />
             <SyncConflictModal
                 isOpen={cloud.conflictModal.isOpen}
                 cloudData={cloud.conflictModal.cloudData}
