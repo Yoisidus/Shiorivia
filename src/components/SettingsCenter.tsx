@@ -39,6 +39,7 @@ type Props = {
   onToggleEngineeringLoreExperiences: () => void;
   onTestEffect: (name: "rain" | "curtain" | "math" | "glitch") => void;
   isStory: boolean;
+  activeMode: "infinite" | "sliding" | "novel" | "chat" | "lime" | "hub";
   storyTheme: StoryTheme;
   onStoryThemeChange: (value: StoryTheme) => void;
   activeProvider: string;
@@ -96,7 +97,7 @@ function SwitchRow({ title, description, checked, onClick, icon: Icon }: {
   );
 }
 
-export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
+export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const { refreshLibrary, allTracks } = useMusic();
   const [scanningMusic, setScanningMusic] = useState(false);
@@ -209,19 +210,19 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 </div>
                 <p className="mb-6 text-xs leading-6 text-slate-500">{t("settings.providers.description")}</p>
                 <SectionTitle>{t("settings.extensions")}</SectionTitle>
-                <SwitchRow
+                {(activeMode === "sliding" || activeMode === "novel") && <SwitchRow
                   title="文风优化"
                   description="参考 Gemini 与日轻文风优化叙事节奏。作用于 Via Lata 故事正文及 Tela 小说正文，不改变角色设定、世界线、状态 JSON、修复请求或摘要；默认关闭。"
                   checked={geminiNarrativeStyleEnabled}
                   onClick={onToggleGeminiNarrativeStyle}
                   icon={BookOpen}
-                />
-                <div className="mt-4 rounded-2xl border border-[#e0e9df] bg-[#fcfdfb] px-4 py-3">
+                />}
+                {activeMode === "infinite" && <div className="mt-4 rounded-2xl border border-[#e0e9df] bg-[#fcfdfb] px-4 py-3">
                   <div className="text-xs font-semibold tracking-widest text-[#4b705e]">OFFICINA · 角色工程师设定</div>
                   <p className="mt-2 text-xs leading-5 text-slate-500">身份、性格、简介、说话方式和还原指南始终完整注入。以下两个区块仅控制额外的全时间线剧情资料，默认均关闭。</p>
                   <SwitchRow title="核心人物关系" description="开启后注入所选角色在所有原作时间线中的主要人物关系，会增加 Token 消耗。" checked={engineeringLoreRelationshipsEnabled} onClick={onToggleEngineeringLoreRelationships} icon={BookOpen} />
                   <SwitchRow title="主要经历" description="开启后注入所选角色在所有原作时间线中的主要经历，会增加 Token 消耗。" checked={engineeringLoreExperiencesEnabled} onClick={onToggleEngineeringLoreExperiences} icon={BookOpen} />
-                </div>
+                </div>}
                 <SwitchRow title={t("settings.webSearch")} description={t("settings.webSearch.description")} checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
                 <SwitchRow title={t("settings.imageGen")} description={t("settings.imageGen.description")} checked={values.imageGen} onClick={() => onToggle("imageGen")} icon={ImageIcon} />
                 <div className="mt-4 space-y-3 rounded-2xl border border-[#e0e9df] bg-[#fcfdfb] p-4">
