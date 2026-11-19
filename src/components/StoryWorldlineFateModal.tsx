@@ -79,10 +79,11 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
     setDraft(prev => ({ ...prev, crossWorld: { ...crossWorld,
       secondary: crossWorld.secondary.map((item, i) => i === index ? next : item) } }));
   };
-  const changeSecondaryBaseline = (index: number, era: string, period: string) =>
+  const changeSecondaryBaseline = (index: number, era: string, period: string) => {
     if (previousSecondary.has(crossWorld.secondary[index]?.worldId)) return;
     setDraft(prev => ({ ...prev, crossWorld: { ...crossWorld, secondary: crossWorld.secondary.map((item, i) =>
       i === index ? { ...item, baseEra: era, basePeriod: period } : item) } }));
+  };
   const chooseEra = (era: string) => { if (primaryLocked) return; setDraft(prev => ({ ...prev, era,
     period: !era || prev.canonTimeline.some(stage => stage.era === era && stage.period === prev.period) ? prev.period : "" })); };
   const choosePeriod = (period: string) => { if (primaryLocked) return; setDraft(prev => ({ ...prev, period,
@@ -136,7 +137,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
           <section className="rounded-2xl border border-[#dbe5d9] bg-white/75 p-4 space-y-4">
             <label className="flex items-center justify-between gap-3 text-xs font-semibold text-[#496453]">
               <span>跨世界观 · CROSS-WORLD <span className="ml-1 text-[10px] font-normal text-[#89998d]">（默认关闭）</span></span>
-              <input type="checkbox" checked={crossWorld.enabled} onChange={e => setDraft(prev => ({
+              <input type="checkbox" disabled={Boolean(value?.crossWorld?.enabled)} checked={crossWorld.enabled} onChange={e => setDraft(prev => ({
                 ...prev, crossWorld: { ...crossWorld, enabled: e.target.checked, includeUniversal: e.target.checked && crossWorld.includeUniversal,
                   secondary: e.target.checked ? crossWorld.secondary : [] },
               }))} className="h-4 w-4 accent-[#577d67]" />
@@ -148,20 +149,20 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
                 const periods = entry.canonTimeline.filter(stage => !entry.baseEra || stage.era === entry.baseEra);
                 return <div key={index} className="space-y-3 rounded-xl border border-[#dae6d9] bg-[#f7faf6] p-3">
                   <div className="flex items-center justify-between"><span className="text-xs font-semibold">其他世界观 {index + 1}</span>
-                    <button type="button" onClick={() => setDraft(prev => ({ ...prev, crossWorld: { ...crossWorld,
+                    <button type="button" disabled={previousSecondary.has(entry.worldId)} onClick={() => setDraft(prev => ({ ...prev, crossWorld: { ...crossWorld,
                       secondary: crossWorld.secondary.filter((_, i) => i !== index) } }))} aria-label="移除世界观" className="text-[#a27d73]"><Trash2 size={15}/></button></div>
-                  <select value={entry.worldId} onChange={e => changeSecondary(index, e.target.value)} className={inputStyle}>
+                  <select disabled={previousSecondary.has(entry.worldId)} value={entry.worldId} onChange={e => changeSecondary(index, e.target.value)} className={inputStyle}>
                     {choices.filter(item => item.id === entry.worldId || (item.id !== draft.worldId && !crossWorld.secondary.some(s => s.worldId === item.id))).map(item =>
                       <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="text-[11px] text-[#526b5b]">基准 ERA *
-                      <select className={inputStyle} value={entry.baseEra} onChange={e => changeSecondaryBaseline(index, e.target.value, "")}>
+                      <select disabled={previousSecondary.has(entry.worldId)} className={inputStyle} value={entry.baseEra} onChange={e => changeSecondaryBaseline(index, e.target.value, "")}>
                         <option value="">请选择 ERA</option>{eras.map(era => <option key={era} value={era}>{era}</option>)}
                       </select>
                     </label>
                     <label className="text-[11px] text-[#526b5b]">基准 PERIOD *
-                      <select className={inputStyle} value={entry.basePeriod}
+                      <select disabled={previousSecondary.has(entry.worldId)} className={inputStyle} value={entry.basePeriod}
                         onChange={e => changeSecondaryBaseline(index, entry.canonTimeline.find(stage => stage.period === e.target.value)?.era || entry.baseEra, e.target.value)}>
                         <option value="">请选择 PERIOD</option>{periods.map(stage => <option key={stage.period} value={stage.period}>{stage.period}</option>)}
                       </select>
@@ -184,7 +185,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
           <section className="space-y-3">
             <h3 className="text-xs font-bold tracking-[.14em]" style={geometric}><Compass size={15} className="mr-2 inline text-[#9d8859]"/>02 · DESTINY / 时间线分歧</h3>
             <div className="grid grid-cols-2 gap-3">
-              {([{id:"canon",title:"ORIGINAL / 原作",hint:"遵循既定时间轴"},{id:"au",title:"ALTERNATE / AU",hint:"书写另一种可能"}] as const).map(mode=><button key={mode.id} type="button" disabled={!stages.length} onClick={()=>setDraft(p=>({...p,kind:mode.id,era:"",period:"",baseEra:undefined,basePeriod:undefined}))} className={`relative rounded-xl border px-4 py-4 text-left transition disabled:opacity-35 ${draft.kind===mode.id ? "border-[#ab925e] bg-[#f1ede3] shadow-[inset_0_0_0_1px_#d8c79d]" : "border-[#d6dfd5] bg-white hover:border-[#b1c6b4]"}`}><span className="block text-xs font-bold tracking-wider" style={geometric}>{mode.title}</span><span className="mt-1 block text-[10px] text-[#7e9284]">{mode.hint}</span>{draft.kind===mode.id && <CircleDot size={13} className="absolute right-3 top-3 text-[#ae9364]"/>}</button>)}
+              {([{id:"canon",title:"ORIGINAL / 原作",hint:"遵循既定时间轴"},{id:"au",title:"ALTERNATE / AU",hint:"书写另一种可能"}] as const).map(mode=><button key={mode.id} type="button" disabled={primaryLocked || !stages.length} onClick={()=>setDraft(p=>({...p,kind:mode.id,era:"",period:"",baseEra:undefined,basePeriod:undefined}))} className={`relative rounded-xl border px-4 py-4 text-left transition disabled:opacity-35 ${draft.kind===mode.id ? "border-[#ab925e] bg-[#f1ede3] shadow-[inset_0_0_0_1px_#d8c79d]" : "border-[#d6dfd5] bg-white hover:border-[#b1c6b4]"}`}><span className="block text-xs font-bold tracking-wider" style={geometric}>{mode.title}</span><span className="mt-1 block text-[10px] text-[#7e9284]">{mode.hint}</span>{draft.kind===mode.id && <CircleDot size={13} className="absolute right-3 top-3 text-[#ae9364]"/>}</button>)}
             </div>
             {!stages.length && <p className="text-[11px] text-[#a17855]">这个世界尚未定义时间线，请先去 Charta 创建。AU 也需要原作基准时间线。</p>}
           </section>
@@ -192,17 +193,17 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
             <h3 className="text-xs font-bold tracking-[.12em] text-[#456b57]" style={geometric}>AU ONLY · 基准时间线 *</h3>
             <p className="text-[11px] leading-6 text-[#718c7a]">决定人物从原作继承至哪个时期。AU 自己的 ERA / PERIOD 与此独立，不会提前注入后期经历。</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-xs font-semibold">基准 ERA *<select className={inputStyle} value={draft.baseEra || ""} onChange={e=>setDraft(p=>({...p,baseEra:e.target.value,basePeriod:""}))}><option value="">请选择基准 ERA</option>{baseEras.map(era=><option key={era} value={era}>{era}</option>)}</select></label>
-              <label className="text-xs font-semibold">基准 PERIOD *<select className={inputStyle} value={draft.basePeriod || ""} onChange={e=>setDraft(p=>({...p,basePeriod:e.target.value,baseEra:p.canonTimeline.find(stage=>stage.period===e.target.value)?.era || p.baseEra}))}><option value="">请选择基准 PERIOD</option>{basePeriods.map(stage=><option key={stage.period} value={stage.period}>{stage.period}</option>)}</select></label>
+              <label className="text-xs font-semibold">基准 ERA *<select disabled={primaryLocked} className={inputStyle} value={draft.baseEra || ""} onChange={e=>setDraft(p=>({...p,baseEra:e.target.value,basePeriod:""}))}><option value="">请选择基准 ERA</option>{baseEras.map(era=><option key={era} value={era}>{era}</option>)}</select></label>
+              <label className="text-xs font-semibold">基准 PERIOD *<select disabled={primaryLocked} className={inputStyle} value={draft.basePeriod || ""} onChange={e=>setDraft(p=>({...p,basePeriod:e.target.value,baseEra:p.canonTimeline.find(stage=>stage.period===e.target.value)?.era || p.baseEra}))}><option value="">请选择基准 PERIOD</option>{basePeriods.map(stage=><option key={stage.period} value={stage.period}>{stage.period}</option>)}</select></label>
             </div>
           </section>}
           <section className="grid gap-4 sm:grid-cols-2">
             <label className="text-xs font-bold tracking-[.12em]" style={geometric}>03 · ERA / 时代 *
-              {draft.kind==="canon" ? <select value={draft.era} onChange={e=>chooseEra(e.target.value)} className={inputStyle}><option value="">请选择 ERA</option>{eras.map(era=><option key={era} value={era}>{era}</option>)}</select> : <input value={draft.era} maxLength={100} placeholder="另一条时间轴中的时代" onChange={e=>setDraft(p=>({...p,era:e.target.value}))} className={inputStyle}/>}</label>
+              {draft.kind==="canon" ? <select disabled={primaryLocked} value={draft.era} onChange={e=>chooseEra(e.target.value)} className={inputStyle}><option value="">请选择 ERA</option>{eras.map(era=><option key={era} value={era}>{era}</option>)}</select> : <input disabled={primaryLocked} value={draft.era} maxLength={100} placeholder="另一条时间轴中的时代" onChange={e=>setDraft(p=>({...p,era:e.target.value}))} className={inputStyle}/>}</label>
             <label className="text-xs font-bold tracking-[.12em]" style={geometric}>04 · PERIOD / 时期 *
-              {draft.kind==="canon" ? <select value={draft.period} onChange={e=>choosePeriod(e.target.value)} className={inputStyle}><option value="">请选择 PERIOD</option>{periods.map(period=><option key={period} value={period}>{period}</option>)}</select> : <input value={draft.period} maxLength={100} placeholder="另一条时间轴中的时期" onChange={e=>setDraft(p=>({...p,period:e.target.value}))} className={inputStyle}/>}</label>
+              {draft.kind==="canon" ? <select disabled={primaryLocked} value={draft.period} onChange={e=>choosePeriod(e.target.value)} className={inputStyle}><option value="">请选择 PERIOD</option>{periods.map(period=><option key={period} value={period}>{period}</option>)}</select> : <input disabled={primaryLocked} value={draft.period} maxLength={100} placeholder="另一条时间轴中的时期" onChange={e=>setDraft(p=>({...p,period:e.target.value}))} className={inputStyle}/>}</label>
           </section>
-          {draft.kind==="canon" && <button type="button" onClick={()=>setDraft(p=>({...p,era:"",period:""}))} className="flex items-center gap-1 text-[11px] text-[#648370] hover:underline"><RotateCcw size={12}/>重新选择 ERA / PERIOD</button>}
+          {!primaryLocked && draft.kind==="canon" && <button type="button" onClick={()=>setDraft(p=>({...p,era:"",period:""}))} className="flex items-center gap-1 text-[11px] text-[#648370] hover:underline"><RotateCcw size={12}/>重新选择 ERA / PERIOD</button>}
           {showEvent && <label className="block text-xs font-bold tracking-[.12em]" style={geometric}>05 · EVENT / 命运事件（选填）<textarea value={draft.event} maxLength={500} rows={3} onChange={e=>setDraft(p=>({...p,event:e.target.value}))} placeholder="这一刻会发生什么？也可以交给故事本身。" className={`${inputStyle} resize-y leading-6`}/></label>}
           {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">{error}</p>}
         </div>
