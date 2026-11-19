@@ -216,11 +216,11 @@ export const NovelInterface = ({
     const canParticipate = Boolean(activeNovelSelf && (!novelWorldline || !activeNovelSelf.worldId
         || enabledWorldIds(novelWorldline).includes(activeNovelSelf.worldId)));
     // The same model/provider state powers Engineering, Chat, VIAE and Novel.
-    const activeModel = (customModelId || "").trim() || selectedModel || initialSelectedModel || "";
+    const activeModel = (customModelId || "").trim() || selectedModel || "";
     const [providerModels, setProviderModels] = useState<LocalModelGroup[]>([]);
     useEffect(() => {
         let alive = true;
-        if (!provider) { setProviderModels([]); return; }
+        if (!provider || provider.startsWith("custom_")) { setProviderModels([]); return; }
         fetch(`/api/providers?models=${encodeURIComponent(provider)}`, { cache: "no-store" })
             .then(r => r.json()).then(data => { if (alive) setProviderModels(Array.isArray(data.groups) ? data.groups : []); })
             .catch(() => { if (alive) setProviderModels([]); });
@@ -413,6 +413,10 @@ export const NovelInterface = ({
 
     const handleGenerate = (type: 'new' | 'continue', optionText?: string) => {
         if (isLoading) return;
+        if (!activeModel.trim()) {
+            window.alert("请先选择当前供应商的模型，确认后再编织篇章。");
+            return;
+        }
         if (!novelWorldline) {
             showToast?.("请先在右侧设置小说世界线：WORLD、ERA、PERIOD；AU 还需选择基准时间线。");
             setWorldlineOpen(true);
@@ -744,9 +748,9 @@ export const NovelInterface = ({
                                             {providers.map((p: PublicLocalProvider) => <option key={p.id} value={p.id}>{p.label}</option>)}
                                             {!providers.some((p: PublicLocalProvider) => p.id === provider) && <option value={provider}>{provider || "未配置供应商"}</option>}
                                         </select>
-                                        <select aria-label="小说模型" value={customModelId && savedIds.includes(customModelId) ? `saved:${customModelId}` : (!customModelId && availableModels.some(m => m.id === selectedModel) ? selectedModel : "")} onChange={e => e.target.value.startsWith("saved:") ? onCustomModelChange(e.target.value.slice(6)) : onModelChange(e.target.value)} className={`w-full ${theme.bg} border ${theme.border} rounded-lg px-3 py-2 text-xs ${theme.text} outline-none ${theme.focus}`}>
+                                        <select aria-label="小说模型" value={customModelId && savedIds.includes(customModelId) ? `saved:${customModelId}` : (!customModelId && !provider.startsWith("custom_") && availableModels.some(m => m.id === selectedModel) ? selectedModel : "")} onChange={e => e.target.value.startsWith("saved:") ? onCustomModelChange(e.target.value.slice(6)) : onModelChange(e.target.value)} className={`w-full ${theme.bg} border ${theme.border} rounded-lg px-3 py-2 text-xs ${theme.text} outline-none ${theme.focus}`}>
                                             <option value="">{deepText(locale, "novel.manual")}</option>
-                                            {availableModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                            {!provider.startsWith("custom_") && availableModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                             {savedIds.map(id => <option key={`saved:${id}`} value={`saved:${id}`}>{id} · 自定义</option>)}
                                         </select>
                                         <div className="flex gap-2">
