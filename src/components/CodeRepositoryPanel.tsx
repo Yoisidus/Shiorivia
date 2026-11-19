@@ -27,8 +27,11 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         if (!response.ok) throw new Error(result.error || "IDE 操作失败");
         return result;
     };
-    const syncDisk = async (target = projectRoot) => {
+    const syncDisk = async (target = projectRoot, confirmDiscard = true) => {
         if (!target) return;
+        const hasDraft = isEditing && Object.entries(files).some(([name, file]) =>
+            diskBaseline[name]?.content !== file.content);
+        if (confirmDiscard && hasDraft && !window.confirm("当前 IDE 有未保存的修改。重新同步将丢弃它们，确定继续吗？")) return;
         setBusy(true);
         try {
             const [filesResponse, treeResponse] = await Promise.all([
@@ -116,7 +119,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                     await ideRequest("write", { project: projectRoot, path: name, content: file.content });
                 }
             }
-            await syncDisk(projectRoot);
+            await syncDisk(projectRoot, false);
         } catch (error: any) { alert(error.message); }
         finally { setBusy(false); }
     };
@@ -147,7 +150,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
             for (const [name, file] of legacy) {
                 await ideRequest("write", { project: projectRoot, path: name, content: file.content });
             }
-            await syncDisk(projectRoot);
+            await syncDisk(projectRoot, false);
         } catch (error: any) { alert(`导入中止：${error.message}`); }
         finally { setBusy(false); }
     };
