@@ -770,7 +770,8 @@ export const useChatEngine = ({
                 if (['txt', 'md', 'markdown', 'log'].includes(ext)) {
                     return `\n**[Document: ${fileName}]**\n\`\`\`${ext}\n${fileContent}\n\`\`\`\n`;
                 }
-                newFiles[fileName] = { name: fileName, language: ext || 'text', content: fileContent.trim() };
+                newFiles[fileName] = { name: fileName, language: ext || 'text',
+                    content: fileContent.replace(/^\r?\n/, "").replace(/\r?\n$/, "") };
                 return ""; 
             }).trim();
 
@@ -805,6 +806,18 @@ export const useChatEngine = ({
                         }
                         const created = await idePost("createProject", { name: preferred });
                         outputProject = created.project;
+                    }
+                    const existingResponse = await fetch(
+                        `/api/ide?action=tree&project=${encodeURIComponent(outputProject)}`, { cache: "no-store" });
+                    const existingData = await existingResponse.json();
+                    if (!existingResponse.ok) throw new Error(existingData.error || "无法核对目标文件");
+                    const previousPaths = new Set((existingData.entries || [])
+                        .filter((item: any) => item.type === "file").map((item: any) => item.path));
+                    const collisions = Object.keys(newFiles).filter(name => previousPaths.has(name));
+                    if (collisions.length && !window.confirm(
+                        `当前 IDE 项目已有以下同名文件，是否覆盖？\\n${collisions.slice(0, 10).join("\\n")}`
+                    )) {
+                        throw new Error("用户取消覆盖，生成代码已保留在本轮会话的备用文件库。");
                     }
                     for (const [relative, file] of Object.entries(newFiles) as [string, any][]) {
                         await idePost("write", { project: outputProject,
