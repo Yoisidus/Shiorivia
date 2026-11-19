@@ -1,0 +1,47 @@
+# Umbra multi-character conversations · Shiorivia Local
+
+This document describes the **Local** implementation in `seemoon1/Shiorivia`.
+
+## Umbra flow
+
+- New Umbra conversations start without a selected character. A localized **System** welcome instructs the user to choose a worldline from the top of the left explorer and then a character from the right sidebar. The composer is locked until a valid WORLD / ERA / PERIOD and eligible active character are selected.
+- The right cast sidebar shows a placeholder until a worldline exists. After configuration it lists only characters from the current main world and explicitly enabled secondary worlds (plus universal characters if that worldline option is enabled). Cards show their origin world.
+- Users can switch the active chat character freely within the same conversation. Each generated assistant message stores `characterId` and uses that saved ID's portrait/name, not the presently active character's portrait.
+- Before each AI request, historical user messages are labelled with their addressee and historical assistant responses with their original speaker ID/name. The new system prompt states the current speaker and last assistant speaker, enabling the new character to react naturally to what a previous character said without claiming the previous speaker's words.
+- Only the **current speaker** receives full biography, period-limited by its own worldline knowledge cutoff. Both currently selected speaker STM and LTM are separated under `chatCharacterMemories[characterId]`; other speakers' memories cannot overwrite the active speaker's. The Memory Vault switches to the selected character's own memory. Existing legacy chat STM/LTM are migrated to the originally selected character when the conversation's worldline is configured or the actor first changes.
+- An active Charta self is supplied to Officina and Umbra requests as the user's optional identity. If none is active, the AI is explicitly told the other party is simply the user.
+
+## Worldline policy
+
+- Via Lata, Tela, Umbra and VIAE save one immutable primary worldline. Its WORLD, canon/AU, ERA and PERIOD (including AU reference baseline) cannot change once saved. For existing worlds, new secondary worlds may be appended up to the configured limit of three; previously saved secondary worlds cannot be changed or deleted.
+- Shared worldline editors disable locked fields and validate the additive-only contract before saving. Worldline scene EVENT is still allowed to change in story contexts. VIAE's route editor uses the same contract.
+- Existing routes/sessions remain readable using the prior compatibility layer; the change does not rewrite or delete old archives.
+
+## Officina output recovery
+
+- Character engineer prompts still allow normal conversation. Only when a complete code file/component/script is requested but the reply lacks the required `<file>` block, or file blocks are unclosed, is the message flagged as potentially incomplete.
+- A **确认补全** button appears under that answer. Clicking requires confirmation and sends one explicit follow-up request to the same current character engineer and selected model. It does not automatically issue extra model requests for greetings or unambiguous plain text.
+
+## Visual polish
+
+- Image Studio settings use the neutral white/slate style of Settings Center.
+- Left model-selection and right character-world filters have neutral white surfaces and subtle cool-grey borders, removing most legacy light-sage accents.
+- Umbra uses a restrained botanical green for its worldline selector and character context.
+
+## Suggested verification
+
+```powershell
+git switch main
+git pull --ff-only origin main
+node --experimental-strip-types scripts/check-umbra-multichar-worldlines.mjs
+node scripts/check-officina-character-engineer.mjs
+npx tsc --noEmit
+npm run build
+```
+
+Manual checks:
+1. Fresh Umbra has an empty character and a locked composer. Save a worldline and choose a character to unlock it. Do not send the visual-only welcome to AI.
+2. Chat with Mutsu, switch to Sakiko and ask her opinion of Mutsu's last message. Verify each assistant bubble keeps its original portrait, the provider request explicitly labels the speaker and previous speaker, and each character has its own Memory Vault content.
+3. Enable one secondary world and verify its characters become available. Add another later. Try altering main ERA/PERIOD, deleting a saved secondary world or changing its baseline; none should succeed.
+4. In Officina request a complete source file using a model known to sometimes omit file markup. Confirm the manual completion button appears, does not dispatch when cancelled and can dispatch after confirmation. Ordinary greetings must not produce it.
+5. Inspect Settings Center and the white sidebar model panel for aligned background/border colors.
