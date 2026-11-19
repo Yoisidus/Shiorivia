@@ -480,7 +480,7 @@ export const useChatEngine = ({
                 // the new session title was reviewed this turn.
                 if (titleFromSameGeneration.title && mayReviewSessionTitle(currentSession, "novel")) {
                     const safeTitle = titleFromSameGeneration.title.replace(/["<>]/g, "").slice(0, 100);
-                    currentText = currentText.replace(/^(\\s*<meta\\s+title=)["'][^"']+["'](?=\\s+chapter=)/i,
+                    currentText = currentText.replace(/^(\s*<meta\s+title=)["'][^"']+["'](?=\s+chapter=)/i,
                         (_match: string, prefix: string) => `${prefix}"${safeTitle}"`);
                 }
                 // A provider may omit <meta> on continuations even when instructed.
@@ -830,7 +830,7 @@ export const useChatEngine = ({
                 // extra hidden model request or fabricated project decisions.
                 const prompt = [...msgs].reverse().find((m: any) => m.role === "user");
                 const userContent = typeof prompt?.content === "string" ? prompt.content : "[attachment]";
-                const fallback = `用户：${userContent.slice(0, 180)}；本轮答复：${currentText.replace(/\\s+/g, " ").slice(0, 220)}`;
+                const fallback = `用户：${userContent.slice(0, 180)}；本轮答复：${currentText.replace(/\s+/g, " ").slice(0, 220)}`;
                 const summaryLine = `• ${extractedEngineerMemory.memory || fallback}`;
                 setSessions((prev: Session[]) => prev.map(s => {
                     if (s.id !== currentSessionId || !s.messages.some(m => m.storyGenerationId === generationId)) return s;
@@ -838,7 +838,7 @@ export const useChatEngine = ({
                     const archive = records.length > LOCAL_STM_SLOTS ? records.slice(0, records.length - LOCAL_STM_SLOTS) : [];
                     const priorLtm = String(s.ltm || "");
                     const consolidatedLtm = archive.length
-                        ? [priorLtm, ...archive].filter(Boolean).join("\\n").slice(-16000)
+                        ? [priorLtm, ...archive].filter(Boolean).join("\n").slice(-16000)
                         : priorLtm;
                     return {
                         ...s,
