@@ -247,7 +247,7 @@ export default function Home() {
     // Switching sessions must also restore the character on the Live2D stage.
     useEffect(() => {
         if (!currentSession) return;
-        setActiveCharacterId(currentSession.memoryMode === "infinite"
+        setActiveCharacterId(currentSession.memoryMode === "infinite" || currentSession.memoryMode === "chat"
             ? currentSession.characterId || "" : currentSession.characterId || "mutsu");
     }, [currentSession?.id, currentSession?.characterId, currentSession?.memoryMode]);
     const changeStoryRole = (role: "observer" | "participant") => {
@@ -328,6 +328,8 @@ export default function Home() {
         // Officina uses the selected character’s original identity, never a variant disguise.
         if (currentSession?.memoryMode === "infinite") return currentSession.characterId
             ? { ...base } : { ...base, id: "", name: "Officina", sub: "Character Engineer", avatar: "🛠️", hex: "#879baa" };
+        if (currentSession?.memoryMode === "chat" && !currentSession.characterId)
+            return { ...base, id: "", name: "Umbra", sub: "Character Chat", avatar: "🌿", hex: "#829e92" };
         let finalChar = { ...base };
 
         if (activeCharacterId === 'sakiko') {
@@ -435,7 +437,7 @@ export default function Home() {
         const existing = cloud.sessions.find(session => session.memoryMode === mode);
         if (existing) {
             setCurrentSessionId(existing.id);
-            setActiveCharacterId(mode === "infinite" ? existing.characterId || "" : existing.characterId || "mutsu");
+            setActiveCharacterId(mode === "infinite" || mode === "chat" ? existing.characterId || "" : existing.characterId || "mutsu");
         } else {
             createNewSession(activeCharacterId, mode);
         }
@@ -797,10 +799,10 @@ export default function Home() {
             onDrop={fileHandler.handleBgDrop}
             onDragOver={(e) => e.preventDefault()}
         >
-            <Background hex={currentSession?.memoryMode === 'infinite' && !currentSession.characterId
+            <Background hex={(currentSession?.memoryMode === 'infinite' || currentSession?.memoryMode === 'chat') && !currentSession.characterId
                 ? "#dce4e9" : currentSession?.memoryMode === 'sliding'
                 ? ({ sky: "#e0f2fe", sage: "#b7d3b0", rose: "#f4c6d2" }[config.storyTheme])
-                : dynamicCharacter.hex} bgImage={currentSession?.memoryMode === 'infinite' && !currentSession.characterId ? undefined : cloud.bgImage} />
+                : dynamicCharacter.hex} bgImage={(currentSession?.memoryMode === 'infinite' || currentSession?.memoryMode === 'chat') && !currentSession.characterId ? undefined : cloud.bgImage} />
 
             {stageDbChar && (
                 customStage ? (
