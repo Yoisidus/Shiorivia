@@ -206,7 +206,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                                                 <Trash2 size={13}/> 删除
                                             </button>
                                         </div>}
-                                    </div>}
+                                    </div>
                                 </div>
                             ))}
                         </div>
