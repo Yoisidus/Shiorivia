@@ -107,7 +107,7 @@ export const SidebarLeft = ({
         let active = true;
         setModelGroups(fallbackModelGroups(apiProvider));
         setCatalogSource("fallback");
-        if (!apiProvider) return;
+        if (!apiProvider || apiProvider.startsWith("custom_")) return;
         fetch(`/api/providers?models=${encodeURIComponent(apiProvider)}`)
             .then(async (res) => { if (!res.ok) throw new Error("Catalog unavailable"); return res.json(); })
             .then((data) => { if (active && Array.isArray(data.groups)) { setModelGroups(data.groups); setCatalogSource(data.source || "fallback"); } })
@@ -140,10 +140,10 @@ export const SidebarLeft = ({
                     </div>
 
                     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                            <div className="h-[42%] min-h-[160px] shrink-0 overflow-y-auto border-b border-[#e6e9e2] bg-[#fbfcfa] p-3 scrollbar-thin">
+                            <div className="h-[42%] min-h-[160px] shrink-0 overflow-y-auto border-b border-[#e6e9e2] bg-white p-3 scrollbar-thin">
                                 <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-[#728578]"><span>Models · 模型</span><Package size={13} /></div>
 
-                                <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 text-xs font-bold">
+                                <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg border border-[#edf0ef] bg-[#fafbfb] p-1 text-xs font-bold">
                                     {(providers as PublicLocalProvider[]).map((p) => (
                                         <button key={p.id} type="button" onClick={() => setApiProvider(p.id)}
                                             className={`truncate rounded px-2 py-1.5 transition-all ${apiProvider === p.id ? 'bg-white text-emerald-700 shadow' : 'text-gray-500 hover:text-gray-800'}`} title={p.label}>
@@ -152,9 +152,9 @@ export const SidebarLeft = ({
                                     ))}
                                     {providers.length === 0 && <p className="col-span-2 px-2 py-2 text-[11px] text-amber-600">{deepText(locale, "explorer.noKey")}</p>}
                                 </div>
-                                <p className="mb-2 text-[10px] text-slate-400">{catalogSource === "live" ? "Live models" : "Offline model fallbacks"}</p>
+                                {!apiProvider.startsWith("custom_") && <p className="mb-2 text-[10px] text-slate-400">{catalogSource === "live" ? "Live models" : "Offline model fallbacks"}</p>}
 
-                                {modelGroups.map((g: any) => (
+                                {!apiProvider.startsWith("custom_") && modelGroups.map((g: any) => (
                                     <div key={g.groupName} className="mb-1">
                                         <button onClick={() => setExpandedGroups((prev: any) => prev.includes(g.groupName) ? prev.filter((x: any) => x !== g.groupName) : [...prev, g.groupName])} className="w-full flex justify-between p-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded">
                                             <span>{g.groupName}</span>
@@ -172,7 +172,8 @@ export const SidebarLeft = ({
                                     </div>
                                 ))}
 
-                                <div className="mt-3 border-t border-[#e1e8df] pt-3">
+                                {apiProvider.startsWith("custom_") && <p className="mb-2 text-[11px] leading-5 text-[#70818c]">自定义供应商不获取在线模型列表。请手动输入并保存你需要的模型 ID。</p>}
+                                <div className="mt-3 border-t border-[#e7ebee] pt-3">
                                     <div className="mb-2 flex items-center justify-between text-[10px] text-[#6f8175]"><span className="font-semibold tracking-wide">自定义模型</span><span>当前供应商</span></div>
                                     <div className="flex gap-1.5">
                                         <input aria-label="自定义模型 ID" value={customModelId} onChange={(e: any) => setCustomModelId(e.target.value)} placeholder="输入模型 ID" className="min-w-0 flex-1 rounded-lg border border-[#dfe7df] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#8ba897]" />
