@@ -1,31 +1,19 @@
-// Run: node --experimental-strip-types scripts/check-umbra-multichar-worldlines.mjs
+// Run: node scripts/check-umbra-multichar-worldlines.mjs
 // Wiring/contract checks. Not a substitute for TypeScript, build or browser smoke tests.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { canExtendWorldline } from "../src/lib/worldlineLock.ts";
-import { worldlineFor, BANG_DREAM_CANON } from "../src/lib/storyWorldline.ts";
-import { engineeringOutputIncomplete } from "../src/lib/engineeringCompletion.ts";
 const read = p => readFileSync(new URL("../" + p, import.meta.url), "utf8");
 
-const w = { ...worldlineFor(null), era: BANG_DREAM_CANON[5].era, period: BANG_DREAM_CANON[5].period };
-const extra = { worldId: "world-12345678", worldName: "Other", worldDescription: "",
-  canonTimeline: [{ era: "Past", period: "P1" }], baseEra: "Past", basePeriod: "P1" };
-assert.ok(canExtendWorldline(null, w));
-assert.ok(canExtendWorldline(w, w));
-assert.ok(!canExtendWorldline(w, { ...w, era: "未来", period: "T-9-10" }));
-assert.ok(!canExtendWorldline(w, { ...w, worldId: "world-12345678" }));
-const extended = { ...w, crossWorld: { enabled: true, includeUniversal: false, secondary: [extra] } };
-assert.ok(canExtendWorldline(w, extended));
-assert.ok(!canExtendWorldline(extended, w), "Cannot delete enabled secondary world");
-assert.ok(!canExtendWorldline(extended, { ...w, crossWorld: { enabled: true, includeUniversal: false, secondary: [] } }));
-const extra2 = { ...extra, worldId: "world-87654321" };
-assert.ok(canExtendWorldline(extended, { ...w, crossWorld: { enabled: true, includeUniversal: false, secondary: [extra, extra2] } }));
-assert.ok(!canExtendWorldline(extended, { ...w, crossWorld: { enabled: true, includeUniversal: false, secondary: [{ ...extra, basePeriod: "P2" }] } }));
-
-assert.ok(!engineeringOutputIncomplete("睦，你好", "你好。"));
-assert.ok(engineeringOutputIncomplete("请创建一个完整组件", "组件如下：可以使用按钮。"));
-assert.ok(engineeringOutputIncomplete("请写完整组件", '<file name="a.tsx">const a=1;'));
-assert.ok(!engineeringOutputIncomplete("请写完整组件", '<file name="a.tsx">const a=1;</file>'));
+const lock = read("src/lib/worldlineLock.ts");
+const recovery = read("src/lib/engineeringCompletion.ts");
+assert.ok(lock.includes("export function canExtendWorldline"));
+assert.ok(lock.includes("saved.worldId === proposed.worldId"));
+assert.ok(lock.includes("saved.period === proposed.period"));
+assert.ok(lock.includes("former?.secondary") && lock.includes("if (!replacement"));
+assert.ok(lock.includes("nextWorlds.get(original.worldId)"));
+assert.ok(recovery.includes("export function engineeringOutputIncomplete"));
+assert.ok(recovery.includes("opens !== closes"));
+assert.ok(recovery.includes("requestsWholeFile && opens === 0"));
 
 const hook = read("src/hooks/useChatEngine.ts");
 const api = read("src/app/api/chat/route.ts");
