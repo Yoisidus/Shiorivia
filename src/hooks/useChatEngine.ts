@@ -210,8 +210,12 @@ export const useChatEngine = ({
                     globalWorldInfo,
                     localWorldInfo: currentSession.localWorldInfo,
                     memoryMode: currentSession.memoryMode || 'sliding',
-                    stm: currentSession.stm,
-                    ltm: currentSession.ltm,
+                    stm: currentSession.memoryMode === "chat"
+                        ? (currentSession.chatCharacterMemories?.[activeCharacterId]?.stm || "")
+                        : currentSession.stm,
+                    ltm: currentSession.memoryMode === "chat"
+                        ? (currentSession.chatCharacterMemories?.[activeCharacterId]?.ltm || "")
+                        : currentSession.ltm,
                     timeline: currentSession.timeline,
                     storyWorldline: (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel" || currentSession.memoryMode === "chat") ? currentSession.storyWorldline : undefined,
                     ...(currentSession.memoryMode === "chat" ? { chatCharacterMemories: currentSession.chatCharacterMemories || {} } : {}),
@@ -314,8 +318,9 @@ export const useChatEngine = ({
                             const result = await r.json();
                             if (typeof result?.summary !== "string" || !result.summary.trim()) return;
                             const summaryLine = `• ${result.summary.trim()}`;
-                            const originalStm = String(currentSession.stm || "");
-                            const originalLtm = String(currentSession.ltm || "");
+                            const characterMemory = currentSession.chatCharacterMemories?.[activeCharacterId];
+                            const originalStm = String(characterMemory?.stm || "");
+                            const originalLtm = String(characterMemory?.ltm || "");
                             const batch = [...parseLocalMemoryEntries(originalStm), summaryLine];
                             let archive = "";
                             if (batch.length >= LOCAL_STM_SLOTS) {
@@ -331,18 +336,17 @@ export const useChatEngine = ({
                                     archive = typeof mergedData?.summary === "string" ? mergedData.summary.trim() : "";
                                 }
                             }
-                            setSessions((prev: any) => prev.map((session: any) => {
-                                if (session.id !== currentSessionId || session.memoryMode !== 'chat') return session;
-                                // Never overwrite STM that was edited or updated while summarizing.
-                                if (String(session.stm || "") !== originalStm || String(session.ltm || "") !== originalLtm) {
-                                    const entries = [...parseLocalMemoryEntries(session.stm), summaryLine];
-                                    return { ...session, stm: formatLocalMemoryEntries(entries), turnCount: entries.length, updatedAt: Date.now() };
-                                }
-                                if (archive) {
-                                    // The macro endpoint already returns the merged LTM, not a delta.
-                                    return { ...session, stm: "", ltm: archive, turnCount: 0, updatedAt: Date.now() };
-                                }
-                                return { ...session, stm: formatLocalMemoryEntries(batch), turnCount: batch.length, updatedAt: Date.now() };
+                            setSessions((prev: Session[]) => prev.map(session => {
+                                if (session.id !== currentSessionId || session.memoryMode !== "chat") return session;
+                                const memory = session.chatCharacterMemories?.[activeCharacterId] || { stm: "", ltm: "" };
+                                const altered = memory.stm !== originalStm || memory.ltm !== originalLtm;
+                                const next = altered
+                                    ? { stm: formatLocalMemoryEntries([...parseLocalMemoryEntries(memory.stm), summaryLine]), ltm: memory.ltm }
+                                    : archive ? { stm: "", ltm: archive }
+                                    : { stm: formatLocalMemoryEntries(batch), ltm: originalLtm };
+                                return { ...session, chatCharacterMemories: {
+                                    ...(session.chatCharacterMemories || {}), [activeCharacterId]: next,
+                                }, updatedAt: Date.now() };
                             }));
                         } catch (error) {
                             console.warn("Chat memory summary skipped:", error);
