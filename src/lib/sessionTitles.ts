@@ -8,6 +8,18 @@ const titles = {
   novel: ["新小说", "新小說", "New Novel", "新しい小説", "새 소설"],
 } as const;
 export type NamedSessionMode = keyof typeof titles;
+/** Visual-only unassigned Officina welcome; never send this message to a model. */
+export function officinaUnassignedWelcome(locale: Locale): string {
+  const messages: Record<Locale, string> = {
+    "zh-CN": "欢迎来到 Shiorivia。请先从右侧栏选择一位角色工程师，再开始合作。",
+    "zh-TW": "歡迎來到 Shiorivia。請先從右側欄選擇一位角色工程師，再開始合作。",
+    en: "Welcome to Shiorivia. Choose a character engineer in the right sidebar to begin.",
+    ja: "Shiorivia へようこそ。右側のサイドバーから一緒に作業するキャラクターを選んでください。",
+    ko: "Shiorivia에 오신 것을 환영합니다. 오른쪽 사이드바에서 함께 작업할 캐릭터 엔지니어를 선택하세요.",
+  };
+  return messages[locale] || messages["zh-CN"];
+}
+
 /** Initial assistant greetings are generated only for brand-new sessions. */
 export function sessionGreeting(mode: "infinite" | "chat", name: string, locale: Locale): string {
   const who = name || "Shiorivia";
