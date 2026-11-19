@@ -215,6 +215,16 @@ export const useChatEngine = ({
                         previousProtagonist: currentSession.protagonist,
                     } : {}),
                     customCharacters: customCharacters.map(asChartaPromptData),
+                    ...(currentSession.memoryMode === "infinite" ? {
+                        engineeringLore: {
+                            relationships: config.engineeringLoreRelationships === true,
+                            experiences: config.engineeringLoreExperiences === true,
+                        },
+                        engineeringWorlds: storyWorlds.map((world: any) => ({
+                            id: world.id, name: world.name, description: world.description,
+                            canonTimeline: world.canonTimeline,
+                        })),
+                    } : {}),
                 }),
                 signal: abortControllerRef.current.signal
             });
