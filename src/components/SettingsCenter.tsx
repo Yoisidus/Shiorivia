@@ -217,11 +217,15 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   onClick={onToggleGeminiNarrativeStyle}
                   icon={BookOpen}
                 />}
-                {activeMode === "infinite" && <div className="mt-4 rounded-2xl border border-[#e0e9df] bg-[#fcfdfb] px-4 py-3">
-                  <div className="text-xs font-semibold tracking-widest text-[#4b705e]">OFFICINA · 角色工程师设定</div>
-                  <p className="mt-2 text-xs leading-5 text-slate-500">身份、性格、简介、说话方式和还原指南始终完整注入。以下两个区块仅控制额外的全时间线剧情资料，默认均关闭。</p>
-                  <SwitchRow title="核心人物关系" description="开启后注入所选角色在所有原作时间线中的主要人物关系，会增加 Token 消耗。" checked={engineeringLoreRelationshipsEnabled} onClick={onToggleEngineeringLoreRelationships} icon={BookOpen} />
-                  <SwitchRow title="主要经历" description="开启后注入所选角色在所有原作时间线中的主要经历，会增加 Token 消耗。" checked={engineeringLoreExperiencesEnabled} onClick={onToggleEngineeringLoreExperiences} icon={BookOpen} />
+                {activeMode === "infinite" && <div className="mt-3 space-y-2">
+                  <div className="px-1">
+                    <p className="text-xs font-semibold text-slate-700">Officina · 角色工程师设定</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">基础性格与角色还原指南始终加载；以下扩展资料默认关闭，可按需要独立开启。</p>
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white px-3">
+                    <SwitchRow title="核心人物关系" description="附加全时间线的重要关系与互动记录，增加 Token 用量。" checked={engineeringLoreRelationshipsEnabled} onClick={onToggleEngineeringLoreRelationships} icon={BookOpen} />
+                    <SwitchRow title="主要经历" description="附加全时间线的主要事件与角色经历，增加 Token 用量。" checked={engineeringLoreExperiencesEnabled} onClick={onToggleEngineeringLoreExperiences} icon={BookOpen} />
+                  </div>
                 </div>}
                 <SwitchRow title={t("settings.webSearch")} description={t("settings.webSearch.description")} checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
                 <SwitchRow title={t("settings.imageGen")} description={t("settings.imageGen.description")} checked={values.imageGen} onClick={() => onToggle("imageGen")} icon={ImageIcon} />
