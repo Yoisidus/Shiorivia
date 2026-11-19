@@ -15,6 +15,7 @@ import { useViaeEngine } from "../hooks/useViaeEngine";
 import { ViaeWorldlineEditor } from "./ViaeWorldlineEditor";
 import { parseStoryWorldline, worldlineFor, describeStoryWorldline, BANG_DREAM_WORLD_ID } from "../lib/storyWorldline";
 import { viaeWorldline } from "../lib/viaeWorldline";
+import { canExtendWorldline } from "../lib/worldlineLock";
 import { storyCastAllowed } from "../lib/storyCast";
 import type { ChartaWorld } from "../lib/chartaWorld";
 import type { ChartaSelf } from "../lib/chartaSelf";
@@ -236,6 +237,9 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
     if (!activeGroup || isLoading) return;
     const parsed = parseStoryWorldline(routeDraft);
     if (!parsed) { notify("请完整配置世界线与附属世界观的基准时间线。"); return; }
+    if (!canExtendWorldline(viaeWorldline(activeGroup), parsed)) {
+      notify("道路主世界线已经锁定；附属世界观只能增加，不能编辑或删除。"); return;
+    }
     if (activeGroup.members.some(id => !storyCastAllowed({ id, worldId: memberOrigin(id) }, parsed))) {
       notify("新世界线不包含当前同行者，请先调整世界线。"); return;
     }
@@ -401,7 +405,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
               <div className="flex items-center justify-between text-xs font-semibold"><span>编辑道路世界线</span>
                 <button type="button" onClick={() => setShowRouteEditor(false)} title="关闭"><X size={16}/></button>
               </div>
-              <ViaeWorldlineEditor value={routeDraft} onChange={setRouteDraft} worlds={worlds}/>
+              <ViaeWorldlineEditor value={routeDraft} onChange={setRouteDraft} worlds={worlds} saved={viaeWorldline(activeGroup)}/>
               <button type="button" disabled={isLoading} onClick={saveRoute}
                 className="rounded-lg bg-[#1a314c] px-4 py-2 text-xs text-white disabled:opacity-50">保存路线</button>
             </section>}
