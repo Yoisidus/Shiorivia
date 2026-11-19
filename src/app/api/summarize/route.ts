@@ -76,7 +76,7 @@ Rules:
         .generateContent(`${systemPrompt}\n\n${userPrompt}`);
       summary = response.response.text();
     } else {
-      const client = new OpenAI({ apiKey: selectedProvider.apiKey, baseURL: selectedProvider.baseURL });
+      const client = new OpenAI({ apiKey: selectedProvider.apiKey, baseURL: selectedProvider.baseURL, fetch: globalThis.fetch });
       const response = await client.chat.completions.create({
         model: routedModel,
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
