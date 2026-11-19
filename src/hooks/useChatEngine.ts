@@ -792,8 +792,18 @@ export const useChatEngine = ({
                 };
                 try {
                     if (!outputProject) {
-                        const fallback = `officina-${String(currentSessionId).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 18) || "project"}`;
-                        const created = await idePost("createProject", { name: rootTag?.[1] || fallback });
+                        const suffix = String(currentSessionId).replace(/[^a-zA-Z0-9_-]/g, "").slice(-10) || "new";
+                        const fallback = `officina-${suffix}`;
+                        let preferred = rootTag?.[1]?.trim() || fallback;
+                        // Never accidentally bind an unassigned conversation to an
+                        // unrelated existing folder chosen by an AI model.
+                        const projectsResponse = await fetch("/api/ide?action=projects", { cache: "no-store" });
+                        const listed = await projectsResponse.json();
+                        if (!projectsResponse.ok) throw new Error(listed.error || "无法核对现有项目");
+                        if (Array.isArray(listed.projects) && listed.projects.includes(preferred)) {
+                            preferred = `${preferred.slice(0, 75)}-${suffix}`;
+                        }
+                        const created = await idePost("createProject", { name: preferred });
                         outputProject = created.project;
                     }
                     for (const [relative, file] of Object.entries(newFiles) as [string, any][]) {
