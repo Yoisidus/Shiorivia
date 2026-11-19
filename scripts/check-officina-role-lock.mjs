@@ -13,6 +13,7 @@ const server = read("src/app/api/chat/route.ts");
 const summary = read("src/app/api/summarize/route.ts");
 const helper = read("src/lib/engineeringSession.ts");
 const types = read("src/types.ts");
+const greetings = read("src/lib/sessionTitles.ts");
 
 assert.ok(settings.includes('activeMode: "infinite" | "sliding" | "novel" | "chat" | "lime" | "hub"'));
 assert.ok(settings.includes('{activeMode === "infinite" && <div'));
@@ -29,6 +30,10 @@ assert.ok(page.includes('characterId: sessionCharId'));
 assert.ok(page.includes('engineeringCharacterLocked: false'));
 assert.ok(page.includes('setActiveCharacterId(sessionCharId)'));
 assert.ok(page.includes('engineeringCharacterLocked: false,'));
+assert.ok(page.includes('officinaUnassignedWelcome(locale)'));
+assert.ok(page.includes('name: "Officina", sub: "Character Engineer"'));
+assert.ok(greetings.includes('export function officinaUnassignedWelcome(locale: Locale)'));
+assert.ok(chat.includes('{!requiresEngineer && <span className="text-[10px] text-gray-400'));
 assert.ok(page.includes('characterId: "",'));
 assert.ok(page.includes('if (currentSession?.memoryMode === "infinite" && isEngineeringCharacterLocked(currentSession))'));
 assert.ok(sidebar.includes('roleLocked = isEngineeringCharacterLocked(currentSession)'));
