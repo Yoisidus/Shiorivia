@@ -50,7 +50,7 @@ assert.ok(!route.includes("messages.slice(-24)"));
 assert.ok(route.includes("selectContextMessages(") && route.includes("contextOutputReserve") === false);
 assert.ok(route.includes("status: error instanceof ContextWindowError ? 413 : 500"));
 assert.ok(viae.includes("contextWindowTokens,") && viaeUi.includes("contextWindowTokens,"));
-assert.equal((page.match(/contextWindowTokens=\{config\.contextWindowTokens\}/g) || []).length, 4);
+assert.equal((page.match(/contextWindowTokens=\{config\.contextWindowTokens\}/g) || []).length, 5, "Four settings surfaces plus VIAE");
 assert.ok(settings.includes("CONTEX"+"T_WINDOW_OPTIONS"));
 assert.ok(page.includes('contextWindowTokens: DEFAULT_CONTEXT_WINDOW_TOKENS'));
 assert.ok(page.includes('normalizeContextWindowTokens(saved.contextWindowTokens)'));
