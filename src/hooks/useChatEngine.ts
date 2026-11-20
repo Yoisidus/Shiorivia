@@ -20,6 +20,7 @@ import { extractInlineTitle } from "../lib/inlineTitle";
 import { lastStoryGameState, storyProseWithoutState, stripStoryThinking } from "../lib/storyResponseProtocol";
 import { aiConversationMessages, isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { engineeringOutputIncomplete, OFFICINA_COMPLETION_REQUEST } from "../lib/engineeringCompletion";
+import { extractIdeEditBlocks } from "../lib/ideEdits";
 
 export const useChatEngine = ({
     currentSession, currentSessionId, setSessions,
@@ -758,6 +759,62 @@ export const useChatEngine = ({
                 } catch (e) { console.error("Game State Error", e); }
             }
 
+
+            // Model-authored local edits are compact line operations, not complete files.
+            // The server validates every anchor; a preview and browser confirmation
+            // precede any write. Never send patch operations outside the bound project.
+            if (currentSession.memoryMode === "infinite" && /<\\/?ide_edit\\b/i.test(currentText)) {
+                try {
+                    if (!currentSession.engineeringProjectRoot) throw new Error("请先绑定 IDE 项目才能局部修改代码。");
+                    const parsed = extractIdeEditBlocks(currentText);
+                    currentText = parsed.text;
+                    const ideEditRequest = async (action: "previewEdit" | "applyEdit", args: Record<string, unknown>) => {
+                        const response = await fetch("/api/ide", {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action, project: currentSession.engineeringProjectRoot, ...args }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || "代码局部编辑失败");
+                        return data;
+                    };
+                    const previews: Array<{ path: string; version: string; edits: typeof parsed.blocks[number]["edits"] }> = [];
+                    for (const block of parsed.blocks) {
+                        const preview = await ideEditRequest("previewEdit", { path: block.path, edits: block.edits });
+                        previews.push({ path: block.path, version: preview.version, edits: block.edits });
+                    }
+                    const summary = previews.map(file =>
+                        file.path + "\\n" + file.edits.map(edit => {
+                            const where = edit.startLine === (edit.endLine ?? edit.startLine)
+                                ? `L${edit.startLine}` : `L${edit.startLine}–${edit.endLine}`;
+                            const operation = { insert_before: "前插入", insert_after: "后插入", replace: "替换", delete: "删除" }[edit.op];
+                            return `  ${where} · ${operation}\\n  - ${edit.expected.slice(0, 180).replace(/\\n/g, "\\n  - ")}`
+                                + (edit.text ? `\\n  + ${edit.text.slice(0, 200).replace(/\\n/g, "\\n  + ")}` : "");
+                        }).join("\\n")
+                    ).join("\\n\\n");
+                    if (previews.length && window.confirm(`确认应用以下 IDE 局部修改？\\n\\n${summary.slice(0, 7500)}${summary.length > 7500 ? "\\n…（预览已截断）" : ""}`)) {
+                        const applied: string[] = [];
+                        try {
+                            for (const file of previews) {
+                                await ideEditRequest("applyEdit", {
+                                    path: file.path, version: file.version, edits: file.edits,
+                                });
+                                applied.push(file.path);
+                            }
+                            showToast(`已局部修改 ${applied.length} 个 IDE 文件`);
+                            currentText += `\\n\\n**IDE 局部修改成功：** ${applied.join(", ")}`;
+                        } catch (editError: any) {
+                            currentText += `\\n\\n**IDE 局部修改未全部应用：** 已修改 ${applied.join(", ") || "无"}；${editError.message}`;
+                            window.alert(`IDE 局部编辑失败：${editError.message}`);
+                        }
+                    } else if (previews.length) {
+                        currentText += "\\n\\n*IDE 局部修改已取消，磁盘文件未更改。*";
+                    }
+                } catch (editError: any) {
+                    console.warn("IDE edit rejected:", editError);
+                    currentText += `\\n\\n**IDE 局部修改未执行：** ${editError.message}`;
+                    window.alert(`无法应用 IDE 局部修改：${editError.message}`);
+                }
+            }
 
             const fileRegex = /<file name="(.*?)">([\s\S]*?)<\/file>/g;
             currentText = currentText.replace(fileRegex, (match, fileName, fileContent) => {
