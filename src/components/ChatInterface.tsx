@@ -228,7 +228,7 @@ const Portal = ({ children }: { children: React.ReactNode }) => {
 export const ChatInterface = ({
     leftSidebarOpen, setLeftSidebarOpen,
     rightSidebarOpen, setRightSidebarOpen,
-    setShowLocalWorld, setShowGlobalWorld, onOpenStoryWorldline,
+    setShowLocalWorld, onOpenStoryWorldline,
 
     currentCharacter, currentSession,
     input, setInput, isLoading,
@@ -372,23 +372,21 @@ export const ChatInterface = ({
                 <>
                     <button onClick={toggleSaveModal} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold border bg-fuchsia-50 border-fuchsia-200 text-fuchsia-600 hover:bg-fuchsia-100 ${isMobile ? 'w-full justify-center' : ''}`}><Save size={16} /> <span className={isMobile ? "inline" : "hidden md:inline"}>Save</span></button>
                     <div className={`flex gap-1 ${isMobile ? 'w-full justify-center' : ''}`}>
-                        <button onClick={() => setShowLocalWorld(true)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500 flex items-center gap-1 text-xs"><StickyNote size={16} /> <span className={isMobile ? "inline" : "hidden lg:inline"}>Local</span></button>
-                        <button onClick={() => setShowGlobalWorld(true)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500 flex items-center gap-1 text-xs"><BookOpen size={16} /> <span className={isMobile ? "inline" : "hidden lg:inline"}>Global</span></button>
+                        <button onClick={() => setShowLocalWorld(true)} title="Via Lata · 会话世界书" className="flex items-center gap-1.5 rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-1.5 text-xs font-semibold text-fuchsia-700 hover:bg-fuchsia-100"><BookOpen size={15} /> <span>故事手记</span></button>
                     </div>
                 </>
             )}
 
             {currentSession?.memoryMode === 'chat' && (
                 <>
-                    <button onClick={() => setShowLocalWorld(true)} title="会话世界书" className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-slate-500 hover:bg-slate-100"><StickyNote size={16} /> <span className={isMobile ? 'inline' : 'hidden lg:inline'}>Session World</span></button>
-                    <button onClick={() => setShowGlobalWorld(true)} title="全局设定" className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-slate-500 hover:bg-slate-100"><BookOpen size={16} /> <span className={isMobile ? 'inline' : 'hidden lg:inline'}>Global</span></button>
+                    <button onClick={() => setShowLocalWorld(true)} title="Umbra · 会话世界书" className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"><StickyNote size={15} /> <span>聊天笔记</span></button>
                 </>
             )}
 
             {currentSession?.memoryMode === 'infinite' && (
                 <>
                     <button onClick={toggleCodeRepo} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold border bg-slate-800 text-blue-400 hover:bg-slate-700 shadow-sm ${isMobile ? 'w-full justify-center' : ''}`}><Terminal size={16} /> <span className={isMobile ? "inline" : "hidden md:inline"}>IDE</span></button>
-                    <button onClick={() => setShowGlobalWorld(true)} className={`p-1.5 hover:bg-gray-100 rounded text-gray-500 flex items-center gap-1 text-xs ${isMobile ? 'w-full justify-center' : ''}`}><ClipboardList size={16} /> <span className={isMobile ? "inline" : "hidden md:inline"}>Guide</span></button>
+                    <button onClick={() => setShowLocalWorld(true)} title="Officina · 当前会话工程指南" className={`flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 ${isMobile ? 'w-full justify-center' : ''}`}><ClipboardList size={16} /> <span>会话指南</span></button>
                 </>
             )}
         </>
