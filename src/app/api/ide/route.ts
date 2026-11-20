@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   listProjects, createProject, listWorkspaceFiles, readWorkspaceFile,
   searchWorkspace, createWorkspaceFolder, writeWorkspaceFile,
-  deleteWorkspaceFile, workspaceSnapshot,
+  deleteWorkspaceFile, workspaceSnapshot, previewWorkspaceEdit, applyWorkspaceEdit,
 } from "../../../lib/ideWorkspace";
 
 export const runtime = "nodejs";
@@ -38,6 +38,13 @@ export async function POST(request: NextRequest) {
     if (body.action === "createProject") return respond({ project: await createProject(body.name) });
     if (body.action === "createFolder") {
       await createWorkspaceFolder(body.project, body.path);
+      return respond({ success: true });
+    }
+    if (body.action === "previewEdit") {
+      return respond(await previewWorkspaceEdit(body.project, body.path, body.edits));
+    }
+    if (body.action === "applyEdit") {
+      await applyWorkspaceEdit(body.project, body.path, body.edits, body.version);
       return respond({ success: true });
     }
     if (body.action === "write") {
