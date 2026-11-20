@@ -1,7 +1,9 @@
 /** Shared pure path policy for the local Officina IDE sandbox. */
 const MAX_DEPTH = 14;
-const BLOCKED_PARTS = /^(?:node_modules|\.git|\.next|\.env(?:\..*)?|\.ssh|\.npmrc|\.gitconfig|id_rsa|id_ed25519|credentials(?:\..*)?|secrets?(?:\..*)?|private[-_.]?key(?:\..*)?)$/i;
-const BLOCKED_EXT = /\.(?:pem|p12|pfx|key|crt|cer|der|sqlite|db|png|jpe?g|gif|webp|ico|pdf|zip|gz|7z|exe|dll|so|wasm|mp3|mp4|woff2?)$/i;
+// Hide sensitive files and directories from EVERY IDE entrypoint: tree, search, read, snapshot and writes.
+// This is a filename/path boundary, not a guarantee against secrets embedded in ordinary source files.
+const BLOCKED_PARTS = /^(?:node_modules|\.git|\.next|\.env(?:\..*)?|\.ssh|\.aws|\.azure|\.npmrc|\.gitconfig|id_(?:rsa|dsa|ecdsa|ed25519)(?:\.pub)?|credentials?(?:[-_.].*)?|secrets?(?:[-_.].*)?|tokens?(?:[-_.].*)?|private[-_.]?key(?:[-_.].*)?|api[-_.]?keys?(?:[-_.].*)?|(?:access|refresh|auth)[-_.]?tokens?(?:[-_.].*)?|(?:service[-_.]?account|client[-_.]?secret)(?:[-_.].*)?|.*[-_.](?:credentials?|secrets?|private[-_.]?key|api[-_.]?keys?|client[-_.]?secret|service[-_.]?account|access[-_.]?token|refresh[-_.]?token)(?:[-_.].*)?)$/i;
+const BLOCKED_EXT = /\.(?:pem|p8|p12|pfx|p7b|key|crt|cer|der|jks|keystore|kdbx|asc|gpg|ovpn|sqlite3?|db|png|jpe?g|gif|webp|ico|pdf|zip|gz|7z|exe|dll|so|wasm|mp3|mp4|woff2?)$/i;
 const WINDOWS_RESERVED = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
 
 function cleanPart(part: string): string {
@@ -26,5 +28,7 @@ export function validRelativePath(value: unknown): string {
   return parts.join("/");
 }
 export function isWorkspaceTextFile(relative: string): boolean {
+  // Also validate here: callers that forget to validate the path still cannot expose keys.
+  try { validRelativePath(relative); } catch { return false; }
   return !BLOCKED_EXT.test(relative);
 }
