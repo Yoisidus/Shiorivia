@@ -46,9 +46,6 @@ There is **no local persistent KV prompt cache**, no user-visible guarantee of a
 ```powershell
 git switch main
 git pull --ff-only origin main
-node --experimental-strip-types scripts/check-context-window.mjs
-node scripts/check-umbra-multichar-worldlines.mjs
-node scripts/check-officina-character-engineer.mjs
 npx tsc --noEmit
 npm run build
 ```
