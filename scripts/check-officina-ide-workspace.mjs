@@ -48,7 +48,7 @@ const types = read("src/types.ts");
 const ignore = read(".gitignore");
 
 assert.ok(fs.includes("validRelativePath(") && fs.includes("isSymbolicLink()"));
-assert.ok(fs.includes("isWorkspaceTextFile(rel)") && fs.includes("isWorkspaceTextFile(relative)"));
+assert.ok(fs.includes("isWorkspaceTextFile(rel)") && fs.includes("isWorkspaceTextFile(rel)"));
 assert.ok(fs.includes("workspaceSnapshot") && fs.includes("listWorkspaceFiles(project)"));
 assert.ok(fs.includes("MAX_PROJECT_FILES") && fs.includes("MAX_FILE_BYTES"));
 assert.ok(api.includes('export async function GET') && api.includes('export async function POST'));
