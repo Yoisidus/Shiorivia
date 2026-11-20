@@ -1,20 +1,62 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import { BookOpen, X, Edit2, Save } from "lucide-react";
 
-export const WorldInfoModal = ({ isOpen, onClose, title, content, setContent, onSave }: any) => (
-   <AnimatePresence>
-      {isOpen && (
-         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="bg-white rounded-xl shadow-2xl w-[500px] border p-5 flex flex-col gap-4">
-               <div className="flex justify-between items-center"><div className="font-bold flex items-center gap-2 text-gray-700"><BookOpen size={16} />{title}</div><button onClick={onClose}><X /></button></div>
-               <textarea className="w-full h-48 border rounded-lg p-3 text-xs outline-none focus:ring-2 focus:ring-emerald-400" placeholder="在此输入设定..." value={content} onChange={e => setContent(e.target.value)}></textarea>
-               <div className="flex justify-end"><button onClick={onSave} className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-xs hover:bg-emerald-600 shadow-md flex items-center gap-2"><Save size={12} /> SAVE</button></div>
+type WorldInfoModalProps = {
+   isOpen: boolean;
+   onClose: () => void;
+   title: string;
+   subtitle?: string;
+   content: string;
+   onSave: (content: string) => void;
+   tone?: "story" | "chat" | "engineering";
+};
+
+/** Draft-first editor: closing without Save never mutates the session. */
+export const WorldInfoModal = ({ isOpen, onClose, title, subtitle, content, onSave, tone = "chat" }: WorldInfoModalProps) => {
+   const [draft, setDraft] = useState(content);
+   useEffect(() => { if (isOpen) setDraft(content); }, [isOpen, content]);
+   const accent = tone === "story"
+      ? { border: "border-fuchsia-200", background: "bg-fuchsia-50", text: "text-fuchsia-800", button: "bg-fuchsia-600 hover:bg-fuchsia-700", focus: "focus:ring-fuchsia-300" }
+      : tone === "engineering"
+      ? { border: "border-sky-200", background: "bg-sky-50", text: "text-sky-800", button: "bg-sky-700 hover:bg-sky-800", focus: "focus:ring-sky-300" }
+      : { border: "border-emerald-200", background: "bg-emerald-50", text: "text-emerald-800", button: "bg-emerald-600 hover:bg-emerald-700", focus: "focus:ring-emerald-300" };
+   const save = () => {
+      onSave(draft);
+      window.alert("保存成功");
+      onClose();
+   };
+   return (
+      <AnimatePresence>
+         {isOpen && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+               className="fixed inset-0 z-50 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4">
+               <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }}
+                  role="dialog" aria-modal="true" aria-label={title}
+                  className={`bg-white rounded-2xl shadow-2xl w-full max-w-[540px] overflow-hidden border ${accent.border}`}>
+                  <div className={`px-5 py-4 border-b ${accent.border} ${accent.background} flex items-start justify-between gap-3`}>
+                     <div>
+                        <div className={`font-bold flex items-center gap-2 ${accent.text}`}><BookOpen size={18} />{title}</div>
+                        <p className="mt-1 text-xs text-slate-500">{subtitle || "仅用于当前会话，不会影响其他会话。"}</p>
+                     </div>
+                     <button type="button" aria-label="关闭" onClick={onClose} className="rounded-lg p-1 text-slate-500 hover:bg-white/70"><X size={18} /></button>
+                  </div>
+                  <div className="p-5">
+                     <textarea className={`w-full h-60 resize-y border border-slate-200 rounded-xl p-3 text-sm text-slate-700 outline-none focus:ring-2 ${accent.focus}`}
+                        placeholder="写下这个会话的背景、规则、补充说明……"
+                        value={draft} onChange={e => setDraft(e.target.value)} />
+                     <div className="mt-4 flex justify-end gap-2">
+                        <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-xs text-slate-600 hover:bg-slate-100">取消</button>
+                        <button type="button" onClick={save} className={`rounded-lg px-4 py-2 text-xs text-white shadow-sm flex items-center gap-2 ${accent.button}`}><Save size={14} /> 保存设定</button>
+                     </div>
+                  </div>
+               </motion.div>
             </motion.div>
-         </motion.div>
-      )}
-   </AnimatePresence>
-);
+         )}
+      </AnimatePresence>
+   );
+};
 
 export const EditModal = ({ isOpen, onClose, content, setContent, onConfirm }: any) => (
    <AnimatePresence>
