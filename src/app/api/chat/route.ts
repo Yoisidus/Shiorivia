@@ -853,7 +853,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
         Number.isSafeInteger(body.titleReviewTurn) ? body.titleReviewTurn : 0,
         body.titleManuallyEdited === true, memoryMode === "novel",
       );
-      if (body.titleManuallyEdited !== true && shouldReviewInlineTitle(body.titleReviewTurn)) {
+      if (memoryMode !== "infinite" && body.titleManuallyEdited !== true && shouldReviewInlineTitle(body.titleReviewTurn)) {
         finalSystemPrompt += "\n[TITLE REVIEW MEMORY — REFERENCE ONLY]\n"
           + "STM: " + String(stm || "").slice(-3600) + "\n"
           + "LTM: " + String(ltm || "").slice(-5000) + "\n"
