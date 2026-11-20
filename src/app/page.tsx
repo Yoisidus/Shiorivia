@@ -26,6 +26,7 @@ import { ModeHub } from "../components/ModeHub";
 import { SettingsCenter, type SettingKey, type StoryTheme } from "../components/SettingsCenter";
 import { DEFAULT_LOCAL_PROVIDERS, getVisibleLocalProviders, type PublicLocalProvider } from "../lib/localProviders";
 import { modelSelectionFor, parseProviderModelSelections, selectProviderModel, type ProviderModelSelections } from "../lib/providerModelSelection";
+import { DEFAULT_CONTEXT_WINDOW_TOKENS, normalizeContextWindowTokens } from "../lib/contextWindow";
 
 import { useMusic } from "../context/MusicContext";
 import { useLocalFileSync } from "../hooks/useLocalFileSync";
@@ -111,6 +112,7 @@ export default function Home() {
         geminiNarrativeStyle: false,
         engineeringLoreRelationships: false,
         engineeringLoreExperiences: false,
+        contextWindowTokens: DEFAULT_CONTEXT_WINDOW_TOKENS,
         storyTheme: "sky" as StoryTheme,
         imageSettings: DEFAULT_IMAGE_SETTINGS,
         selectedModel: "",
@@ -158,6 +160,7 @@ export default function Home() {
                     geminiNarrativeStyle: saved.geminiNarrativeStyle === true,
                     engineeringLoreRelationships: saved.engineeringLoreRelationships === true,
                     engineeringLoreExperiences: saved.engineeringLoreExperiences === true,
+                    contextWindowTokens: normalizeContextWindowTokens(saved.contextWindowTokens),
                     storyTheme: (["sky", "sage", "rose"].includes(saved.storyTheme) ? saved.storyTheme : prev.storyTheme) as StoryTheme,
                     ...modelSelectionFor(restoredModels, restoredProvider),
                 }));
@@ -172,12 +175,12 @@ export default function Home() {
     useEffect(() => {
         if (!settingsHydrated) return;
         try {
-            const { webSearch, imageGen, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, storyTheme, imageSettings } = config;
-            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels }));
+            const { webSearch, imageGen, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings } = config;
+            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels }));
         } catch {
             // Local settings are best-effort; chat saves use their own storage.
         }
-    }, [settingsHydrated, config.webSearch, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels]);
+    }, [settingsHydrated, config.webSearch, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.contextWindowTokens, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels]);
 
     const visibleProviders = useMemo(() => getVisibleLocalProviders(allProviders.filter(p => !p.custom || capabilityFor(p.id, providerCapabilities).llm), disabledProviders), [allProviders, disabledProviders, providerCapabilities]);
     useEffect(() => { fetch('/api/check_env').then(r => r.json()).then(d => setFalConfigured(Boolean(d.hasFal))).catch(() => {}); }, []);
@@ -597,6 +600,8 @@ export default function Home() {
                     onTestEffect={ui.setEffect}
                     isStory={false}
                 activeMode="hub"
+                contextWindowTokens={config.contextWindowTokens}
+                onContextWindowChange={(value) => setConfig(prev => ({ ...prev, contextWindowTokens: value }))}
                     storyTheme={config.storyTheme}
                     onStoryThemeChange={(value) => setConfig(prev => ({ ...prev, storyTheme: value }))}
                     activeProvider={apiProvider}
@@ -666,6 +671,8 @@ export default function Home() {
                     onTestEffect={ui.setEffect}
                     isStory={false}
                 activeMode="lime"
+                contextWindowTokens={config.contextWindowTokens}
+                onContextWindowChange={(value) => setConfig(prev => ({ ...prev, contextWindowTokens: value }))}
                     storyTheme={config.storyTheme}
                     onStoryThemeChange={value => setConfig(prev => ({ ...prev, storyTheme: value }))}
                     activeProvider={apiProvider}
@@ -773,6 +780,8 @@ export default function Home() {
                 onTestEffect={ui.setEffect}
                 isStory={false}
                 activeMode="novel"
+                contextWindowTokens={config.contextWindowTokens}
+                onContextWindowChange={(value) => setConfig(prev => ({ ...prev, contextWindowTokens: value }))}
                 storyTheme={config.storyTheme}
                 onStoryThemeChange={value => setConfig(prev => ({ ...prev, storyTheme: value }))}
                 activeProvider={apiProvider}
@@ -1106,6 +1115,8 @@ export default function Home() {
                 onTestEffect={ui.setEffect}
                 isStory={currentSession?.memoryMode === 'sliding'}
                 activeMode={currentSession?.memoryMode || "hub"}
+                contextWindowTokens={config.contextWindowTokens}
+                onContextWindowChange={(value) => setConfig(prev => ({ ...prev, contextWindowTokens: value }))}
                 storyTheme={config.storyTheme}
                 onStoryThemeChange={(value) => setConfig(prev => ({ ...prev, storyTheme: value }))}
                 activeProvider={apiProvider}
