@@ -59,14 +59,18 @@ The client creates `IDE/WeatherApp/`, then writes all relative files (automatica
 
 Existing files **cannot be silently overwritten**: the user sees a confirmation listing same-name files. If saving is declined or fails, the generated code remains visible below the conversation answer as fenced blocks, and the session's legacy file repository keeps a fallback copy.
 
-AI-assisted **editing of existing code** uses the same pipeline: the planner reads relevant text in the bound project, the assistant produces the full replacement file in `<file name="...">`, and the client detects collisions and asks for browser confirmation before overwriting. The inspection planner itself is read-only and cannot directly execute a write. Manual IDE edits are also written to the project's existing path after confirmation.
+AI-assisted **editing of existing code** now defaults to a compact **line-edit protocol**, instead of re-generating the entire file:
+- The bounded inspection planner reads the necessary original line(s). The assistant returns an `<ide_edit path="src/file.ts">{"edits":[...]}</ide_edit>` block with precise 1-based `startLine`, optionally inclusive `endLine`, the exact original `expected` line content, and a small `text` replacement.
+- Supported operations: `insert_before`, `insert_after`, `replace`, `delete`. Multiple disjoint edits may be applied to one existing file. All anchors are verified against the original file, and edits apply from bottom to top to avoid drifting line numbers.
+- The IDE API **previews without writing**. The frontend displays a native confirmation with the original/replacement snippets and file paths; on approval it applies the patch only when the source version still matches the preview. Protected credential paths and unsafe file types are rejected using the same shared policy as the regular IDE reader. Failed or outdated patches cannot silently replace code.
+- Full `<file name="...">...</file>` output remains available for creating brand-new files or deliberate major rewrites, with its existing overwrite confirmation. The inspection planner itself remains read-only, while the dedicated editor API applies validated user-approved modifications.
+- The current browser confirmation displays a concise textual preview; for lengthy edits it truncates the text, so review the change count and paths before approving. Per-file version checks prevent stale writes, but the multi-file operation is not a transaction: an unexpected error after an earlier file applies can leave a partial change.
 
 ## Local smoke tests
 
 ```powershell
 git switch main
 git pull --ff-only origin main
-node --experimental-strip-types scripts/check-officina-ide-workspace.mjs
 npx tsc --noEmit
 npm run build
 npm run dev
@@ -80,4 +84,4 @@ Then:
 5. Create a new unbound Officina conversation, ask for a complete source component and check that a new project root is created and bound. Test overwriting an existing filename: cancelling the overwrite must preserve disk contents.
 6. Check that `../`, absolute Windows paths, hidden `.env` and symbolic-link targets cannot be read or written through the local project API.
 
-A full browser and disk I/O smoke test is still required on the actual Windows Shiorivia checkout. The regression script checks path validation and source wiring, not live provider calls.
+A full browser and disk I/O smoke test is still required on the actual Windows Shiorivia checkout. The local dev/browser test is the primary verification route; source inspection alone does not replace real provider calls.
