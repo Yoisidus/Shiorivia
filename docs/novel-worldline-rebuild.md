@@ -39,12 +39,6 @@ This change updates **Shiorivia Local**, not Shiorivia_Cloud.
 ## Local checks
 
 ```bash
-node scripts/check-novel-mode.mjs
-node --experimental-strip-types scripts/check-novel-state.mjs
-node --experimental-strip-types scripts/check-tela-novel-improvements.mjs
-node scripts/check-tela-interaction-title-transition.mjs
-node scripts/check-cross-world-viae.mjs
-node --experimental-strip-types scripts/check-tela-story-role.mjs
 npm run build
 ```
 
