@@ -10,6 +10,7 @@ import type { ImageSettings, ProviderCapability } from "../lib/imageSettings";
 import { capabilityFor } from "../lib/imageSettings";
 import { useLanguage } from "../context/LanguageContext";
 import { LANGUAGE_OPTIONS, type Locale } from "../lib/locale";
+import { CONTEXT_WINDOW_OPTIONS, type ContextWindowTokens } from "../lib/contextWindow";
 
 import { useMusic } from "../context/MusicContext";
 
@@ -40,6 +41,8 @@ type Props = {
   onTestEffect: (name: "rain" | "curtain" | "math" | "glitch") => void;
   isStory: boolean;
   activeMode: "infinite" | "sliding" | "novel" | "chat" | "lime" | "hub";
+  contextWindowTokens: ContextWindowTokens;
+  onContextWindowChange: (value: ContextWindowTokens) => void;
   storyTheme: StoryTheme;
   onStoryThemeChange: (value: StoryTheme) => void;
   activeProvider: string;
@@ -97,7 +100,7 @@ function SwitchRow({ title, description, checked, onClick, icon: Icon }: {
   );
 }
 
-export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
+export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, contextWindowTokens, onContextWindowChange, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const { refreshLibrary, allTracks } = useMusic();
   const [scanningMusic, setScanningMusic] = useState(false);
@@ -156,6 +159,23 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                     {LANGUAGE_OPTIONS.map(item => <option key={item.code} value={item.code}>{item.label}</option>)}
                   </select>
                   <p className="mt-2 text-xs leading-5 text-slate-500">{t("settings.language.description")}</p>
+                </div>
+                <div className="mb-7 rounded-xl border border-slate-200 bg-white p-4">
+                  <label htmlFor="shiorivia-context-window" className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <BookOpen size={16} /> 默认上下文窗口
+                  </label>
+                  <select id="shiorivia-context-window" value={contextWindowTokens}
+                    onChange={event => onContextWindowChange(Number(event.target.value) as ContextWindowTokens)}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-400">
+                    {CONTEXT_WINDOW_OPTIONS.map(tokens => <option key={tokens} value={tokens}>
+                      {tokens / 1024}K Token{tokens === 32768 ? " · 默认" : ""}
+                    </option>)}
+                  </select>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    所有模式通用。按 Token 预算优先保留连续的近期对话，不再按固定消息数量截断；
+                    故事、小说、聊天和 VIAE 继续使用记忆档案。窗口包含系统提示与输出预留空间。
+                    实际上限仍受所选模型与供应商限制，较大窗口可能增加费用。
+                  </p>
                 </div>
                 {isStory ? (
                   <>
@@ -217,16 +237,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   onClick={onToggleGeminiNarrativeStyle}
                   icon={BookOpen}
                 />}
-                {activeMode === "infinite" && <div className="mt-3 space-y-2">
-                  <div className="px-1">
-                    <p className="text-xs font-semibold text-slate-700">Officina · 角色工程师设定</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">基础性格与角色还原指南始终加载；以下扩展资料默认关闭，可按需要独立开启。</p>
-                  </div>
-                  <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white px-3">
-                    <SwitchRow title="核心人物关系" description="附加全时间线的重要关系与互动记录，增加 Token 用量。" checked={engineeringLoreRelationshipsEnabled} onClick={onToggleEngineeringLoreRelationships} icon={BookOpen} />
-                    <SwitchRow title="主要经历" description="附加全时间线的主要事件与角色经历，增加 Token 用量。" checked={engineeringLoreExperiencesEnabled} onClick={onToggleEngineeringLoreExperiences} icon={BookOpen} />
-                  </div>
-                </div>}
+
                 <SwitchRow title={t("settings.webSearch")} description={t("settings.webSearch.description")} checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
                 <SwitchRow title={t("settings.imageGen")} description={t("settings.imageGen.description")} checked={values.imageGen} onClick={() => onToggle("imageGen")} icon={ImageIcon} />
                 <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
