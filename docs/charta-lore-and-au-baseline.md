@@ -42,8 +42,6 @@ The story worldline distinguishes **AU current ERA / PERIOD** from mandatory **b
 ## Local verification
 
 ```bash
-node --experimental-strip-types scripts/check-lore-timeline.mjs
-node --experimental-strip-types scripts/check-charta-worldline.mjs
 npm run build
 ```
 
