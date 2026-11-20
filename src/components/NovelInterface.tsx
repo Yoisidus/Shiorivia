@@ -730,7 +730,7 @@ export const NovelInterface = ({
                                 <MemoryPreviewButton stm={currentSession.stm} ltm={currentSession.ltm} onOpen={() => setShowMemoryVault(true)} tone={themeMode === "sage" ? "novel-sage" : "novel-paper"} />
 
                                 <div>
-                                    <label className={`text-xs ${theme.accent} font-bold mb-2 block flex items-center gap-2`}><FileText size={14} /> GLOBAL SETTING · {deepText(locale, "novel.outline")}</label>
+                                    <label className={`text-xs ${theme.accent} font-bold mb-2 block flex items-center gap-2`}><FileText size={14} /> SESSION SETTING · {deepText(locale, "novel.outline")}</label>
                                     <textarea
                                         value={outline}
                                         onChange={e => handleOutlineChange(e.target.value)}
