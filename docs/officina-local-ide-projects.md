@@ -22,7 +22,7 @@ Shiorivia/
       main.py
 ```
 
-`IDE/.gitkeep` makes the directory part of the Shiorivia checkout; `.gitignore` excludes all actual user project contents under `/IDE/*`. Do not put real credentials into project files. The local IDE reader blocks hidden files, .env variants, known key/credential filenames, binary extensions, `node_modules`, `.git`, symlinks, `..` and absolute paths, and caps file/search sizes.
+`IDE/.gitkeep` makes the directory part of the Shiorivia checkout; `.gitignore` excludes all actual user project contents under `/IDE/*`. The shared IDE path policy rejects hidden files/directories, `.env` variants, SSH keys, token/credential/secret/service-account filenames, certificate/key containers, `node_modules`, `.git`, symbolic links, traversal and absolute paths. The restriction applies to **tree listings, keyword search, AI inspection, file reads, editor snapshots, writes and deletes**. File count, size, depth and tool-round caps also apply. **Do not store actual credentials in the IDE project**: filename rules cannot identify secrets embedded in otherwise ordinary source files, and AI-inspected code is sent to the selected model provider.
 
 ## Binding and editor
 
@@ -58,6 +58,8 @@ If an Officina session is *unbound* and the model generates complete code files,
 The client creates `IDE/WeatherApp/`, then writes all relative files (automatically creating nested directories) and binds the session. A deterministic `officina-<session-id>` root is used if the model omits the project name. If the suggested root name already exists, a session-specific suffix avoids accidentally writing into somebody else's existing project. Already-bound sessions must not emit a new project tag.
 
 Existing files **cannot be silently overwritten**: the user sees a confirmation listing same-name files. If saving is declined or fails, the generated code remains visible below the conversation answer as fenced blocks, and the session's legacy file repository keeps a fallback copy.
+
+AI-assisted **editing of existing code** uses the same pipeline: the planner reads relevant text in the bound project, the assistant produces the full replacement file in `<file name="...">`, and the client detects collisions and asks for browser confirmation before overwriting. The inspection planner itself is read-only and cannot directly execute a write. Manual IDE edits are also written to the project's existing path after confirmation.
 
 ## Local smoke tests
 
