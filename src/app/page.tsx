@@ -636,6 +636,7 @@ export default function Home() {
                     activeSelf={selfLibrary.activeSelf}
                     terminalRequestLogEnabled={config.terminalRequestLog}
                     terminalLogEnabled={config.terminalLog}
+                    contextWindowTokens={config.contextWindowTokens}
                     onExit={() => setShowModeHub(true)}
                     onSettings={() => setShowSettingsCenter(true)}
                     providers={visibleProviders}
@@ -944,7 +945,8 @@ export default function Home() {
                 <ChatInterface
                     onOpenHub={() => setShowModeHub(true)}
                     onOpenSettings={() => setShowSettingsCenter(true)}
-                    onOpenMemory={() => currentSession?.memoryMode === "chat" && !currentSession.characterId
+                    onOpenMemory={() => currentSession?.memoryMode === "infinite"
+                        ? undefined : currentSession?.memoryMode === "chat" && !currentSession.characterId
                         ? ui.showToast("请先在 Umbra 选择一位角色，再查看其独立记忆。") : setShowMemoryVault(true)}
                     leftSidebarOpen={ui.leftSidebarOpen} setLeftSidebarOpen={ui.setLeftSidebarOpen}
                     rightSidebarOpen={ui.rightSidebarOpen} setRightSidebarOpen={ui.setRightSidebarOpen}
@@ -1022,7 +1024,8 @@ export default function Home() {
                     storySelf={currentSession?.storySelfSnapshot || selfLibrary.selves.find(self => self.id === currentSession?.storySelfId) || null}
                     onStoryRoleChange={changeStoryRole} onStoryPovChange={changeStoryPov}
                     currentCharacter={dynamicCharacter} currentSession={currentSession}
-                    onOpenMemory={() => currentSession?.memoryMode === "chat" && !currentSession.characterId
+                    onOpenMemory={() => currentSession?.memoryMode === "infinite"
+                        ? undefined : currentSession?.memoryMode === "chat" && !currentSession.characterId
                         ? ui.showToast("请先在 Umbra 选择一位角色，再查看其独立记忆。") : setShowMemoryVault(true)}
                     activeCharacterId={activeCharacterId} setActiveCharacterId={setActiveCharacterId}
                     createNewSession={createNewSession} handleSend={engine.handleSend} setSessions={cloud.setSessions} currentSessionId={currentSessionId}
@@ -1134,7 +1137,7 @@ export default function Home() {
                 falConfigured={falConfigured}
             />
             <MemoryVaultModal
-                open={showMemoryVault}
+                open={showMemoryVault && currentSession?.memoryMode !== "infinite"}
                 onClose={() => setShowMemoryVault(false)}
                 sessionId={`${currentSession?.id || ""}${currentSession?.memoryMode === "chat" ? `:${activeCharacterId || "unselected"}` : ""}`}
                 stm={currentSession?.memoryMode === "chat" ? currentSession.chatCharacterMemories?.[activeCharacterId]?.stm || "" : currentSession?.stm}
