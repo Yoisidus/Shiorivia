@@ -437,7 +437,7 @@ export const ChatInterface = ({
                 <div className="flex items-center gap-1 md:gap-2">
 
                     <button type="button" onClick={onOpenHub} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-gray-100" title="模式导航 / Home" aria-label="打开模式导航"><House size={19} /></button>
-                    <button type="button" onClick={onOpenMemory} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-gray-100" title="Memory Vault / 记忆档案" aria-label="打开记忆档案"><Brain size={19} /></button>
+                    {currentSession?.memoryMode !== "infinite" && <button type="button" onClick={onOpenMemory} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-gray-100" title="Memory Vault / 记忆档案" aria-label="打开记忆档案"><Brain size={19} /></button>}
 
                     <div className="relative">
                         <button
