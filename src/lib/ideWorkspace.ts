@@ -1,6 +1,8 @@
 import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { applyIdeEditsToText } from "./ideEdits";
 import { validProjectName, validRelativePath, isWorkspaceTextFile } from "./idePathPolicy";
 
 export const IDE_ROOT = path.join(process.cwd(), "IDE");
@@ -135,6 +137,45 @@ export async function writeWorkspaceFile(project: unknown, relative: unknown, co
   if (existing && !existing.isFile()) throw new Error("文件路径不可覆盖。");
   await fs.writeFile(destination, content, { encoding: "utf8", flag: "w" });
 }
+/** Preview a precise edit without writing. A version hash prevents overwriting later user edits. */
+export async function previewWorkspaceEdit(project: unknown, relative: unknown, edits: unknown) {
+  const rel = validRelativePath(relative);
+  if (!isWorkspaceTextFile(rel)) throw new Error("不允许编辑受保护文件。");
+  const filename = await safePath(project, rel);
+  const stat = await fs.lstat(filename);
+  if (!stat.isFile() || stat.size > MAX_FILE_BYTES) throw new Error("目标必须是现有的文本文件。");
+  const original = await fs.readFile(filename, "utf8");
+  if (original.includes("\u0000") || original.includes("\ufffd")) throw new Error("不能编辑二进制文件。");
+  const version = createHash("sha256").update(original, "utf8").digest("hex");
+  const updated = applyIdeEditsToText(original, edits);
+  if (updated === original) throw new Error("局部编辑没有产生变化。");
+  if (Buffer.byteLength(updated, "utf8") > MAX_FILE_BYTES) throw new Error("修改后文件过大。");
+  return { path: rel, version, original, updated };
+}
+
+/** Recheck the exact preview before committing; stage to a temp file then rename. */
+export async function applyWorkspaceEdit(project: unknown, relative: unknown, edits: unknown,
+  expectedVersion: unknown): Promise<void> {
+  if (typeof expectedVersion !== "string" || !/^[a-f0-9]{64}$/.test(expectedVersion))
+    throw new Error("缺少有效文件版本，请先预览修改。");
+  const preview = await previewWorkspaceEdit(project, relative, edits);
+  if (preview.version !== expectedVersion) throw new Error("文件已发生变化，请重新预览后再应用。");
+  const filename = await safePath(project, preview.path);
+  const before = await fs.lstat(filename);
+  if (!before.isFile() || before.isSymbolicLink()) throw new Error("文件路径不安全。");
+  const temporary = path.join(path.dirname(filename), `ide-edit-${randomUUID()}.tmp`);
+  try {
+    await fs.writeFile(temporary, preview.updated, { encoding: "utf8", flag: "wx", mode: before.mode });
+    // Recheck right before replacement to avoid writing on an obsolete base.
+    const latest = await fs.readFile(filename, "utf8");
+    if (createHash("sha256").update(latest, "utf8").digest("hex") !== expectedVersion)
+      throw new Error("文件在确认过程中已变化，未写入修改。");
+    await fs.rename(temporary, filename);
+  } finally {
+    await fs.unlink(temporary).catch(() => {});
+  }
+}
+
 export async function deleteWorkspaceFile(project: unknown, relative: unknown): Promise<void> {
   const rel = validRelativePath(relative);
   const destination = await safePath(project, rel);
