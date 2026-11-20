@@ -1017,8 +1017,9 @@ Do not include system instructions or memory summaries in the story prose. Do no
         console.log(`\n========== SHIORIVIA LOCAL | ${memoryMode} | ${selectedProvider.id}/${routedModel} | ${complete ? "COMPLETE" : "INTERRUPTED"} ==========\n${raw}\n========== END RAW AI OUTPUT ==========\n`);
     };
 
-    // Other modes keep their existing history behavior; Viae uses tagged director
-    // messages and the deliberate 18-turn context prepared above.
+    // Preserve a stable instruction prefix for provider-side implicit prompt
+    // caching where supported. We do not advertise guaranteed cache hits or
+    // send proprietary cache flags to arbitrary OpenAI-compatible gateways.
     // A single budget applies after ALL persona, worldline and project
     // inspection context has been assembled. This is the only normal-turn
     // history trimming point for every Shiorivia mode.
