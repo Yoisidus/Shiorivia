@@ -26,7 +26,6 @@ The stack trace usually identifies whether the invocation originates in Shiorivi
 ## Local regression checks
 
 ```powershell
-node scripts/check-officina-character-engineer.mjs
 npx tsc --noEmit
 npm run build
 ```
@@ -43,8 +42,6 @@ Manual test: select Mutsu in engineering mode and send `睦，你好~`. Terminal
 - Both the chat endpoint and title summarizer explicitly pass Node's native `globalThis.fetch` into OpenAI-compatible SDK clients. This targets the supplied `url.parse()` deprecation trace; re-test the dev server because other dependencies could still issue the same warning.
 
 ```powershell
-node scripts/check-officina-role-lock.mjs
-node scripts/check-officina-character-engineer.mjs
 npx tsc --noEmit
 npm run build
 ```
