@@ -23,8 +23,6 @@ All five spaces (Officina, Via Lata, Umbra, Tela and VIAE) share **one active pr
 ```powershell
 git switch main
 git pull --ff-only origin main
-node --experimental-strip-types scripts/check-provider-model-binding.mjs
-node scripts/check-officina-role-lock.mjs
 npx tsc --noEmit
 npm run build
 ```
