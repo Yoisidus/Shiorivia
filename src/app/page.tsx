@@ -273,7 +273,6 @@ export default function Home() {
     const engine = useChatEngine({
         currentSession, currentSessionId, setSessions: cloud.setSessions,
         activeCharacterId, voiceVariant,
-        globalWorldInfo: cloud.globalWorldInfo,
         config: config,
         setTrackId: music.setTrackId,
         showToast: ui.showToast,
@@ -950,7 +949,7 @@ export default function Home() {
                         ? ui.showToast("请先在 Umbra 选择一位角色，再查看其独立记忆。") : setShowMemoryVault(true)}
                     leftSidebarOpen={ui.leftSidebarOpen} setLeftSidebarOpen={ui.setLeftSidebarOpen}
                     rightSidebarOpen={ui.rightSidebarOpen} setRightSidebarOpen={ui.setRightSidebarOpen}
-                    setShowLocalWorld={ui.setShowLocalWorld} setShowGlobalWorld={ui.setShowGlobalWorld}
+                    setShowLocalWorld={ui.setShowLocalWorld}
                     onOpenStoryWorldline={() => { ui.setRightSidebarOpen(true); setWorldlineOpenSignal(value => value + 1); }}
                     debugMode={ui.debugMode} setDebugMode={ui.setDebugMode}
 
@@ -1065,8 +1064,19 @@ export default function Home() {
                     void cloud.triggerSync(choice === "cloud" ? "force_pull" : "force_push");
                 }}
             />
-            <WorldInfoModal isOpen={ui.showGlobalWorld} onClose={() => ui.setShowGlobalWorld(false)} title="Global" content={cloud.globalWorldInfo} setContent={cloud.setGlobalWorldInfo} onSave={() => localStorage.setItem("shiorivia_global_world", cloud.globalWorldInfo)} />
-            <WorldInfoModal isOpen={ui.showLocalWorld} onClose={() => ui.setShowLocalWorld(false)} title="Local" content={currentSession?.localWorldInfo || ""} setContent={(v: string) => cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, localWorldInfo: v } : s))} onSave={() => { }} />
+            <WorldInfoModal isOpen={ui.showLocalWorld} onClose={() => ui.setShowLocalWorld(false)}
+                title={currentSession?.memoryMode === "infinite" ? "Officina · 会话工程指南"
+                    : currentSession?.memoryMode === "sliding" ? "Via Lata · 故事手记" : "Umbra · 聊天笔记"}
+                subtitle={currentSession?.memoryMode === "infinite"
+                    ? "记录当前工程会话的项目规则、约定与开发目标。不会影响其他工程会话。"
+                    : currentSession?.memoryMode === "sliding"
+                    ? "补充这段故事独有的情节背景、世界规则与叙事约定。"
+                    : "记录这段聊天独有的背景、交流约定和其他补充设定。"}
+                tone={currentSession?.memoryMode === "infinite" ? "engineering"
+                    : currentSession?.memoryMode === "sliding" ? "story" : "chat"}
+                content={currentSession?.localWorldInfo || ""}
+                onSave={(value: string) => cloud.setSessions(prev => prev.map(s =>
+                    s.id === currentSessionId ? { ...s, localWorldInfo: value, updatedAt: Date.now() } : s))} />
 
             <EditModal
                 isOpen={ui.editModal.isOpen}
