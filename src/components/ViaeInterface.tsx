@@ -87,12 +87,13 @@ interface ViaeProps {
   notify: (message: string) => void;
   terminalRequestLogEnabled?: boolean;
   terminalLogEnabled?: boolean;
+  contextWindowTokens?: number;
 }
 
-export function ViaeInterface({ session, updateSession, characters, customCharacters = [], worlds = [], activeSelf = null, onExit, onSettings, providers, provider, onProviderChange, model, customModel, onModelChange, onCustomModelChange, notify, terminalRequestLogEnabled = false, terminalLogEnabled = false }: ViaeProps) {
+export function ViaeInterface({ session, updateSession, characters, customCharacters = [], worlds = [], activeSelf = null, onExit, onSettings, providers, provider, onProviderChange, model, customModel, onModelChange, onCustomModelChange, notify, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = 32768 }: ViaeProps) {
   const { locale } = useLanguage();
   const { activeGroup, input, setInput, isLoading, send, stop, deleteMessage } = useViaeEngine({
-    session, updateSession, provider, model: customModel.trim() || model, notify, customCharacters, activeSelf, terminalRequestLogEnabled, terminalLogEnabled,
+    session, updateSession, provider, model: customModel.trim() || model, notify, customCharacters, activeSelf, terminalRequestLogEnabled, terminalLogEnabled, contextWindowTokens,
   });
   const [creating, setCreating] = useState(false);
   const [kind, setKind] = useState<"direct" | "group">("direct");
