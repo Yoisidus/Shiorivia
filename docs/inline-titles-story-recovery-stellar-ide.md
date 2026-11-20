@@ -11,7 +11,7 @@ The shared story response parser now:
 - On a genuinely malformed/missing block, preserves the story prose and replaces/removes only a trailing state region. If recovery is unavailable, keeps the prose and the previously saved state rather than destroying the narrative.
 - Logs errors from malformed story JSON to make future provider differences diagnosable.
 
-Regression: `node --experimental-strip-types scripts/check-inline-title-story-recovery.mjs` includes a reasoning preamble that mentions the `<game_state>` tag before a valid JSON state, plus preservation assertions.
+When testing in dev, include a reasoning preamble that mentions `<game_state>` before a valid JSON state, and verify the final structured state remains intact.
 
 ## Inline titles across Officina, Via Lata, Umbra and Tela
 
@@ -39,9 +39,6 @@ This is distinct from the existing async *memory* summarization in story, novel 
 ```powershell
 git switch main
 git pull --ff-only origin main
-node --experimental-strip-types scripts/check-inline-title-story-recovery.mjs
-node scripts/check-story-state-recovery.mjs
-node scripts/check-officina-character-engineer.mjs
 npx tsc --noEmit
 npm run build
 ```
