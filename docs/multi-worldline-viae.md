@@ -35,8 +35,6 @@ This applies to **seemoon1/Shiorivia** (Local Edition), not Shiorivia_Cloud.
 ```powershell
 git switch main
 git pull --ff-only origin main
-node scripts/check-cross-world-viae.mjs
-node scripts/check-novel-mode.mjs
 npx tsc --noEmit
 npm run build
 ```
