@@ -33,8 +33,6 @@ This document describes the **Local** implementation in `seemoon1/Shiorivia`.
 ```powershell
 git switch main
 git pull --ff-only origin main
-node --experimental-strip-types scripts/check-umbra-multichar-worldlines.mjs
-node scripts/check-officina-character-engineer.mjs
 npx tsc --noEmit
 npm run build
 ```
