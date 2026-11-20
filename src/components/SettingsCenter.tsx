@@ -238,6 +238,16 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   icon={BookOpen}
                 />}
 
+                {activeMode === "infinite" && <div className="mt-3 space-y-2">
+                  <div className="px-1">
+                    <p className="text-xs font-semibold text-slate-700">Officina · 角色工程师设定</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">基础性格与角色还原指南始终加载；以下扩展资料默认关闭，可按需要独立开启。</p>
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white px-3">
+                    <SwitchRow title="核心人物关系" description="附加全时间线的重要关系与互动记录，增加 Token 用量。" checked={engineeringLoreRelationshipsEnabled} onClick={onToggleEngineeringLoreRelationships} icon={BookOpen} />
+                    <SwitchRow title="主要经历" description="附加全时间线的主要事件与角色经历，增加 Token 用量。" checked={engineeringLoreExperiencesEnabled} onClick={onToggleEngineeringLoreExperiences} icon={BookOpen} />
+                  </div>
+                </div>}
                 <SwitchRow title={t("settings.webSearch")} description={t("settings.webSearch.description")} checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
                 <SwitchRow title={t("settings.imageGen")} description={t("settings.imageGen.description")} checked={values.imageGen} onClick={() => onToggle("imageGen")} icon={ImageIcon} />
                 <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
