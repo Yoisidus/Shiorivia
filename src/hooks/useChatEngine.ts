@@ -17,7 +17,6 @@ import { snapshotStoryState, restoreStoryState, emptyStoryState, isUsableStoryPr
 import { completeStoryProtagonist } from "../lib/storyProtagonist";
 import { mayReviewSessionTitle } from "../lib/titleReview";
 import { extractInlineTitle } from "../lib/inlineTitle";
-import { extractEngineeringTurnMemory } from "../lib/engineeringTurnMemory";
 import { lastStoryGameState, storyProseWithoutState, stripStoryThinking } from "../lib/storyResponseProtocol";
 import { aiConversationMessages, isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { engineeringOutputIncomplete, OFFICINA_COMPLETION_REQUEST } from "../lib/engineeringCompletion";
@@ -160,17 +159,13 @@ export const useChatEngine = ({
         // Shiorivia's initial system greeting stays visible in the interface but
         // must never be used as AI conversation context, including legacy saves.
         let payloadMessages = aiConversationMessages(msgs);
-        const MAX_CONTEXT_MSG = 20;
-        if (payloadMessages.length > MAX_CONTEXT_MSG) {
-            payloadMessages = payloadMessages.slice(-MAX_CONTEXT_MSG);
-            console.log(`✂️ Context Trimmed: ${msgs.length} -> ${payloadMessages.length}`);
-        }
 
         try {
             const res = await fetch("/api/chat", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     messages: payloadMessages.map((m: any) => ({ role: m.role, content: m.content, characterId: m.characterId })),
+                    contextWindowTokens: config.contextWindowTokens,
                     model: modelToUse,
                     currentSessionTitle: currentSession.title,
                     titleReviewTurn: msgs.filter((m: any) => m.role === "user").length,
@@ -180,10 +175,10 @@ export const useChatEngine = ({
                     globalWorldInfo,
                     localWorldInfo: currentSession.localWorldInfo,
                     memoryMode: currentSession.memoryMode || 'sliding',
-                    stm: currentSession.memoryMode === "chat"
+                    stm: currentSession.memoryMode === "infinite" ? "" : currentSession.memoryMode === "chat"
                         ? (currentSession.chatCharacterMemories?.[activeCharacterId]?.stm || "")
                         : currentSession.stm,
-                    ltm: currentSession.memoryMode === "chat"
+                    ltm: currentSession.memoryMode === "infinite" ? "" : currentSession.memoryMode === "chat"
                         ? (currentSession.chatCharacterMemories?.[activeCharacterId]?.ltm || "")
                         : currentSession.ltm,
                     timeline: currentSession.timeline,
@@ -267,9 +262,11 @@ export const useChatEngine = ({
             if (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel") fullText = stripStoryThinking(fullText);
             const titleFromSameGeneration = extractInlineTitle(fullText);
             fullText = titleFromSameGeneration.text;
-            const extractedEngineerMemory = currentSession.memoryMode === "infinite"
-                ? extractEngineeringTurnMemory(fullText) : { text: fullText, memory: null };
-            fullText = extractedEngineerMemory.text;
+            // Officina is now context-only. Old memory data remains in saved
+            // sessions but is never injected or updated by new engineering turns.
+            if (currentSession.memoryMode === "infinite") {
+                fullText = fullText.replace(/<turn_memory\s*>[\s\S]*?<\/turn_memory\s*>\s*$/i, "").trimEnd();
+            }
             if (titleFromSameGeneration.title && mayReviewSessionTitle(currentSession, currentSession.memoryMode)) {
                 const proposal = titleFromSameGeneration.title;
                 const expectedUserTurns = msgs.filter((m: any) => m.role === "user").length;
@@ -891,31 +888,6 @@ export const useChatEngine = ({
                             && m.role === "assistant" ? { ...m, engineeringOutputIncomplete: true } : m),
                     } : s));
                 }
-            }
-            if (currentSession.memoryMode === "infinite" && currentText.trim()) {
-                // A model may skip the requested memory tag; retain a conservative
-                // factual record from the user prompt and response, without an
-                // extra hidden model request or fabricated project decisions.
-                const prompt = [...msgs].reverse().find((m: any) => m.role === "user");
-                const userContent = typeof prompt?.content === "string" ? prompt.content : "[attachment]";
-                const fallback = `用户：${userContent.slice(0, 180)}；本轮答复：${currentText.replace(/\s+/g, " ").slice(0, 220)}`;
-                const summaryLine = `• ${extractedEngineerMemory.memory || fallback}`;
-                setSessions((prev: Session[]) => prev.map(s => {
-                    if (s.id !== currentSessionId || !s.messages.some(m => m.storyGenerationId === generationId)) return s;
-                    const records = [...parseLocalMemoryEntries(s.stm || ""), summaryLine];
-                    const archive = records.length > LOCAL_STM_SLOTS ? records.slice(0, records.length - LOCAL_STM_SLOTS) : [];
-                    const priorLtm = String(s.ltm || "");
-                    const consolidatedLtm = archive.length
-                        ? [priorLtm, ...archive].filter(Boolean).join("\n").slice(-16000)
-                        : priorLtm;
-                    return {
-                        ...s,
-                        stm: formatLocalMemoryEntries(records.slice(-LOCAL_STM_SLOTS)),
-                        ltm: consolidatedLtm, // Keep project history when STM fills up.
-                        turnCount: (s.turnCount || 0) + 1,
-                        updatedAt: Date.now(),
-                    };
-                }));
             }
             if ((currentSession.memoryMode === 'sliding' && !storyProtocolMissing) || currentSession.memoryMode === 'novel') {
                 const textToSummarize = currentSession.memoryMode === 'novel' ? stripNovelSuggestions(currentText) : `User: ${txt}\nAI: ${currentText}\n`;
