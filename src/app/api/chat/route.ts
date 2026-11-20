@@ -213,7 +213,6 @@ export async function POST(req: Request) {
       model,
       characterId,
       memoryMode,
-      globalWorldInfo,
       localWorldInfo,
       useWebSearch,
       useImageGen,
@@ -538,7 +537,6 @@ ${lore || "(No profile supplied.)"}`;
           ? `[ACTIVE CHARTA SELF — user's identity in this conversation]\n${JSON.stringify(body.activeChartaSelf).slice(0, 14000)}`
           : "The other party is the user, with no specified fictional identity; do not invent a named self.",
         "Write like real chat messages, not novel chapters. No <game_state>, <file>, <draw>, <thinking> or story option tags.",
-        globalWorldInfo?.trim() ? `[GLOBAL WORLD]\n${String(globalWorldInfo).slice(0, 6000)}` : "",
         localWorldInfo?.trim() ? `[SESSION WORLD]\n${String(localWorldInfo).slice(0, 6000)}` : "",
         ltm?.trim() ? `[CURRENT SPEAKER LTM]\n${String(ltm).slice(0, 9000)}` : "",
         stm?.trim() ? `[CURRENT SPEAKER STM]\n${String(stm).slice(0, 5000)}` : "",
@@ -599,8 +597,8 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
         }
       }
 
-      if (globalWorldInfo?.trim())
-        engineerPersona += `\n=== [PROJECT GUIDELINES] ===\n${globalWorldInfo}\n`;
+      if (localWorldInfo?.trim())
+        engineerPersona += `\n=== [SESSION PROJECT GUIDELINES] ===\n${String(localWorldInfo).slice(0, 12000)}\n`;
 
       const engineerOptions = {
         relationships: body.engineeringLore?.relationships === true,
@@ -700,10 +698,8 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
         console.log(`💉 Injecting Psyche for ${activeCharName}`);
         finalSystemPrompt += statDirectives + "\n\n";
       }
-      if (globalWorldInfo?.trim())
-        finalSystemPrompt += `=== [GLOBAL] ===\n${globalWorldInfo}\n\n`;
       if (localWorldInfo?.trim())
-        finalSystemPrompt += `=== [LOCAL] ===\n${localWorldInfo}\n\n`;
+        finalSystemPrompt += `=== [SESSION STORY NOTES] ===\n${String(localWorldInfo).slice(0, 12000)}\n\n`;
 
       // Cast lore is injected from the explicit next-turn selection below.
       // Keyword-only activation lost already-present characters and could not use
