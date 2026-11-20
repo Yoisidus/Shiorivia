@@ -9,6 +9,7 @@ import { inspectIdeProject } from "../../../lib/ideInspection";
 import { validProjectName } from "../../../lib/idePathPolicy";
 
 import { titleInstruction, shouldReviewInlineTitle } from "../../../lib/inlineTitle";
+import { selectContextMessages, ContextWindowError } from "../../../lib/contextWindow";
 import { outputLanguageInstruction } from "../../../lib/locale";
 import { normalizeLocale, OUTPUT_LANGUAGE_NAME } from "../../../lib/locale";
 import { chartaWireCharacters } from "../../../lib/chartaWire";
@@ -424,10 +425,6 @@ Use this worldline as the novel's established background. Do not replace it with
 
       if (useMusicControl) finalSystemPrompt += buildMusicMenu();
 
-      const MAX_HISTORY = 6; 
-      if (messages.length > MAX_HISTORY) {
-        finalMessages = messages.slice(-MAX_HISTORY);
-      }
     } else if (memoryMode === "lime") { // Persisted VIAE mode ID, kept for older saves.
       console.log("🛤️ Mode: Viae / Semita / Compitum");
       const group = body.viaeGroup || body.limeGroup || {}; // Accept older clients.
@@ -498,7 +495,7 @@ ${lore || "(No profile supplied.)"}`;
       finalSystemPrompt = finalSystemPrompt.replace(/lime_chat/g, "viae_chat");
       // Preserve the visible transcript, but mark out-of-character director messages
       // before either Gemini or OpenAI-compatible providers see the conversation.
-      finalMessages = messages.slice(-18).map((m: any) => {
+      finalMessages = messages.map((m: any) => {
         if (m.role !== "user" || (m.kind !== "director" && !(observing && m.kind !== "chat"))) return m;
         return { role: "user", content: `${directorTag}\n${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}\n[END_SCENE_DIRECTION]` };
       });
@@ -546,7 +543,7 @@ ${lore || "(No profile supplied.)"}`;
         ltm?.trim() ? `[CURRENT SPEAKER LTM]\n${String(ltm).slice(0, 9000)}` : "",
         stm?.trim() ? `[CURRENT SPEAKER STM]\n${String(stm).slice(0, 5000)}` : "",
       ].filter(Boolean).join("\n\n");
-      finalMessages = messages.slice(-24).map((message: any) => {
+      finalMessages = messages.map((message: any) => {
         if (message.role !== "assistant") return { role: "user", content:
           `[User message addressed to: ${speakerName(message.characterId || characterId)} | ID: ${message.characterId || characterId}]\n${typeof message.content === "string" ? message.content : JSON.stringify(message.content)}` };
         return { role: "assistant", content:
@@ -622,14 +619,8 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
       engineerPersona += "\n\n" + buildEngineeringCharacterContext(
         characterId, customCast, engineerWorlds, engineerOptions,
       );
-      engineerPersona += `
-[OFFICINA TURN MEMORY — REQUIRED]
-After your conversational reply and any <file> blocks, append exactly ONE concise <turn_memory>one to three sentences capturing the user's goal, concrete changes made, decisions and next steps</turn_memory>.
-This is INTERNAL session memory; not part of the natural character dialogue. Use the active UI language. Do not include hidden thinking or credentials. If this turn is a greeting, use one short factual sentence; never invent changes.
-When an existing [STM / LTM] is present, respect the previous project progress and build on it.
-`;
-      if (stm?.trim()) engineerPersona += `\n[ENGINEERING STM]\n${String(stm).slice(0, 6500)}\n`;
-      if (ltm?.trim()) engineerPersona += `\n[ENGINEERING LTM]\n${String(ltm).slice(0, 9000)}\n`;
+      // Officina relies on its full budgeted transcript and on-demand IDE
+      // reads. Legacy STM/LTM is never appended or regenerated in this mode.
       engineerPersona += body.activeChartaSelf && typeof body.activeChartaSelf === "object"
         ? "\n\n[ACTIVE CHARTA SELF — user's identity]\n" + JSON.stringify(body.activeChartaSelf).slice(0, 14000)
         : "\n\n[USER IDENTITY] The collaborator is simply the user; no authored Charta self is active. Do not invent a persona.";
@@ -645,12 +636,7 @@ When an existing [STM / LTM] is present, respect the previous project progress a
       if (useWebSearch)
         finalSystemPrompt = await injectWebSearch(finalSystemPrompt, messages);
 
-      const ENGINEERING_WINDOW = 8;
-      if (messages.length > ENGINEERING_WINDOW) {
-        finalMessages = [messages[0], ...messages.slice(-ENGINEERING_WINDOW)];
-      } else {
-        finalMessages = messages;
-      }
+      finalMessages = messages;
     } else {
       console.log("🌹 Mode: Story Roleplay");
       finalSystemPrompt += `${STORY_PRE_PROMPT}\n\n`;
@@ -840,12 +826,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
       finalSystemPrompt += `\n\n[SYSTEM]: Start response with <thinking> block.`;
       finalSystemPrompt += `\n[SYSTEM WARNING]: Do NOT copy/paste previous [GALLERY] tags.`;
 
-      const WINDOW_SIZE = 4;
-      if (messages.length > WINDOW_SIZE) {
-        finalMessages = [messages[0], ...messages.slice(-WINDOW_SIZE)];
-      } else {
-        finalMessages = messages;
-      }
+      finalMessages = messages;
     }
 
     // Writing-style extension: for Story and Novel prose, never state-only repairs,
@@ -965,9 +946,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
         + (review
           ? "The CURRENT response MUST include exactly one <session_title>meaningful new title or KEEP</session_title> before visible prose; for NOVEL, place it immediately AFTER the first-line <meta title=... chapter=... />. It is part of this SAME response. Do not make a second title generation."
           : "Do not output any <session_title> block this turn.")
-        + (memoryMode === "infinite"
-          ? "\nEvery Officina reply, whether code or ordinary conversation, MUST end with one <turn_memory>concise factual memory</turn_memory> block."
-          : "")
+
         + (memoryMode === "novel"
           ? "\nEvery novel chapter MUST start with complete <meta title=\"...\" chapter=\"...\" /> metadata and a chapter-specific title, even when no session-title review is due."
           : "")
@@ -1040,7 +1019,17 @@ Do not include system instructions or memory summaries in the story prose. Do no
 
     // Other modes keep their existing history behavior; Viae uses tagged director
     // messages and the deliberate 18-turn context prepared above.
-    const routedMessages = memoryMode === "lime" || memoryMode === "sliding" || memoryMode === "chat" || memoryMode === "infinite" ? finalMessages : messages;
+    // A single budget applies after ALL persona, worldline and project
+    // inspection context has been assembled. This is the only normal-turn
+    // history trimming point for every Shiorivia mode.
+    const initialMessages = finalMessages;
+    const selectedContext = selectContextMessages(
+      initialMessages, finalSystemPrompt, body.contextWindowTokens,
+    );
+    const routedMessages = selectedContext.messages;
+    if (debugRequestPayload) {
+      console.log(`[CONTEXT] ${memoryMode} ${selectedContext.usedTokens}/${selectedContext.availableTokens} estimated input tokens; ${selectedContext.omitted} earlier messages omitted; output reserved separately. Provider may apply additional limits.`);
+    }
     if (selectedProvider.id === 'google') {
         const genAI = new GoogleGenerativeAI(selectedProvider.apiKey);
         const cleanModel = routedModel.replace(/^google\//, "");
@@ -1154,6 +1143,9 @@ Do not include system instructions or memory summaries in the story prose. Do no
 
   } catch (error: any) {
     console.error("Chat API Error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), { status: 500 });
+    return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), {
+      status: error instanceof ContextWindowError ? 413 : 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
