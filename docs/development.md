@@ -43,6 +43,13 @@ npm run build
 
 The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint checks; running TypeScript explicitly is important. Dependency modernization and a fuller security audit remain separate work before any public service deployment.
 
+### Session-specific notes / 会话设定
+
+- Via Lata's **故事手记** and Umbra's **聊天笔记** each edit their own session worldbook. The legacy global worldbook is no longer shown or injected into AI prompts for either mode.
+- Officina's **会话指南** replaces the old global Guide and injects development guidance only for the current engineering session. New sessions start empty; the old global value is retained solely for legacy archive compatibility.
+- Tela's outline is labeled **SESSION SETTING** because it is stored on the current novel session, not globally.
+- Editing a session note uses a local draft. Pressing **保存设定** commits it to session state and shows a native browser **保存成功** alert; closing without saving discards the draft. **Save To Disk** remains a separate manual full-snapshot action, with native confirmation and outcome alerts. Previously archived global data is not deleted or silently migrated to a particular session.
+
 ### AI request and response diagnostics / AI 请求与原文调试
 
 In **Settings → Developer**, **终端输出发送给 AI 的完整请求** (above the response switch) prints the final model request before dispatch: the system instructions, selected conversation history, model and generation parameters. This includes story worldline and memory injected by the backend. For Google Gemini, it displays the actual `systemInstruction`, `startChat.history` and `sendMessageStream` arguments; OpenAI-compatible providers display Chat Completions messages and parameters. API keys are never included.
