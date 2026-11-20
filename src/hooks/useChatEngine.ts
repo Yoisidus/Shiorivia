@@ -24,7 +24,6 @@ import { engineeringOutputIncomplete, OFFICINA_COMPLETION_REQUEST } from "../lib
 export const useChatEngine = ({
     currentSession, currentSessionId, setSessions,
     activeCharacterId, voiceVariant,
-    globalWorldInfo,
     config, 
     setTrackId, showToast, setIsGlobalGenerating,
     manualOutfitId,
@@ -172,7 +171,6 @@ export const useChatEngine = ({
                     titleManuallyEdited: !mayReviewSessionTitle(currentSession, currentSession.memoryMode),
                     characterId: activeCharacterId,
                     variant: voiceVariant,
-                    globalWorldInfo,
                     localWorldInfo: currentSession.localWorldInfo,
                     memoryMode: currentSession.memoryMode || 'sliding',
                     stm: currentSession.memoryMode === "infinite" ? "" : currentSession.memoryMode === "chat"
