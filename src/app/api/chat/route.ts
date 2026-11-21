@@ -239,10 +239,10 @@ Only JSON belongs between the tags.`;
 All user-visible JSON string VALUES (environment and event) MUST be written in ${OUTPUT_LANGUAGE_NAME[normalizeLocale(body.uiLanguage)]}, matching the UI language, not the language of the instructions. Never translate JSON keys or character IDs.
 Return ONLY a single valid JSON object inside <novel_state>...</novel_state>. No explanations, markdown or chapter prose.
 Required JSON shape: {"era":"current ERA","period":"current PERIOD","environment":"nonempty location, weather, temperature and other environmental facts","event":"nonempty CURRENT event at the end of the chapter","nextSceneCastIds":[],"choices":{"fun":"...","rational":"...","radical":"..."},"danmaku":[]}
-All seven keys are mandatory in newly generated chapters. era/period must preserve the established canon stage or choose a later known canonical stage, never an earlier stage. environment/event must be nonempty strings (up to 2000 characters), nextSceneCastIds must be [], choices must contain three nonempty concrete next-chapter developments with keys fun/rational/radical, and danmaku must be an array of scene-relevant strings (or [] if disabled).
+All seven keys are mandatory in newly generated chapters. In CANON, era/period must preserve the established stage or choose a later known stage, never an earlier stage. In AU, copy the original user-authored ERA/PERIOD strings exactly, with no model-led changes. environment/event must be nonempty strings (up to 2000 characters), nextSceneCastIds must be [], choices must contain three nonempty concrete next-chapter developments with keys fun/rational/radical, and danmaku must be an array of scene-relevant strings (or [] if disabled).
 Only infer facts from the given completed chapter, existing state and known cast roster. Never fabricate a transition that has not occurred. Keep environment/event from the previous state when the chapter did not change them.
 The next chapter will use its own independent cast lookup; return [] in nextSceneCastIds. In state repair, never infer a time jump that is not explicitly demonstrated by the completed chapter; the provided original worldline ERA/PERIOD is the safe default. Do not generate standalone <novel_choices> or <novel_danmaku> tags. When repairing existing legacy chapters, retain old separate choices/danmaku only if already present in the supplied source, but prefer embedding current values inside the state.
-Do not change WORLD or AU baseline, and never move ERA/PERIOD backwards. Keep the current stage unless the completed chapter explicitly advances to a later known canonical stage. Return structured state, not story prose.
+Do not change WORLD or AU baseline. CANON may choose a later stage only when the chapter clearly advances. AU ERA/PERIOD must be copied from the current user-authored worldline verbatim, even if the plot advances. Return structured state, not story prose.
 Worldline: ${JSON.stringify({ worldId: repairWorldline.worldId, era: repairWorldline.era, period: repairWorldline.period, kind: repairWorldline.kind, basePeriod: repairWorldline.basePeriod })}.
 Known canonical stages (in chronological order): ${JSON.stringify(repairWorldline.canonTimeline.map(stage => ({ era: stage.era, period: stage.period })))}. No AU time progression may be inferred.`;
       finalMessages = Array.isArray(messages) ? messages.slice(-1) : [];
@@ -276,7 +276,7 @@ ${novelWorldline.kind === "au" ? `Canonical baseline (character knowledge cutoff
 Use this worldline as the novel's established background. The chapter begins at the specified ERA/PERIOD, and may progress only to a later listed canonical stage if the narrated events establish the passage of time. Do not substitute a different world, jump ahead to future canon knowledge prematurely, or move an AU baseline.
 Current period description (only if available in the UI locale): ${timelineStageDescription(novelWorldline.canonTimeline.find(stage => stage.era === novelWorldline.era && stage.period === novelWorldline.period), normalizeLocale(body.uiLanguage)) || "(none)"}
 Ordered canonical stages, earliest to latest: ${JSON.stringify(novelWorldline.canonTimeline.map((stage,index) => ({index,era:stage.era,period:stage.period,description:timelineStageDescription(stage, normalizeLocale(body.uiLanguage)) || undefined})))}
-Time can only move forward through stages. AU chronology and baseline cannot be guessed or changed automatically.
+CANON may advance only forward through the ordered stages. For AU, the AI must copy the user-authored current ERA and PERIOD EXACTLY as supplied, including original wording, spelling and formatting. Only the user can modify them; the narrative may advance without altering these metadata fields or the AU baseline.
 [END STORY WORLDLINE]
 
 [END TELA NARRATIVE SETTINGS]
@@ -714,7 +714,7 @@ Treat ERA/PERIOD as the starting point for this scene. game_state.timeline may p
           index, era: stage.era, period: stage.period,
           description: timelineStageDescription(stage, normalizeLocale(body.uiLanguage)) || undefined,
         }))) +
-        "\nIn game_state.timeline return era, period, event. Keep the current stage or choose a later valid canonical stage only if story events justify it. Never rewind, invent a stage or change AU baseline.\n[END WORLDLINE CHRONOLOGY]\n";
+        "\nIn game_state.timeline return era, period, event. For CANON, keep the current stage or choose a later valid stage only when the story truly advances time. For AU, ALWAYS echo the user-entered ERA and PERIOD above EXACTLY, unchanged (never translate, abbreviate, infer or advance), even when time passes in the story. Only the user can edit these AU fields or choose a new AU time. Never change the AU baseline.\n[END WORLDLINE CHRONOLOGY]\n";
       finalSystemPrompt += `
 [STORY RESPONSE ORDER]
 1. Start with a closed <thinking>...</thinking> block. This block is non-narrative and is removed from the reader-visible story.
@@ -915,13 +915,11 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
       });
     }
 
-    // Umbra and VIAE have no story/novel_state schema. This optional hidden
-    // marker lets them advance an established canonical scene chronologically
+    // Only VIAE has an optional chronology marker. Umbra time is user-only.
+    // This private marker advances a VIAE scene chronologically
     // without changing their existing conversational output protocols.
-    if (!independentRepair && (memoryMode === "chat" || memoryMode === "lime")) {
-      const chronologyWorldline = memoryMode === "chat"
-        ? parseStoryWorldline(body.storyWorldline)
-        : parseStoryWorldline(body.viaeGroup?.storyWorldline || body.limeGroup?.storyWorldline);
+    if (!independentRepair && memoryMode === "lime") {
+      const chronologyWorldline = parseStoryWorldline(body.viaeGroup?.storyWorldline || body.limeGroup?.storyWorldline);
       if (chronologyWorldline) {
         finalSystemPrompt += "\n\n" + worldlineAdvanceInstruction(
           chronologyWorldline, normalizeLocale(body.uiLanguage),
