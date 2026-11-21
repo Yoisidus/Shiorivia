@@ -40,6 +40,8 @@ export const useChatEngine = ({
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [storyStateRepairing, setStoryStateRepairing] = useState(false);
+    const latestSessionRef = useRef<Session | null>(null);
+    latestSessionRef.current = currentSession || null;
     const [selectedFile, setSelectedFile] = useState<{ url: string, type: 'image' | 'video' | 'text', name: string } | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const [pendingStoryRegeneration, setPendingStoryRegeneration] = useState<{ sessionId: string; messagesLength: number } | null>(null);
@@ -1302,7 +1304,13 @@ export const useChatEngine = ({
             if (needState && (!restoredState?.choices || !restoredState.environment)) {
                 throw new Error("模型仍未输出完整的 novel_state");
             }
-            let applied = false;
+            const latest = latestSessionRef.current;
+            if (latest?.id !== currentSessionId
+                || index !== latest.messages.length - 1
+                || latest.messages[index]?.content !== target.content
+                || !latest.messages[index]?.metadataRepairMissing) {
+                throw new Error("会话已变化，已取消过期补齐结果");
+            }
             setSessions((prev: Session[]) => prev.map(session => {
                 const live = session.messages[index];
                 if (session.id !== currentSessionId || index !== session.messages.length - 1
@@ -1316,17 +1324,25 @@ export const useChatEngine = ({
                 const novelMemory = memory && mode !== "chat"
                     ? { stm: next?.stm || "", ltm: next?.ltm || previous.ltm,
                         turnCount: next?.turnCount ?? session.turnCount ?? 0 } : {};
-                applied = true;
                 return {
                     ...session,
                     ...(mode === "chat" && next ? { chatCharacterMemories: {
                         ...(session.chatCharacterMemories || {}), [speakerId]: { stm: next.stm, ltm: next.ltm },
                     } } : novelMemory),
                     ...(restoredState ? {
-                        novelState: restoredState,
-                        novelDraft: { ...session.novelDraft,
-                            environment: restoredState.environment,
-                            event: restoredState.event },
+                        novelState: session.storyWorldline ? {
+                            ...restoredState,
+                            era: advanceWorldlineFromState(session.storyWorldline, restoredState).era,
+                            period: advanceWorldlineFromState(session.storyWorldline, restoredState).period,
+                        } : restoredState,
+                        novelDraft: session.novelDraft
+                            ? { ...session.novelDraft, environment: restoredState.environment,
+                                event: restoredState.event }
+                            : { selectedCharIds: session.storyNextCastIds || [],
+                                style: "", outline: "", themeMode: "paper" as const,
+                                environment: restoredState.environment, event: restoredState.event },
+                        lastDanmaku: Array.isArray(restoredState.danmaku) ? restoredState.danmaku : [],
+
                         ...(session.storyWorldline ? {
                             storyWorldline: advanceWorldlineFromState(session.storyWorldline, restoredState),
                         } : {}),
@@ -1338,10 +1354,8 @@ export const useChatEngine = ({
                     updatedAt: Date.now(),
                 };
             }));
-            // The session updater may be batched: this success feedback reports
-            // accepted protocol; the guarded updater rejects stale state.
-            dialog.notify(applied ? "状态补齐成功，原正文已保留。" : "补齐已返回；若会话已变化，结果不会覆盖新内容。",
-                { type: applied ? "success" : "error", tone: mode === "novel" ? "tela" : mode === "chat" ? "umbra" : "story" });
+            dialog.notify("状态补齐成功，原正文已保留。",
+                { type: "success", tone: mode === "novel" ? "tela" : mode === "chat" ? "umbra" : "story" });
         } catch (error) {
             if (!controller.signal.aborted) dialog.notify("补齐状态失败：" + (error instanceof Error ? error.message : String(error)),
                 { type: "error", tone: mode === "novel" ? "tela" : mode === "chat" ? "umbra" : "story" });
