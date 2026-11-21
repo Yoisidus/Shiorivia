@@ -8,6 +8,10 @@ export type NovelState = {
   environment: string;
   event: string;
   nextSceneCastIds: string[];
+  /** Integrated chapter suggestions. Optional when reading legacy Local archives. */
+  choices?: { fun: string; rational: string; radical: string };
+  /** Integrated optional fictional audience comments. */
+  danmaku?: string[];
 };
 
 const MAX_FIELD_LENGTH = 2000;
@@ -21,10 +25,21 @@ export function parseNovelState(value: unknown): NovelState | null {
     || record.environment.length > MAX_FIELD_LENGTH || record.event.length > MAX_FIELD_LENGTH
     || !Array.isArray(record.nextSceneCastIds) || record.nextSceneCastIds.length > 30
     || !record.nextSceneCastIds.every(id => typeof id === "string" && id.length <= 100)) return null;
+  const choices = record.choices && typeof record.choices === "object" && !Array.isArray(record.choices)
+    ? record.choices as Record<string, unknown> : null;
+  const validChoices = choices && (["fun", "rational", "radical"] as const)
+    .every(key => typeof choices[key] === "string" && String(choices[key]).trim().length > 0 && String(choices[key]).length <= 600);
+  const danmaku = Array.isArray(record.danmaku)
+    ? record.danmaku.filter((item): item is string => typeof item === "string").map(s => s.trim().slice(0, 120)).filter(Boolean).slice(0, 24) : [];
   return {
     environment: record.environment.trim(),
     event: record.event.trim(),
     nextSceneCastIds: [...new Set(record.nextSceneCastIds)].slice(0, MAX_CAST_IDS),
+    ...(validChoices ? { choices: {
+      fun: String(choices!.fun).trim(), rational: String(choices!.rational).trim(),
+      radical: String(choices!.radical).trim(),
+    } } : {}),
+    danmaku,
   };
 }
 
