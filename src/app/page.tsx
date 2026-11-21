@@ -32,6 +32,7 @@ import { useMusic } from "../context/MusicContext";
 import { useLocalFileSync } from "../hooks/useLocalFileSync";
 import { DEFAULT_SYNC_PREFERENCES, readLocalSyncPreferences } from "../lib/localSyncPreferences";
 import { DEFAULT_IMAGE_SETTINGS, capabilityFor, type ImageSettings, type ProviderCapability } from "../lib/imageSettings";
+import { DEFAULT_WEB_TOOL_CONFIG, normalizeWebToolConfig, normalizeProviderAliases, type WebToolConfig } from "../lib/webToolSettings";
 import { useLanguage } from "../context/LanguageContext";
 import { defaultSessionTitle, sessionGreeting, officinaUnassignedWelcome, umbraUnassignedWelcome } from "../lib/sessionTitles";
 import { isEngineeringCharacterLocked } from "../lib/engineeringSession";
@@ -104,6 +105,7 @@ export default function Home() {
 
     const [config, setConfig] = useState({
         webSearch: false,
+        webToolConfig: DEFAULT_WEB_TOOL_CONFIG,
         imageGen: false,
         tts: false,
         musicControl: false,
@@ -127,6 +129,7 @@ export default function Home() {
     const [settingsHydrated, setSettingsHydrated] = useState(false);
     const [disabledProviders, setDisabledProviders] = useState<string[]>([]);
     const [providerCapabilities, setProviderCapabilities] = useState<Record<string, ProviderCapability>>({});
+    const [providerAliases, setProviderAliases] = useState<Record<string, string>>({});
     const [falConfigured, setFalConfigured] = useState(false);
     const [allProviders, setAllProviders] = useState<PublicLocalProvider[]>(DEFAULT_LOCAL_PROVIDERS);
     useEffect(() => {
@@ -135,6 +138,7 @@ export default function Home() {
             const saved = raw ? JSON.parse(raw) : null;
             if (saved && typeof saved === "object") {
                 if (Array.isArray(saved.disabledProviders)) setDisabledProviders(saved.disabledProviders.filter((x: unknown) => typeof x === "string"));
+                setProviderAliases(normalizeProviderAliases(saved.providerAliases));
                 const restoredProvider = typeof saved.apiProvider === "string" ? saved.apiProvider : "openrouter";
                 if (typeof saved.apiProvider === "string") setApiProvider(saved.apiProvider);
                 const restoredModels = parseProviderModelSelections(saved.providerModels);
@@ -149,6 +153,7 @@ export default function Home() {
                 setConfig(prev => ({
                     ...prev,
                     webSearch: typeof saved.webSearch === "boolean" ? saved.webSearch : prev.webSearch,
+                    webToolConfig: normalizeWebToolConfig(saved.webToolConfig),
                     imageGen: typeof saved.imageGen === "boolean" ? saved.imageGen : prev.imageGen,
                     imageSettings: saved.imageSettings && typeof saved.imageSettings === "object"
                         ? { ...DEFAULT_IMAGE_SETTINGS, ...Object.fromEntries(Object.entries(saved.imageSettings).filter(([k]) => k in DEFAULT_IMAGE_SETTINGS)) }
@@ -177,14 +182,17 @@ export default function Home() {
     useEffect(() => {
         if (!settingsHydrated) return;
         try {
-            const { webSearch, imageGen, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings } = config;
-            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels }));
+            const { webSearch, webToolConfig, imageGen, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings } = config;
+            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, webToolConfig, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels, providerAliases }));
         } catch {
             // Local settings are best-effort; chat saves use their own storage.
         }
-    }, [settingsHydrated, config.webSearch, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.contextWindowTokens, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels]);
+    }, [settingsHydrated, config.webSearch, config.webToolConfig, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.contextWindowTokens, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels, providerAliases]);
 
-    const visibleProviders = useMemo(() => getVisibleLocalProviders(allProviders.filter(p => !p.custom || capabilityFor(p.id, providerCapabilities).llm), disabledProviders), [allProviders, disabledProviders, providerCapabilities]);
+    const displayProviders = useMemo(() => allProviders.map(p => ({
+        ...p, label: p.custom ? providerAliases[p.id] || p.label : p.label,
+    })), [allProviders, providerAliases]);
+    const visibleProviders = useMemo(() => getVisibleLocalProviders(displayProviders.filter(p => !p.custom || capabilityFor(p.id, providerCapabilities).llm), disabledProviders), [displayProviders, disabledProviders, providerCapabilities]);
     useEffect(() => { fetch('/api/check_env').then(r => r.json()).then(d => setFalConfigured(Boolean(d.hasFal))).catch(() => {}); }, []);
     useEffect(() => {
         let active = true;
@@ -221,13 +229,13 @@ export default function Home() {
     );
 
     const toggleSetting = async (key: SettingKey) => {
-        if (!config[key]) {
+        if (!config[key] && key !== "webSearch") {
             try {
                 const res = await fetch("/api/check_env");
                 if (!res.ok) throw new Error("Environment check failed");
                 const env = await res.json();
                 const available: Record<SettingKey, boolean> = {
-                    webSearch: Boolean(env.hasTavily),
+                    webSearch: true,
                     imageGen: config.imageSettings.provider === "comfyui" ? Boolean(env.hasComfy)
                         : config.imageSettings.provider === "fal" ? Boolean(env.hasFal)
                         : allProviders.some(p => p.id === config.imageSettings.provider && p.configured &&
@@ -613,14 +621,18 @@ export default function Home() {
                     storyTheme={config.storyTheme}
                     onStoryThemeChange={(value) => setConfig(prev => ({ ...prev, storyTheme: value }))}
                     activeProvider={apiProvider}
-                    providers={allProviders}
+                    providers={displayProviders}
                     disabledProviders={disabledProviders}
                     onToggleProvider={toggleProviderDisabled}
                     autoSync={syncPreferences.autoSync}
                     autoSyncInterval={syncPreferences.autoSyncInterval}
                     onAutoSyncChange={(autoSync) => updateSyncPreferences({ ...syncPreferences, autoSync })}
                     onAutoSyncIntervalChange={(autoSyncInterval) => updateSyncPreferences({ ...syncPreferences, autoSyncInterval })}
-                        imageSettings={config.imageSettings}
+                        webToolConfig={config.webToolConfig}
+                onWebToolConfigChange={(patch: Partial<WebToolConfig>) => setConfig(prev => ({ ...prev, webToolConfig: { ...prev.webToolConfig, ...patch } }))}
+                providerAliases={providerAliases}
+                onProviderAliasChange={(id: string, label: string) => setProviderAliases(prev => ({ ...prev, [id]: label.slice(0, 40) }))}
+                imageSettings={config.imageSettings}
                         onImageSettingsChange={(patch) => setConfig(prev => ({...prev, imageSettings: {...prev.imageSettings, ...patch}}))}
                         providerCapabilities={providerCapabilities}
                         onProviderCapabilitiesChange={(id, capability) => setProviderCapabilities(prev => ({ ...prev, [id]: { ...capabilityFor(id, prev), ...capability } }))}
@@ -685,14 +697,18 @@ export default function Home() {
                     storyTheme={config.storyTheme}
                     onStoryThemeChange={value => setConfig(prev => ({ ...prev, storyTheme: value }))}
                     activeProvider={apiProvider}
-                    providers={allProviders}
+                    providers={displayProviders}
                     disabledProviders={disabledProviders}
                     onToggleProvider={toggleProviderDisabled}
                     autoSync={syncPreferences.autoSync}
                     autoSyncInterval={syncPreferences.autoSyncInterval}
                     onAutoSyncChange={(autoSync) => updateSyncPreferences({ ...syncPreferences, autoSync })}
                     onAutoSyncIntervalChange={(autoSyncInterval) => updateSyncPreferences({ ...syncPreferences, autoSyncInterval })}
-                    imageSettings={config.imageSettings}
+                    webToolConfig={config.webToolConfig}
+                onWebToolConfigChange={(patch: Partial<WebToolConfig>) => setConfig(prev => ({ ...prev, webToolConfig: { ...prev.webToolConfig, ...patch } }))}
+                providerAliases={providerAliases}
+                onProviderAliasChange={(id: string, label: string) => setProviderAliases(prev => ({ ...prev, [id]: label.slice(0, 40) }))}
+                imageSettings={config.imageSettings}
                     onImageSettingsChange={(patch) => setConfig(prev => ({...prev, imageSettings: {...prev.imageSettings, ...patch}}))}
                     providerCapabilities={providerCapabilities}
                     onProviderCapabilitiesChange={(id, capability) => setProviderCapabilities(prev => ({ ...prev, [id]: { ...capabilityFor(id, prev), ...capability } }))}
@@ -794,13 +810,17 @@ export default function Home() {
                 storyTheme={config.storyTheme}
                 onStoryThemeChange={value => setConfig(prev => ({ ...prev, storyTheme: value }))}
                 activeProvider={apiProvider}
-                providers={allProviders}
+                providers={displayProviders}
                 disabledProviders={disabledProviders}
                 onToggleProvider={toggleProviderDisabled}
                 autoSync={syncPreferences.autoSync}
                 autoSyncInterval={syncPreferences.autoSyncInterval}
                 onAutoSyncChange={(autoSync) => updateSyncPreferences({ ...syncPreferences, autoSync })}
                 onAutoSyncIntervalChange={(autoSyncInterval) => updateSyncPreferences({ ...syncPreferences, autoSyncInterval })}
+                webToolConfig={config.webToolConfig}
+                onWebToolConfigChange={(patch: Partial<WebToolConfig>) => setConfig(prev => ({ ...prev, webToolConfig: { ...prev.webToolConfig, ...patch } }))}
+                providerAliases={providerAliases}
+                onProviderAliasChange={(id: string, label: string) => setProviderAliases(prev => ({ ...prev, [id]: label.slice(0, 40) }))}
                 imageSettings={config.imageSettings}
                 onImageSettingsChange={(patch) => setConfig(prev => ({...prev, imageSettings: {...prev.imageSettings, ...patch}}))}
                 providerCapabilities={providerCapabilities}
@@ -911,16 +931,6 @@ export default function Home() {
                     setApiProvider={selectProvider}
                     providers={visibleProviders}
                     isMobile={false} 
-
-                    useWebSearch={config.webSearch}
-                    toggleWebSearch={() => {
-                        setConfig(prev => {
-                            const next = !prev.webSearch;
-                            if (next) ui.setEffect("cyber");
-                            ui.showToast(next ? "🌐 Link Start" : "🔌 Offline");
-                            return { ...prev, webSearch: next };
-                        });
-                    }}
 
                     useImageGen={config.imageGen}
                     toggleImageGen={() => {
@@ -1142,13 +1152,17 @@ export default function Home() {
                 storyTheme={config.storyTheme}
                 onStoryThemeChange={(value) => setConfig(prev => ({ ...prev, storyTheme: value }))}
                 activeProvider={apiProvider}
-                providers={allProviders}
+                providers={displayProviders}
                 disabledProviders={disabledProviders}
                 onToggleProvider={toggleProviderDisabled}
                 autoSync={syncPreferences.autoSync}
                 autoSyncInterval={syncPreferences.autoSyncInterval}
                 onAutoSyncChange={(autoSync) => updateSyncPreferences({ ...syncPreferences, autoSync })}
                 onAutoSyncIntervalChange={(autoSyncInterval) => updateSyncPreferences({ ...syncPreferences, autoSyncInterval })}
+                webToolConfig={config.webToolConfig}
+                onWebToolConfigChange={(patch: Partial<WebToolConfig>) => setConfig(prev => ({ ...prev, webToolConfig: { ...prev.webToolConfig, ...patch } }))}
+                providerAliases={providerAliases}
+                onProviderAliasChange={(id: string, label: string) => setProviderAliases(prev => ({ ...prev, [id]: label.slice(0, 40) }))}
                 imageSettings={config.imageSettings}
                 onImageSettingsChange={(patch) => setConfig(prev => ({...prev, imageSettings: {...prev.imageSettings, ...patch}}))}
                 providerCapabilities={providerCapabilities}
