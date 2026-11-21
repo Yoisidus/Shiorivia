@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  ArrowRight, BookOpen, Hammer, House, TreeDeciduous, Settings2,
+  ArrowRight, ScrollText, Hammer, House, TreeDeciduous, Settings2,
   Route, Sparkles, FilePenLine,
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
@@ -43,7 +43,7 @@ const buildModes = (t: (key: TranslationKey) => string) => [
   {
     id: "novel", title: "Tela", subtitle: t("mode.tela.subtitle"),
     description: t("mode.tela.description"),
-    icon: BookOpen, color: "text-emerald-700", background: "bg-emerald-50", border: "hover:border-emerald-300",
+    icon: ScrollText, color: "text-[#8a603b]", background: "bg-[#f8ecd4]", border: "hover:border-[#cba978]",
     ready: true,
   },
   {
