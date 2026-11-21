@@ -20,6 +20,8 @@ export type Message = {
   novelDanmaku?: string[];
   storyGenerationId?: string;
   storyProtocolMissing?: boolean;
+  /** Missing private memory or model metadata; recover only on explicit click. */
+  metadataRepairMissing?: boolean;
   /** Pending inline memory retained when game_state needs manual completion. */
   storyPendingMemory?: { stm: string; ltm: string | null };
   /** Officina: the assistant forgot to include the expected code artifact. */
@@ -94,6 +96,8 @@ export type ViaeMessage = {
   content: string;
   createdAt: number;
   modelName?: string;
+  /** Private metadata or chat envelope incomplete; manual recovery available. */
+  metadataRepairMissing?: boolean;
 };
 
 export type ViaeConversation = {
