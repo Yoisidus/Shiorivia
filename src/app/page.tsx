@@ -296,7 +296,7 @@ export default function Home() {
     const engine = useChatEngine({
         currentSession, currentSessionId, setSessions: cloud.setSessions,
         activeCharacterId, voiceVariant,
-        config: config,
+        config: { ...config, terminalRequestLog: ui.debugMode && config.terminalRequestLog, terminalLog: ui.debugMode && config.terminalLog },
         setTrackId: music.setTrackId,
         showToast: ui.showToast,
         setIsGlobalGenerating,
@@ -666,8 +666,8 @@ export default function Home() {
                     customCharacters={charta.characters}
                     worlds={worldLibrary.worlds}
                     activeSelf={selfLibrary.activeSelf}
-                    terminalRequestLogEnabled={config.terminalRequestLog}
-                    terminalLogEnabled={config.terminalLog}
+                    terminalRequestLogEnabled={ui.debugMode && config.terminalRequestLog}
+                    terminalLogEnabled={ui.debugMode && config.terminalLog}
                     contextWindowTokens={config.contextWindowTokens}
                     onExit={() => setShowModeHub(true)}
                     onSettings={() => setShowSettingsCenter(true)}
