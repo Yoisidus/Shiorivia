@@ -14,6 +14,7 @@ import { ThinkingBlock } from "./Common";
 import { buildDrawRequest } from "../lib/drawRequest";
 import { CHARACTERS } from "../types";
 import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 import { useAppDialog } from "../context/DialogContext";
 import { characterDisplayName } from "../lib/characterNames";
 import { parseStoryWorldline } from "../lib/storyWorldline";
@@ -26,27 +27,27 @@ import { formatOfficinaStreamingDisplay } from "../lib/engineeringDisplay";
 import { cleanDrawTag } from "../lib/parseDraw";
 import { IllustratedImage, ImageLightbox } from "./IllustrationImage";
 
-const DrawPlaceholder = ({ onGenerate, busy, disabled, mode }: {
-    onGenerate: () => void; busy: boolean; disabled: boolean; mode: "infinite" | "sliding" | "chat";
+const DrawPlaceholder = ({ onGenerate, busy, disabled, mode, locale }: {
+    onGenerate: () => void; busy: boolean; disabled: boolean; mode: "infinite" | "sliding" | "chat"; locale: import("../lib/locale").Locale;
 }) => {
     const styles = {
         infinite: {
             frame: "border-[#b9d5ed] bg-[#f0f7ff] hover:border-[#76acd5] hover:bg-[#e5f2ff]",
             icon: "bg-[#dcecff] text-[#3971a3]",
             title: "text-[#355f8a]", helper: "text-[#6f94b7]",
-            label: "OFFICINA · VISUAL WORKSPACE", text: "图像任务已就绪",
+            label: "OFFICINA · VISUAL WORKSPACE", text: deepText(locale, "chat.drawOfficina"),
         },
         sliding: {
             frame: "border-[#e9c3d5] bg-[#fff4fa] hover:border-[#ce8eaf] hover:bg-[#ffedf5]",
             icon: "bg-[#fce0ef] text-[#b15f89]",
             title: "text-[#905375]", helper: "text-[#b87f9b]",
-            label: "VIA LATA · SCENE ILLUSTRATION", text: "故事画面待绘制",
+            label: "VIA LATA · SCENE ILLUSTRATION", text: deepText(locale, "chat.drawStory"),
         },
         chat: {
             frame: "border-[#c0e0cd] bg-[#f1fbf6] hover:border-[#8bbfa2] hover:bg-[#e7f7ee]",
             icon: "bg-[#d9f0e2] text-[#4c936f]",
             title: "text-[#446f59]", helper: "text-[#709f83]",
-            label: "UMBRA · MOMENT CAPTURE", text: "聊天瞬间待绘制",
+            label: "UMBRA · MOMENT CAPTURE", text: deepText(locale, "chat.drawUmbra"),
         },
     }[mode];
     return (
@@ -57,7 +58,7 @@ const DrawPlaceholder = ({ onGenerate, busy, disabled, mode }: {
                 <span className={`block text-[9px] font-bold tracking-[0.13em] ${styles.helper}`}>{styles.label}</span>
                 <span className={`mt-1 block text-xs font-semibold ${styles.title}`}>{styles.text}</span>
             </span>
-            <span className={`shrink-0 text-[11px] font-medium ${styles.helper}`}>{busy ? "生成中…" : "点击生成"}</span>
+            <span className={`shrink-0 text-[11px] font-medium ${styles.helper}`}>{busy ? deepText(locale, "chat.drawWorking") : deepText(locale, "chat.drawClick")}</span>
         </button>
     );
 };
@@ -313,16 +314,16 @@ export const ChatInterface = ({
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const confirmDraw = async (index: number) => {
         if (drawingIndex !== null) return;
-        if (!useImageGen) { showToast('请先在设置中启用生图功能'); return; }
-        if (!await dialog.confirm('确认按当前设置生成这幅插图吗？')) return;
+        if (!useImageGen) { showToast(deepText(locale, "chat.drawDisabled")); return; }
+        if (!await dialog.confirm(deepText(locale, "chat.drawConfirm"))) return;
         setDrawingIndex(index);
         try { await onGenerateDraw(index); }
-        catch (error) { showToast(`插图生成失败：${error instanceof Error ? error.message : '未知错误'}`); }
+        catch (error) { showToast(`${deepText(locale, "chat.drawFailed")}${error instanceof Error ? error.message : deepText(locale, "chat.unknownError")}`); }
         finally { setDrawingIndex(null); }
     };
 
     const confirmStopGeneration = async () => {
-        if (await dialog.confirm("确认暂停当前 AI 输出吗？已生成的内容可能无法完整保存。", { destructive: true })) stopGeneration();
+        if (await dialog.confirm(deepText(locale, "chat.stopConfirm"), { destructive: true })) stopGeneration();
     };
 
     const [showMobileTopMenu, setShowMobileTopMenu] = useState(false);
@@ -665,11 +666,11 @@ export const ChatInterface = ({
                                     </div>
                                 )}
                                 {currentSession.memoryMode === "infinite" && msg.role === "assistant" && Array.isArray(msg.ideEditedFiles) && msg.ideEditedFiles.length > 0 && (
-                                    <section aria-label="IDE 文件修改结果" className="mt-2 w-full min-w-0 overflow-hidden rounded-xl border border-[#bad5ef] bg-[#f5faff] shadow-[0_4px_16px_rgba(33,92,148,.07)]">
+                                    <section aria-label={deepText(locale, "chat.ideResult")} className="mt-2 w-full min-w-0 overflow-hidden rounded-xl border border-[#bad5ef] bg-[#f5faff] shadow-[0_4px_16px_rgba(33,92,148,.07)]">
                                         <header className="flex items-center gap-2 border-b border-[#d7e6f4] bg-[#e8f3ff] px-3 py-2.5 text-[#285d8d]">
                                             <FileCheck2 size={16} className="shrink-0" />
-                                            <span className="flex-1 text-xs font-bold">IDE 局部修改完成</span>
-                                            <span className="rounded-full bg-[#d8eaff] px-2 py-0.5 text-[10px] font-semibold">{msg.ideEditedFiles.length} 个文件</span>
+                                            <span className="flex-1 text-xs font-bold">{deepText(locale, "chat.ideResult")}</span>
+                                            <span className="rounded-full bg-[#d8eaff] px-2 py-0.5 text-[10px] font-semibold">{msg.ideEditedFiles.length} {deepText(locale, "chat.fileCount")}</span>
                                         </header>
                                         <div className="divide-y divide-[#e2edf8]">
                                             {msg.ideEditedFiles.map((file: { path: string; operations: number; added: number; removed: number }, index: number) => (
@@ -679,7 +680,7 @@ export const ChatInterface = ({
                                                         <span className="break-all font-mono text-[11px] font-semibold text-[#294a70]">{file.path}</span>
                                                     </div>
                                                     <div className="flex shrink-0 items-center gap-2 text-[10px] font-mono">
-                                                        <span className="text-[#3d698d]">{file.operations} 处修改</span>
+                                                        <span className="text-[#3d698d]">{file.operations} {deepText(locale, "chat.operationCount")}</span>
                                                         <span className="font-bold text-[#258051]">+{file.added}</span>
                                                         <span className="font-bold text-[#b64c5c]">-{file.removed}</span>
                                                     </div>
@@ -691,35 +692,35 @@ export const ChatInterface = ({
                                 {currentSession.memoryMode === "infinite" && msg.role === "assistant" && msg.engineeringOutputIncomplete && (
                                     <div role="status" className="mt-2 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
                                         <AlertTriangle size={15} className="shrink-0"/>
-                                        <span className="flex-1">本轮可能缺少完整代码文件或文件块未闭合。</span>
+                                        <span className="flex-1">{deepText(locale, "chat.codeIncomplete")}</span>
                                         <button type="button" disabled={isLoading} onClick={() => onCompleteEngineeringOutput?.(i)}
-                                            className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold disabled:opacity-40">确认补全</button>
+                                            className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold disabled:opacity-40">{deepText(locale, "chat.confirmComplete")}</button>
                                     </div>
                                 )}
                                 {msg.role === 'assistant' && msg.storyProtocolMissing && (
                                      <div role="status" className="mt-2 flex items-center gap-3 rounded-xl border border-[#ecc3d3] bg-[#fff3f7] p-3 text-[11px] leading-5 text-[#8a3453]">
                                          <AlertTriangle size={15} className="shrink-0"/>
-                                         <span className="flex-1">本轮 AI 未返回完整故事状态，正文已保留，原有状态未覆盖。</span>
+                                         <span className="flex-1">{deepText(locale, "chat.storyProtocolIncomplete")}</span>
                                          <button type="button" disabled={isLoading || i !== currentSession.messages.length - 1}
                                              onClick={() => onCompleteStoryState?.(i)}
                                              className="shrink-0 rounded-lg border border-[#dca3bb] bg-white px-3 py-1.5 font-semibold text-[#922c55] disabled:opacity-40">
-                                             {storyStateRepairing ? "补齐中…" : "确认补齐状态"}
+                                             {storyStateRepairing ? deepText(locale, "chat.repairing") : deepText(locale, "chat.confirmRepair")}
                                          </button>
                                      </div>
                                  )}
                                 {msg.role === 'assistant' && msg.metadataRepairMissing && !msg.storyProtocolMissing && (
                                     <div role="status" className={`mt-2 flex items-center gap-3 rounded-xl border p-3 text-[11px] leading-5 ${currentSession.memoryMode === "chat" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900"}`}>
                                         <AlertTriangle size={15} className="shrink-0"/>
-                                        <span className="flex-1">本轮记忆或状态不完整，原始回复已保留。</span>
+                                        <span className="flex-1">{deepText(locale, "chat.metadataIncomplete")}</span>
                                         <button type="button" disabled={isLoading || storyStateRepairing || i !== currentSession.messages.length - 1}
                                             onClick={() => onCompleteMissingMetadata?.(i)}
                                             className="shrink-0 rounded-lg border border-current/20 bg-white px-3 py-1.5 font-semibold disabled:opacity-40">
-                                            {storyStateRepairing ? "补齐中…" : "补齐状态"}
+                                            {storyStateRepairing ? deepText(locale, "chat.repairing") : deepText(locale, "chat.repairState")}
                                         </button>
                                     </div>
                                 )}
                                 {msg.role === 'assistant' && activeDrawMatch && (
-                                    <DrawPlaceholder busy={drawingIndex === i} disabled={drawingIndex !== null}
+                                    <DrawPlaceholder locale={locale} busy={drawingIndex === i} disabled={drawingIndex !== null}
                                         mode={currentSession.memoryMode === "sliding" ? "sliding" : currentSession.memoryMode === "chat" ? "chat" : "infinite"}
                                         onGenerate={() => void confirmDraw(i)} />
                                 )}
@@ -816,19 +817,19 @@ export const ChatInterface = ({
                 {(requiresChatWorldline || requiresChatCharacter) && <div role="status"
                     className="mx-auto mb-3 flex max-w-3xl items-center gap-2 rounded-xl border border-[#dce8df] bg-[#f7faf8] px-4 py-3 text-xs text-[#557968]">
                     <TreeDeciduous size={16}/>
-                    {requiresChatWorldline ? "先在左侧栏设置 Umbra 世界线，再在右侧选择聊天角色。" : "请先在右侧栏选择当前聊天角色。"}
+                    {requiresChatWorldline ? deepText(locale, "chat.needUmbraWorldline") : deepText(locale, "chat.needCharacter")}
                     <button type="button" onClick={() => requiresChatWorldline ? setLeftSidebarOpen(true) : setRightSidebarOpen(true)}
                         className="ml-auto shrink-0 rounded-lg border border-[#d9e5dd] bg-white px-3 py-2 text-xs font-semibold">
-                        {requiresChatWorldline ? "配置世界线" : "选择角色"}
+                        {requiresChatWorldline ? deepText(locale, "chat.configureWorldline") : deepText(locale, "chat.chooseCharacter")}
                     </button>
                 </div>}
                 {requiresEngineer && <div role="status" className="mx-auto mb-3 flex max-w-3xl items-center gap-2 rounded-xl border border-[#dce4ea] bg-[#f7fafb] px-4 py-3 text-xs text-[#5b7588]">
-                    <Hammer size={16} />请选择右侧栏中的角色工程师，之后就可以开始编程对话。
-                    <button type="button" className="ml-auto rounded-lg border border-[#d6e3e9] bg-white px-3 py-2 text-xs font-semibold" onClick={() => setRightSidebarOpen(true)}>选择角色</button>
+                    <Hammer size={16} />{deepText(locale, "chat.needEngineer")}
+                    <button type="button" className="ml-auto rounded-lg border border-[#d6e3e9] bg-white px-3 py-2 text-xs font-semibold" onClick={() => setRightSidebarOpen(true)}>{deepText(locale, "chat.chooseCharacter")}</button>
                 </div>}
                 {requiresWorldline && <div role="status" className="mx-auto mb-3 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-xl border border-[#dcccae] bg-[#fbf7ee] px-4 py-3 text-xs text-[#776342]">
-                    <span className="flex items-center gap-2"><AlertTriangle size={16}/>请先铭刻世界线，再开始编织故事。</span>
-                    <button type="button" onClick={onOpenStoryWorldline} className="rounded-lg bg-[#324d42] px-3 py-2 font-semibold text-[#f7ecd0] hover:bg-[#203d32]">设定世界线 ↗</button>
+                    <span className="flex items-center gap-2"><AlertTriangle size={16}/>{deepText(locale, "chat.needStoryWorldline")}</span>
+                    <button type="button" onClick={onOpenStoryWorldline} className="rounded-lg bg-[#324d42] px-3 py-2 font-semibold text-[#f7ecd0] hover:bg-[#203d32]">{deepText(locale, "chat.storyWorldlineAction")} ↗</button>
                 </div>}
                 <div
                     className="max-w-3xl mx-auto relative bg-white rounded-2xl border flex items-end focus-within:ring-1 transition-all shadow-sm"
@@ -840,11 +841,11 @@ export const ChatInterface = ({
                         boxShadow: isLoading ? `0 0 10px ${currentCharacter.hex}20` : 'none'
                     }}
                 >
-                    <textarea value={input} disabled={inputLocked} style={{ caretColor: currentCharacter.hex }} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!inputLocked) handleSend() } }} placeholder={storyStateRepairing ? "正在补齐故事状态，请稍候…" : requiresChatWorldline ? "请先配置 Umbra 世界线" : requiresChatCharacter ? "请先选择聊天角色" : requiresEngineer ? "请先在右侧栏选择角色工程师" : requiresWorldline ? "请先设定世界线（WORLD / ERA / PERIOD）" : currentSession?.memoryMode === 'sliding' ? "Start your dream..." : currentSession?.memoryMode === 'chat' ? `和${currentCharacter.name}聊聊天...` : `Speak to ${currentCharacter.name}...`} className="w-full bg-transparent border-none outline-none py-3 pl-4 pr-20 resize-none min-h-[50px] max-h-32 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f6f1] disabled:text-[#9a988c]" />
+                    <textarea value={input} disabled={inputLocked} style={{ caretColor: currentCharacter.hex }} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!inputLocked) handleSend() } }} placeholder={storyStateRepairing ? deepText(locale, "chat.waitRepair") : requiresChatWorldline ? deepText(locale, "chat.waitUmbraWorldline") : requiresChatCharacter ? deepText(locale, "chat.waitCharacter") : requiresEngineer ? deepText(locale, "chat.waitEngineer") : requiresWorldline ? deepText(locale, "chat.waitWorldline") : currentSession?.memoryMode === 'sliding' ? "Start your dream..." : currentSession?.memoryMode === 'chat' ? `${deepText(locale, "chat.talkPrefix")}${currentCharacter.name}${deepText(locale, "chat.talkSuffix")}` : `Speak to ${currentCharacter.name}...`} className="w-full bg-transparent border-none outline-none py-3 pl-4 pr-20 resize-none min-h-[50px] max-h-32 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f6f1] disabled:text-[#9a988c]" />
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,text/plain,.txt" />
                     <div className="absolute bottom-2 right-2 flex gap-1">
                         {isMultimodal && <button disabled={inputLocked} onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-emerald-500 disabled:opacity-30"><Paperclip size={18} /></button>}
-                        {isLoading ? <button type="button" aria-label="暂停输出" title="暂停输出" onClick={() => void confirmStopGeneration()} className="p-1.5 bg-red-500 text-white rounded animate-pulse"><Square size={18} fill="currentColor" /></button> : (!inputLocked && !input.trim() && !selectedFile && currentSession && currentSession.messages.length > 1) ? <button onClick={() => handleRegenerate(currentSession.messages.length - 1)} className="p-1.5 text-white rounded hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><RotateCcw size={18} /></button> : <button onClick={() => handleSend()} disabled={inputLocked || (!input.trim() && !selectedFile)} className="p-1.5 text-white rounded disabled:opacity-30 hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><Send size={18} /></button>}
+                        {isLoading ? <button type="button" aria-label={deepText(locale, "common.stop")} title={deepText(locale, "common.stop")} onClick={() => void confirmStopGeneration()} className="p-1.5 bg-red-500 text-white rounded animate-pulse"><Square size={18} fill="currentColor" /></button> : (!inputLocked && !input.trim() && !selectedFile && currentSession && currentSession.messages.length > 1) ? <button onClick={() => handleRegenerate(currentSession.messages.length - 1)} className="p-1.5 text-white rounded hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><RotateCcw size={18} /></button> : <button onClick={() => handleSend()} disabled={inputLocked || (!input.trim() && !selectedFile)} className="p-1.5 text-white rounded disabled:opacity-30 hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><Send size={18} /></button>}
                     </div>
                 </div>
                 {selectedFile && <div className="text-xs text-gray-400 mt-1 ml-2 flex items-center gap-2">{selectedFile.type === 'text' ? <FileText size={12} /> : <Paperclip size={12} />} <span>{selectedFile.name}</span><button onClick={() => setSelectedFile(null)} className="text-red-400">×</button></div>}
