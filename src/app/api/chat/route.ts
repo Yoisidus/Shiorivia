@@ -6,7 +6,7 @@ import { GEMINI_NARRATIVE_STYLE_PROMPT, shouldApplyGeminiNarrativeStyle } from "
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
 import { inspectIdeProject } from "../../../lib/ideInspection";
-import { normalizeOfficinaDisplay } from "../../../lib/engineeringDisplay";
+import { formatOfficinaStreamingDisplay } from "../../../lib/engineeringDisplay";
 import { validProjectName } from "../../../lib/idePathPolicy";
 
 import { titleInstruction, shouldReviewInlineTitle } from "../../../lib/inlineTitle";
@@ -1035,7 +1035,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
     };
     const logFullOutput = (raw: string, complete: boolean) => {
         if (!debugFullOutput) return;
-        console.log(`\n========== SHIORIVIA LOCAL | ${memoryMode} | ${selectedProvider.id}/${routedModel} | ${complete ? "COMPLETE" : "INTERRUPTED"} ==========\n${memoryMode === "infinite" ? normalizeOfficinaDisplay(raw) : raw}\n========== END AI OUTPUT ==========\n`);
+        console.log(`\n========== SHIORIVIA LOCAL | ${memoryMode} | ${selectedProvider.id}/${routedModel} | ${complete ? "COMPLETE" : "INTERRUPTED"} ==========\n${memoryMode === "infinite" ? formatOfficinaStreamingDisplay(raw) : raw}\n========== END AI OUTPUT ==========\n`);
     };
 
     // Preserve a stable instruction prefix for provider-side implicit prompt
