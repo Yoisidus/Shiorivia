@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useAppDialog } from "../context/DialogContext";
 import { Download, Plus, Save, Trash2, Globe2, X } from "lucide-react";
-import { newChartaWorld, parseChartaWorld, type ChartaWorld } from "../lib/chartaWorld";
+import { newChartaWorld, parseChartaWorld, TIMELINE_LOCALES, type TimelineLocale, type ChartaWorld } from "../lib/chartaWorld";
+import { useLanguage } from "../context/LanguageContext";
 import { encodeChartaWorldExport, saveChartaJsonFile } from "../lib/chartaJson";
 import type { useChartaWorlds } from "../hooks/useChartaWorlds";
 
@@ -10,6 +11,8 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
   embedded?: boolean; selectedId?: string | null; requestVersion?: number; onDirtyChange?: (dirty: boolean) => void; onSaved?: (id: string) => void;
 }) {
   const dialog = useAppDialog();
+  const { locale } = useLanguage();
+  const [descriptionLanguage, setDescriptionLanguage] = useState<TimelineLocale>("zh-CN");
   const [draft, setDraft] = useState<ChartaWorld | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -74,10 +77,16 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
         <section className="space-y-3 rounded-xl border border-[#dce6dc] bg-[#fcfdfa] p-4">
           <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-xs font-bold text-[#53745e]">原作时间线 · ERA / PERIOD</h3><button type="button" disabled={draft.canonTimeline.length >= 80} onClick={() => update({ ...draft, canonTimeline: [...draft.canonTimeline, { era: "", period: "" }] })} className="flex items-center gap-1 rounded-lg border border-[#b6cdbb] px-3 py-1.5 text-xs text-[#557765] disabled:opacity-40"><Plus size={12}/>添加时期</button></div>
           <p className="text-[11px] leading-6 text-[#849b8a]">每行建立一个 ERA 与 PERIOD 的对应关系。相同 ERA 可以对应多个 PERIOD；PERIOD 不可重复。故事中选择任一项时，另一项自动筛选。此项可留空，只使用 AU 时间线。</p>
-          {draft.canonTimeline.map((stage, i) => <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#edf5ed] px-3 py-2 text-[11px] text-[#587561]"><span>时间线简述（可选，按界面语言精确显示；未填写的语言不显示）</span><label>编辑语言 <select aria-label="时间线简述编辑语言" value={descriptionLanguage} onChange={e => setDescriptionLanguage(e.target.value as TimelineLocale)} className="ml-2 rounded border border-[#cbdcce] bg-white px-2 py-1">{TIMELINE_LOCALES.map(lang => <option key={lang} value={lang}>{lang}</option>)}</select></label></div>
+          {draft.canonTimeline.map((stage, i) => <div key={i} className="space-y-2 rounded-xl border border-[#e3eae0] bg-white/80 p-2"><div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
             <input aria-label={`ERA ${i+1}`} maxLength={100} placeholder="ERA：高一春夏季" value={stage.era} onChange={e=>update({...draft,canonTimeline:draft.canonTimeline.map((s,j)=>j===i?{...s,era:e.target.value}:s)})} className="min-w-0 rounded-lg border border-[#d7e0d6] px-3 py-2 text-xs"/>
             <input aria-label={`PERIOD ${i+1}`} maxLength={100} placeholder="PERIOD：T-5-6" value={stage.period} onChange={e=>update({...draft,canonTimeline:draft.canonTimeline.map((s,j)=>j===i?{...s,period:e.target.value}:s)})} className="min-w-0 rounded-lg border border-[#d7e0d6] px-3 py-2 text-xs"/>
-            <button type="button" aria-label={`移除时期 ${i+1}`} onClick={()=>update({...draft,canonTimeline:draft.canonTimeline.filter((_,j)=>j!==i)})} className="rounded-lg p-2 text-[#a98585] hover:bg-rose-50"><X size={14}/></button>
+            <button type="button" aria-label={`移除时期 ${i+1}`} onClick={()=>update({...draft,canonTimeline:draft.canonTimeline.filter((_,j)=>j!==i)})} className="rounded-lg p-2 text-[#a98585] hover:bg-rose-50"><X size={14}/></button></div>
+            <textarea rows={2} maxLength={500} aria-label={`时期 ${i+1} · ${descriptionLanguage} 简述`} placeholder={`${descriptionLanguage} · 该时期的简要事件与背景（可留空）`}
+              value={stage.descriptions?.[descriptionLanguage] || ""}
+              onChange={e => update({ ...draft, canonTimeline: draft.canonTimeline.map((s,j) => j === i ? { ...s, descriptions: { ...s.descriptions, [descriptionLanguage]: e.target.value } } : s) })}
+              className="w-full resize-y rounded-lg border border-[#d7e0d6] bg-[#fbfcf9] p-2 text-xs leading-5"/>
+            {stage.descriptions?.[locale as TimelineLocale]?.trim() && <p className="text-[10px] leading-5 text-[#819587]">当前界面语言：{stage.descriptions[locale as TimelineLocale]}</p>}
           </div>)}
         </section>
         <label className="block text-xs text-[#6e8472]">世界观具体设定（可选）<textarea rows={9} maxLength={20000} value={draft.description} onChange={e=>update({...draft,description:e.target.value})} placeholder="时代、人物关系、历史事件、世界规则……" className="mt-2 w-full resize-y rounded-xl border border-[#d7e0d6] p-3 text-sm leading-7"/></label>
