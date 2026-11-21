@@ -73,6 +73,11 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
                     lastSnapshot.current = serverSnapshot;
                     lastSavedMsgCount.current = countTotalMessages(serverData.sessions || []);
                     hasUnsavedChanges.current = false;
+                } else {
+                    // A fresh Local installation has an empty, already-synced
+                    // in-memory payload. No disk write is needed on first open.
+                    lastSnapshot.current = serialize({ sessions: [], folders: [], globalWorldInfo: "", bgImage: null });
+                    hasUnsavedChanges.current = false;
                 }
                 setInitLoaded(true);
                 setStatus('idle');
@@ -179,12 +184,20 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
 
     useEffect(() => {
         if (!initLoaded) return;
-        hasUnsavedChanges.current = true;
-        setStatus('unsaved');
+        const snapshot = serialize({ sessions, folders, globalWorldInfo, bgImage });
+        // Hydration, toggling auto-sync and generation state are not edits.
+        // Compare persisted content; never mark an unchanged startup as dirty.
+        const unsaved = snapshot !== lastSnapshot.current;
+        hasUnsavedChanges.current = unsaved;
+        if (!unsaved) {
+            setStatus(current => current === 'syncing' ? current : 'idle');
+            return;
+        }
+        setStatus(current => current === 'syncing' ? current : 'unsaved');
         if (!preferences.autoSync || isGlobalGenerating) return;
         const timer = setTimeout(() => { void performSync('auto'); }, 2500);
         return () => clearTimeout(timer);
-    }, [sessions, folders, globalWorldInfo, bgImage, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating]);
+    }, [initLoaded, sessions, folders, globalWorldInfo, bgImage, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating]);
 
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
