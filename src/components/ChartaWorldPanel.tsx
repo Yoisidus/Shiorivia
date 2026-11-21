@@ -5,6 +5,7 @@ import { Download, Plus, Save, Trash2, Globe2, X } from "lucide-react";
 import { newChartaWorld, parseChartaWorld, TIMELINE_LOCALES, type TimelineLocale, type ChartaWorld } from "../lib/chartaWorld";
 import { useLanguage } from "../context/LanguageContext";
 import { deepText } from "../lib/i18nDeep";
+import { localizeChartaError } from "../lib/chartaErrorText";
 import { encodeChartaWorldExport, saveChartaJsonFile } from "../lib/chartaJson";
 import type { useChartaWorlds } from "../hooks/useChartaWorlds";
 
@@ -40,7 +41,7 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
       const world = parseChartaWorld(draft);
       if (await saveWorld(world)) { setDraft(world); setDirty(false); setMessage(deepText(locale, "charta.saved")); onSaved?.(world.id); }
       else setMessage(deepText(locale, "charta.saveError"));
-    } catch (e) { setMessage(e instanceof Error ? e.message : deepText(locale, "charta.saveFailedShort")); }
+    } catch (e) { setMessage(e instanceof Error ? localizeChartaError(locale, e.message) : deepText(locale, "charta.saveFailedShort")); }
     finally { setBusy(false); }
   };
   const exportWorld = () => {
@@ -49,7 +50,7 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
       const parsed = parseChartaWorld(draft);
       saveChartaJsonFile(`charta-world-${parsed.id}.json`, encodeChartaWorldExport(parsed));
       setMessage(deepText(locale, "charta.exported"));
-    } catch (e) { setMessage(e instanceof Error ? e.message : deepText(locale, "charta.exportError")); }
+    } catch (e) { setMessage(e instanceof Error ? localizeChartaError(locale, e.message) : deepText(locale, "charta.exportError")); }
   };
   const remove = async () => {
     if (!draft || busy || !worlds.some(world => world.id === draft.id)) return;
@@ -94,7 +95,7 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
         <p className="text-[11px] leading-6 text-[#809687]">{deepText(locale, "charta.worldDescriptionHelp")}</p>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-5"><button type="button" disabled={busy || !worlds.some(world => world.id === draft.id)} onClick={remove} className="flex items-center gap-2 text-xs text-[#bd7777] disabled:opacity-30"><Trash2 size={14}/>{deepText(locale, "charta.deleteWorld")}</button><div className="flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={exportWorld} className="flex items-center gap-2 rounded-xl border border-[#cbdacc] px-4 py-2 text-xs text-[#456b57] disabled:opacity-40"><Download size={14}/>{deepText(locale, "charta.exportJson")}</button><button type="button" disabled={busy} onClick={save} className="flex items-center gap-2 rounded-xl bg-[#456b57] px-4 py-2 text-xs text-white disabled:opacity-40"><Save size={14}/>{deepText(locale, "charta.saveWorld")}</button></div></div>
       </div>}
-      {(message || error) && <p role="status" className="mt-4 text-xs text-[#9a6e54]">{message || error}</p>}
+      {(message || error) && <p role="status" className="mt-4 text-xs text-[#9a6e54]">{message || localizeChartaError(locale, error)}</p>}
     </section>
   </div>;
 }
