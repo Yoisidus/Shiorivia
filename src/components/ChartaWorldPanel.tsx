@@ -40,7 +40,7 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
       const world = parseChartaWorld(draft);
       if (await saveWorld(world)) { setDraft(world); setDirty(false); setMessage(deepText(locale, "charta.saved")); onSaved?.(world.id); }
       else setMessage(deepText(locale, "charta.saveError"));
-    } catch (e) { setMessage(e instanceof Error ? e.message : "保存失败"); }
+    } catch (e) { setMessage(e instanceof Error ? e.message : deepText(locale, "charta.saveFailedShort")); }
     finally { setBusy(false); }
   };
   const exportWorld = () => {
@@ -80,7 +80,7 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
           <p className="text-[11px] leading-6 text-[#849b8a]">{deepText(locale, "charta.stageHelp")}</p>
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#edf5ed] px-3 py-2 text-[11px] text-[#587561]"><span>{deepText(locale, "charta.stageDescriptions")}</span><label>{deepText(locale, "charta.editLanguage")} <select aria-label={deepText(locale, "charta.editLanguage")} value={descriptionLanguage} onChange={e => setDescriptionLanguage(e.target.value as TimelineLocale)} className="ml-2 rounded border border-[#cbdcce] bg-white px-2 py-1">{TIMELINE_LOCALES.map(lang => <option key={lang} value={lang}>{lang}</option>)}</select></label></div>
           {draft.canonTimeline.map((stage, i) => <div key={i} className="space-y-2 rounded-xl border border-[#e3eae0] bg-white/80 p-2"><div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
-            <input aria-label={`ERA ${i+1}`} maxLength={100} placeholder="ERA：高一春夏季" value={stage.era} onChange={e=>update({...draft,canonTimeline:draft.canonTimeline.map((s,j)=>j===i?{...s,era:e.target.value}:s)})} className="min-w-0 rounded-lg border border-[#d7e0d6] px-3 py-2 text-xs"/>
+            <input aria-label={`ERA ${i+1}`} maxLength={100} placeholder={deepText(locale, "charta.eraExample")} value={stage.era} onChange={e=>update({...draft,canonTimeline:draft.canonTimeline.map((s,j)=>j===i?{...s,era:e.target.value}:s)})} className="min-w-0 rounded-lg border border-[#d7e0d6] px-3 py-2 text-xs"/>
             <input aria-label={`PERIOD ${i+1}`} maxLength={100} placeholder="PERIOD：T-5-6" value={stage.period} onChange={e=>update({...draft,canonTimeline:draft.canonTimeline.map((s,j)=>j===i?{...s,period:e.target.value}:s)})} className="min-w-0 rounded-lg border border-[#d7e0d6] px-3 py-2 text-xs"/>
             <button type="button" aria-label={`${deepText(locale, "charta.removeStage")} ${i+1}`} onClick={()=>update({...draft,canonTimeline:draft.canonTimeline.filter((_,j)=>j!==i)})} className="rounded-lg p-2 text-[#a98585] hover:bg-rose-50"><X size={14}/></button></div>
             <textarea rows={2} maxLength={500} aria-label={`${deepText(locale, "worldline.periodLabel")} ${i+1} · ${descriptionLanguage} · ${deepText(locale, "charta.stageDescriptions")}`} placeholder={`${descriptionLanguage} · ${deepText(locale, "charta.stageDescriptionPlaceholder")}`}
