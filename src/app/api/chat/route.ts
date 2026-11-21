@@ -7,6 +7,7 @@ import { storyOutputContract } from "../../../lib/storyOutputContract";
 import { storyColorRenderingInstruction } from "../../../lib/storyColorRendering";
 import { storyTurnMemoryInstruction } from "../../../lib/storyTurnMemory";
 import { novelOutputContract } from "../../../lib/novelOutputContract";
+import { conversationTurnMemoryInstruction, conversationMemoryTurnCount } from "../../../lib/conversationTurnMemory";
 import { worldlineAdvanceInstruction } from "../../../lib/worldlineAdvanceProtocol";
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
@@ -373,38 +374,53 @@ ${lore || "(No profile supplied.)"}`;
       }).join("\n\n");
       const routeWorlds = routeWorldline.crossWorld?.enabled ? routeWorldline.crossWorld.secondary : [];
       const routeSetting = [
-        `主世界观：${routeWorldline.worldName}；设定：${routeWorldline.worldDescription.slice(0, 6000)}`,
-        `主时间线：${routeWorldline.kind === "canon" ? "原作" : "AU"}；ERA=${routeWorldline.era}；PERIOD=${routeWorldline.period}`,
-        routeWorldline.kind === "au" ? `主世界观原作认知基准：${routeWorldline.baseEra} / ${routeWorldline.basePeriod}` : "",
-        ...routeWorlds.map(world => `附属世界观：${world.worldName}（${world.worldId}）。原作认知截至 ${world.baseEra} / ${world.basePeriod}。设定：${world.worldDescription.slice(0, 4000)}`),
+        "Primary world: " + routeWorldline.worldName + ". Description: " + routeWorldline.worldDescription.slice(0, 6000),
+        "Primary chronology: " + (routeWorldline.kind === "canon" ? "Original canon" : "Alternate universe") +
+          ". ERA=" + routeWorldline.era + "; PERIOD=" + routeWorldline.period,
+        routeWorldline.kind === "au" ? "AU's original-canon knowledge baseline: " + routeWorldline.baseEra + " / " + routeWorldline.basePeriod : "",
+        ...routeWorlds.map(world => "Additional enabled world: " + world.worldName + " (" + world.worldId +
+          "). Canon knowledge cutoff: " + world.baseEra + " / " + world.basePeriod +
+          ". Description: " + world.worldDescription.slice(0, 4000)),
         routeWorldline.crossWorld?.enabled && routeWorldline.crossWorld.includeUniversal
-          ? "通用角色已启用；他们不属于固定世界。" : "",
-        group.reality === "au" && group.auContext ? `旧道路 AU 补充设定：${String(group.auContext).slice(0, 4000)}` : "",
+          ? "World-neutral characters are allowed but do not belong to one fixed world." : "",
+        group.reality === "au" && group.auContext ? "Legacy route AU notes: " + String(group.auContext).slice(0, 4000) : "",
       ].filter(Boolean).join("\n");
-      const directorTag = "[SCENE_DIRECTION / 场外剧情提示 — NOT SPOKEN IN CHAT]";
+      const directorTag = "[SCENE_DIRECTION — OUT-OF-CHARACTER DIRECTOR NOTE, NOT SPOKEN IN CHAT]";
+      const example = responseIds.map((id: string, index: number) => ({
+        charId: id,
+        text: index === 0 ? "Are you all coming?" : "I think so.",
+      })).slice(0, observing ? 2 : 1);
       finalSystemPrompt = [
-        "[VIAE · 角色即时通讯] 模拟真实角色之间的私聊/群聊；你不是通用 AI 助手，也不是正在与用户闲聊的旁白。",
-        `聊天名称：${String(group.name || "Viae").slice(0, 100)}；类型：${isDirect ? "Semita 小径" : "Compitum 路口"}。`,
-        `[启用的世界线与角色认知截止]\n${routeSetting}\n未配置的世界不属于这条道路，不要引入其角色或未来原作事件。`,
-        `当前手机视角角色：${ownerId}。视角仅决定用户观看哪位角色的手机，不会把场外用户变成聊天参与者。`,
+        "[VIAE — FICTIONAL INSTANT MESSAGING]",
+        "Simulate authentic private or group mobile messages exchanged between established characters. You are NOT a general-purpose assistant or a narrator talking to the user.",
+        "Road name: " + String(group.name || "Viae").slice(0, 100) +
+          ". Route type: " + (isDirect ? "Semita (direct/private chat)" : "Compitum (group chat)") + ".",
+        "[ENABLED WORLDLINES AND CANON KNOWLEDGE CUTOFF]\n" + routeSetting +
+          "\nOnly the enabled worlds exist on this road. Never introduce characters from disabled worlds or future canon facts.",
+        "Phone viewpoint ID: " + ownerId + ". This determines whose phone the user views; it does not by itself make an external observer a chat participant.",
         observing
-          ? "[旁观模式 / DIRECTOR ONLY] 用户不是聊天成员！每条 SCENE_DIRECTION 都是场外导演写的剧情提示、情景条件或推进建议。消息不会出现在角色手机上，也不会以聊天气泡形式发送。角色不知道有导演存在；绝对不要对用户、导演或剧情提示直接答话、解释指令或感谢。你必须生成角色相互之间的真实即时消息。"
-          : `【参与模式】${isDirect ? "用户直接与唯一角色聊天" : `用户从 ${ownerId} 的手机发送聊天消息；其他角色回应这位角色`}。把用户消息视为会话内发言，允许角色直接回复。`,
-        `允许发言的角色 ID：${responseIds.join(", ")}。绝不可创造其他 charId。`,
+          ? "[OBSERVER / DIRECTOR ONLY] The user is NOT in the chat. Every SCENE_DIRECTION is an out-of-character stage direction or plot suggestion, NOT a sent phone message. Characters cannot see the director, must not address or thank the director, and must NOT reply to the direction as a chat message. Generate realistic messages BETWEEN the fictional characters themselves."
+          : isDirect
+            ? "[PARTICIPANT — PRIVATE CHAT] The user sends real chat messages to the single character from their current in-world identity. Have that character answer naturally."
+            : "[PARTICIPANT — GROUP CHAT] The user sends real messages from the phone of " + ownerId +
+              "; all generated replies are from OTHER group members who may also respond to one another.",
+        "ONLY these character IDs may author generated replies: " + responseIds.join(", ") + ". Never invent a charId.",
         observing
-          ? `本轮必须由至少两位不同角色真实交谈、相互回应，输出 3-6 条简短消息；${isDirect ? "小径中的两位角色都必须至少说一句，构成自然来回，而不是分别对导演说话。" : "路口至少两个角色发言，并且后一位角色应回应前一位的话；不要求所有成员发言。"}`
-          : "参与小径由唯一角色回复 1-3 条；参与路口由其他成员自然接话 2-5 条，允许角色彼此回应。",
-        "你的最终输出只能是一个 <lime_chat>...</lime_chat>，内容必须是 JSON 数组，元素严格为 {\"charId\":\"角色ID\",\"text\":\"聊天文字\"}，每个元素代表一条真实发给其他角色的聊天消息。",
-        `格式示例（示例仅展示结构，实际必须替换为允许角色）：<lime_chat>[{\"charId\":\"${responseIds[0]}\",\"text\":\"今晚的星星真好看。\"},{\"charId\":\"${responseIds[1] || responseIds[0]}\",\"text\":\"嗯，和昨天很不一样。\"}]</lime_chat>`,
-        "禁止输出 Markdown 代码围栏、对用户的解释、旁白、额外说明、game_state、file、draw、audio、thinking 等控制标签。",
-        `[人物设定与说话风格 — 仅固定同行者]\n${cast}`,
+          ? isDirect
+            ? "Generate 3–6 short authentic messages: BOTH participants must speak and respond to one another. No one replies to the director."
+            : "Generate 3–6 short authentic messages from at least TWO distinct members. Later messages should naturally respond to earlier ones. Not all members need to speak."
+          : isDirect
+            ? "Generate 1–3 natural short replies from the single permitted character."
+            : "Generate 2–5 short messages by other group members, allowing them to respond naturally to each other as well as the user's in-world message.",
+        "The visible reply MUST be exactly ONE <viae_chat>...</viae_chat> block containing a JSON ARRAY. Each entry has precisely {\"charId\":\"allowed machine ID\",\"text\":\"actual phone message\"}. Each item is a separate real chat bubble, not narration or out-of-character commentary.",
+        "Structural example (replace IDs and messages with real scene dialogue): <viae_chat>" + JSON.stringify(example) + "</viae_chat>",
+        "Use natural dialogue in the user's active UI language and each character's established voice. Preserve their canon-era knowledge, relationships and individual quirks.",
+        "Do NOT emit Markdown code fences, assistant explanations, off-chat narration, game_state, file, draw, audio or thinking tags. The only permitted private tags outside the visible chat block are the separately specified turn_memory and optional worldline_update.",
+        "[ACTIVE ROUTE MEMBERS — FULL CHARACTER LORE]\n" + cast,
         !observing && body.viaeSelf && typeof body.viaeSelf === "object"
-          ? `[参与者 Charta 自设资料 — 用户在聊天中的身份参照，不另造 charId]\n${JSON.stringify(body.viaeSelf).slice(0, 14000)}` : "",
-        ltm?.trim() ? `[这条道路的 LTM]\n${String(ltm).slice(0, 7000)}` : "",
-        stm?.trim() ? `[这条道路的 STM]\n${String(stm).slice(0, 4000)}` : "",
+          ? "[PARTICIPANT CHARTA SELF — IDENTITY REFERENCE ONLY; NOT AN EXTRA charId]\n" +
+            JSON.stringify(body.viaeSelf).slice(0, 14000) : "",
       ].filter(Boolean).join("\n\n");
-      // New model output uses the VIAE tag; historical <lime_chat> records remain readable.
-      finalSystemPrompt = finalSystemPrompt.replace(/lime_chat/g, "viae_chat");
       // Preserve the visible transcript, but mark out-of-character director messages
       // before either Gemini or OpenAI-compatible providers see the conversation.
       finalMessages = messages.map((m: any) => {
@@ -454,6 +470,10 @@ ${lore || "(No profile supplied.)"}`;
         ltm?.trim() ? `[CURRENT SPEAKER LTM]\n${String(ltm).slice(0, 9000)}` : "",
         stm?.trim() ? `[CURRENT SPEAKER STM]\n${String(stm).slice(0, 5000)}` : "",
       ].filter(Boolean).join("\n\n");
+      finalSystemPrompt += "\n\n" + conversationTurnMemoryInstruction({
+        mode: "umbra", previousStm: String(stm || ""), previousLtm: String(ltm || ""),
+        turnCount: conversationMemoryTurnCount(String(stm || "")),
+      });
       if (imageToolSelected) finalSystemPrompt += "\n\n" + VISUAL_INSTRUCTION;
       finalMessages = messages.map((message: any) => {
         if (message.role !== "assistant") return { role: "user", content:
@@ -925,6 +945,13 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
           chronologyWorldline, normalizeLocale(body.uiLanguage),
         );
       }
+    }
+
+    if (!independentRepair && memoryMode === "lime") {
+      finalSystemPrompt += "\n\n" + conversationTurnMemoryInstruction({
+        mode: "viae", previousStm: String(stm || ""), previousLtm: String(ltm || ""),
+        turnCount: conversationMemoryTurnCount(String(stm || "")),
+      });
     }
 
     if (memoryMode === "infinite" && typeof body.engineeringProjectRoot === "string"
