@@ -1,7 +1,8 @@
 /**
  * Novel-only chapter state. Unlike Story's <game_state>, this tracks the
- * narrative setting/active event and predicts who needs a FULL profile in the
- * following chapter. The WORLD / ERA / PERIOD is never inferred or overwritten.
+ * narrative setting/active event. The legacy nextSceneCastIds field remains
+ * readable for existing JSON saves; current cast selection happens separately.
+ * The WORLD / ERA / PERIOD is never inferred or overwritten.
  */
 export type NovelState = {
   environment: string;
