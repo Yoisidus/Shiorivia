@@ -49,7 +49,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
             setActiveFile(current => current in nextFiles ? current : Object.keys(nextFiles)[0] || "");
             setIsEditing(false);
             setStatus(`已同步 IDE/${target} · ${Object.keys(nextFiles).length} 个文件`);
-        } catch (error: any) { setStatus(error.message); void dialog.alert(error.message); }
+        } catch (error: any) { setStatus(error.message); dialog.notify(error.message); }
         finally { setBusy(false); }
     };
 
@@ -84,7 +84,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                 }
             }
             await syncDisk(projectRoot, false);
-        } catch (error: any) { void dialog.alert(error.message); }
+        } catch (error: any) { dialog.notify(error.message); }
         finally { setBusy(false); }
     };
 
@@ -97,7 +97,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         const name = await dialog.prompt("文件路径（例如 src/components/App.tsx）：");
         if (!name) return;
         if (!/^[^\\/:*?"<>|]+(?:\/[^\\/:*?"<>|]+)*$/.test(name) || name.split("/").includes("..")) {
-            void dialog.alert("文件路径不可用。"); return;
+            dialog.notify("文件路径不可用。"); return;
         }
         setFiles(prev => ({ ...prev, [name]: { name, language: name.split(".").pop() || "text", content: "" } }));
         setActiveFile(name);
@@ -115,17 +115,17 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                 await ideRequest("write", { project: projectRoot, path: name, content: file.content });
             }
             await syncDisk(projectRoot, false);
-        } catch (error: any) { void dialog.alert(`导入中止：${error.message}`); }
+        } catch (error: any) { dialog.notify(`导入中止：${error.message}`); }
         finally { setBusy(false); }
     };
     const handleNewFolder = async () => {
-        if (!projectRoot) { void dialog.alert("请先绑定项目根目录。"); return; }
+        if (!projectRoot) { dialog.notify("请先绑定项目根目录。"); return; }
         const relative = await dialog.prompt("新建文件夹（支持 src/components 这样的多级路径）：");
         if (!relative) return;
         try {
             await ideRequest("createFolder", { project: projectRoot, path: relative });
             await syncDisk(projectRoot);
-        } catch (e: any) { void dialog.alert(e.message); }
+        } catch (e: any) { dialog.notify(e.message); }
     };
     const loadProjects = async () => {
         try {
@@ -133,7 +133,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || "读取项目失败");
             setProjects(result.projects || []);
-        } catch (e: any) { void dialog.alert(e.message); }
+        } catch (e: any) { dialog.notify(e.message); }
     };
     const createAndBind = async () => {
         const name = await dialog.prompt("项目根目录名（存放在 Shiorivia/IDE 下）：");
@@ -142,7 +142,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
             const created = await ideRequest("createProject", { name });
             onBindProject(created.project);
             setProjects(prev => [...new Set([...prev, created.project])]);
-        } catch (e: any) { void dialog.alert(e.message); }
+        } catch (e: any) { dialog.notify(e.message); }
     };
 
     const handleDelete = async (e: React.MouseEvent, name: string) => {
@@ -153,7 +153,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         delete updated[name];
         if (projectRoot && name in diskBaseline) {
             try { await ideRequest("delete", { project: projectRoot, path: name }); }
-            catch (error: any) { void dialog.alert(error.message); return; }
+            catch (error: any) { dialog.notify(error.message); return; }
         } else if (!projectRoot) onUpdate(updated);
         setFiles(updated);
         if (projectRoot) setDiskBaseline(prev => { const next = { ...prev }; delete next[name]; return next; });
