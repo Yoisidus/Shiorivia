@@ -26,7 +26,7 @@ export const WorldInfoModal = ({ isOpen, onClose, title, subtitle, content, onSa
       : { border: "border-emerald-200", background: "bg-emerald-50", text: "text-emerald-800", button: "bg-emerald-600 hover:bg-emerald-700", focus: "focus:ring-emerald-300" };
    const save = () => {
       onSave(draft);
-      void dialog.alert("保存成功", { title: "会话设定已保存" });
+      dialog.notify("会话设定保存成功", { type: "success" });
       onClose();
    };
    return (
