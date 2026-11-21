@@ -735,7 +735,7 @@ Respect these exact selected ERA/PERIOD labels and this era's continuity; never 
 
       // One authoritative schema, instead of repeating JSON field rules across
       // narration, participation, timeline and suggestion sections.
-      finalSystemPrompt += "\n" + storyOutputContract({ danmakuEnabled, danmakuCount });
+      finalSystemPrompt += "\n" + storyOutputContract({ danmakuEnabled, danmakuCount, role: storyRole, hasPov: Boolean(povCharacter) });
       finalSystemPrompt += `
 [STORY RESPONSE ORDER]
 1. Start with a closed <thinking>...</thinking> block. This block is non-narrative and is removed from the reader-visible story.
