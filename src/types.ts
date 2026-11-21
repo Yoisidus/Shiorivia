@@ -149,7 +149,8 @@ export type Session = {
   chatCharacterMemories?: Record<string, { stm: string; ltm: string }>;
   /** Characters currently on stage, as described by the model. */
   sceneCastIds?: string[];
-  /** Full character profiles to supply to the model on the NEXT turn. */
+  /** Current or pre-first-turn cast; legacy field name retained for Local archives.
+   * Subsequent narrative turns always run model-directed cast lookup. */
   storyNextCastIds?: string[];
   storyAllowCrossWorld?: boolean;
   // A single LIME session holds its own private/group conversations.
