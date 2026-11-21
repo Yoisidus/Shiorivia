@@ -2,6 +2,14 @@
 
 This document describes the **Local** implementation in `seemoon1/Shiorivia`.
 
+## User entrypoint update (2026-11-21) / 聊天世界线入口
+
+- The localized **Configure worldline** action above Umbra's locked composer now directly requests the existing **Umbra** worldline dialog, including when the left sidebar is already open. The editor continues to live in the left sidebar and uses the same `onSaveChatWorldline` handler; this is a presentation/navigation fix, not a new worldline format.
+- The separate **UMBRA · WORLDLINE** card at the top of the left sidebar still opens that same editor. With no valid worldline, the right sidebar displays a localized empty-state explanation, and the composer stays disabled until a compatible character is selected.
+- QA: first check the missing-worldline state with the sidebar closed, click the composer action, save WORLD/ERA/PERIOD, select a character, and repeat with the sidebar already expanded. Verify the pop-up and the composer gate in `zh-CN`, `zh-TW`, `en`, `ja`, `ko`. The change is **source-verified**, not yet browser-tested.
+
+See [Local five-language QA](localization.md).
+
 ## Umbra flow
 
 - New Umbra conversations start without a selected character. A localized **System** welcome instructs the user to choose a worldline from the top of the left explorer and then a character from the right sidebar. The composer is locked until a valid WORLD / ERA / PERIOD and eligible active character are selected.

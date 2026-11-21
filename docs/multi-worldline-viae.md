@@ -22,6 +22,12 @@ This applies to **seemoon1/Shiorivia** (Local Edition), not Shiorivia_Cloud.
 - Character ID is persisted as **characterCode** (human-facing ID). The original immutable **id** (e.g. `charta-...`) remains the machine key in existing session relationships, portraits, archives and message protocols. AI prompts receive both the public character code and the stable machine ID; don't change existing machine references when editing the public character code.
 - Previous local JSON files lacking `characterCode` inherit their former stable `id` as a compatible public code. Both client and server validate duplicates on save.
 
+## VIAE localized sidebar action labels (2026-11-21)
+
+The two left-sidebar entry buttons now show a **single translated verb** followed by the existing product name, avoiding text such as "Start a Semita path · Semita". The button pairs are `开启 Semita` / `创建 Compitum` (zh-CN), `開啟 Semita` / `建立 Compitum` (zh-TW), `Start Semita` / `Create Compitum` (en), `始める Semita` / `作成 Compitum` (ja), and `시작 Semita` / `만들기 Compitum` (ko). The action keys are `viae.actionOpen` and `viae.actionCreate`. The full headings inside route creation still use `viae.startDirect` / `viae.startGroup`; persisted `direct` / `group` values are untouched. Verify the labels after switching each of the five locales; browser testing is still pending.
+
+See the [Local five-language QA checklist](localization.md).
+
 ## VIAE routes
 
 - The new VIAE route creation layout is **road type → road name → worldline editor → communication role → world-filtered travelers**. The inline editor uses a minimalist white, slate and warm-gold palette.

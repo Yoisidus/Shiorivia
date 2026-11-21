@@ -8,6 +8,12 @@ This change updates **Shiorivia Local**, not Shiorivia_Cloud.
 - The Tela worldline editor has a deliberate **解锁时间线** control. In canon, manual edits can only move forward; in AU, the user can freely edit both creative ERA and PERIOD regardless of chronological order. The main world, AU original-canon baseline and saved secondary worlds remain protected. Old novel archives without era/period in state still load.
 - A participant Charta self is an ordinary independently active fictional character. Its lore/color come from its own Charta snapshot, not from the candidate cast roster; its presence does not mandate a central viewpoint or a turn-by-turn player command.
 
+## Five-language writing workflow / 五语言小说使用提示 (2026-11-21)
+
+Tela's UI now localizes the worldline and cast prerequisites, six explicit creative presets, Environment/Event/Style controls, archive notices and confirmation dialogs. The shared first-chapter cast selection is optional and becomes read-only once writing starts. Switching locales **does not translate saved prose, an existing Environment/Event/Style draft, custom character names, or prior chapter JSON**. Newly initialized default style follows the selected UI language; translated preset text is inserted only when the user explicitly chooses that preset.
+
+Test the first-chapter disabled state, WORLD/ERA/PERIOD setup, optional cast and self role, preset insertion, JSON / DOCX round-trip and chapter navigation separately in each locale. These items are covered by a source-level audit; a full browser/TypeScript/build regression check is still outstanding. See [Localization and QA](localization.md).
+
 ## Novel worldline and cast
 
 - Novel uses the same WORLD / ERA / PERIOD chooser as Story, including mandatory AU baseline ERA/PERIOD.

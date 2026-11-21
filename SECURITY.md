@@ -5,6 +5,7 @@
 **本地版不等于可直接公网部署。** 当前源码包含文件保存、代码执行等基于可信本机环境设计的接口。除非完成额外鉴权和隔离，否则不要将本地服务端口直接暴露到公网或不受信任的局域网。
 
 - Keep `.env.local`, API keys and `data_storage/` out of Git; rotate keys if accidentally disclosed.
+- Treat screenshots and logs as potentially sensitive: local checkout paths, character/profile descriptions, and user-created worldline text can appear in code/documentation previews or external-service permission prompts. Review what is being shared before approving. A visible local path in source text does **not** by itself imply that an external tool accessed the device's filesystem.
 - LLM prompts, media and search queries are sent to the providers you choose; check their policies.
 - The project uses Next.js 16.4.6; run explicit TypeScript and dependency checks. Framework upgrades do not replace a security audit.
 - Treat any community-provided character scripts, assets or plugin code as untrusted; review before executing.

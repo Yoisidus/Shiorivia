@@ -9,7 +9,7 @@
 ## Run locally / 本地启动
 
 ```powershell
-cd E:\Projects\Shiorivia  # Replace with your own checkout path
+cd path\to\your\Shiorivia  # Replace with the actual local checkout path
 npm ci
 npm run dev
 ```
@@ -26,6 +26,16 @@ Copy-Item .env.example .env.local
 Edit `.env.local` and fill in only the values you use. Empty values in the example are intentional; do not put real secrets in `.env.example`.
 
 **No default `ACCESS_CODE` is provided.** Without it, access-code validation returns HTTP 503. Do not commit real credentials or paste them into bug reports. `.gitignore` helps prevent accidents but does not protect secrets that were already committed; rotate any exposed key.
+
+## Five-language release checkpoint (2026-11-21) / 五语言收尾记录
+
+The Local Edition UI supports `zh-CN`, `zh-TW`, `en`, `ja`, and `ko`. The [README](../README.md) now includes a first-use flow in each language; the [localization and QA checklist](localization.md) identifies the controls and edge cases to verify. Local and [Shiorivia_Cloud](https://github.com/seemoon1/Shiorivia_Cloud) remain separate codebases; this checkpoint **does not** indicate a Cloud implementation or release.
+
+The recent source-level completion covers the **left/right sidebars**, Umbra's missing-worldline states, Story/Novel cast pickers, VIAE's route setup, Charta validation feedback, Officina's IDE, session notes, vault/archive dialogs, image previews, music and safe deletion/sync confirmations. Two final workflow corrections have been applied:
+- **VIAE:** the sidebar reads the localized **Start / Create** actions next to **Semita / Compitum**. The full route-creation heading and underlying road types are unchanged.
+- **Umbra:** **Configure worldline** above the locked chat composer now opens the existing chat worldline editor directly rather than only expanding the left sidebar. The worldline and eligible-character gates still apply.
+
+**Verification scope:** the fixes were checked through GitHub source/static references, **not** a complete runtime regression suite. Before declaring a tested Local release, run `npm ci`, `npx tsc --noEmit`, `npm run build`, and browser interactions in all five locales (including mobile-width sidebars). Preserve existing archives, private output protocols, user-authored prose and exact identifiers when changing only interface text.
 
 ## Local assets / 本地素材
 
@@ -118,6 +128,7 @@ The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint 
 - **Fifth completion wave:** Known Charta character, self, world, JSON import, lore and timeline validation errors now have five-language display-only translations via `src/lib/chartaErrorText.ts`. Underlying parser strings, saved JSON and model-facing lore remain unchanged; unknown errors are preserved. The Self delete button and Lore optional marker follow the selected language. Tela's default style for newly initialized drafts and its plot-suggestion heading now follow the current locale without changing existing stored styles.
 - **Sixth completion wave:** VIAE path creation/validation, worldline/companion guards, rename/delete confirmations, TTS feedback, model controls and mobile tooltips are now localized, preserving route IDs and legacy Lime storage fields. Officina's IDE workspace now localizes file/project prompts, sync and import results, edit controls and accessible tooltips without changing `/api/ide` command payloads or file contents.
 - **Seventh completion wave — five-mode deep UI audit:** followed all modes from the app page into left/right sidebars, Umbra missing-worldline notices, Via Lata observer/Pov guidance, Officina persona lock hints, shared Via Lata/Tela cast chooser, notes and suggestion dialogs, session menus, STM/LTM vault, VIAE cross-world editor, legacy Story worldline modal, Local slot manager, image lightbox, music player, timeline confirmation, batch deletion, and disk sync conflict protection. Active-locale UI copy is separated from persisted role IDs, worldline values, character data, actual music folder keys, legacy pending-chapter markers, provider protocols and user-authored content. Batch deletion still requires an exact typed confirmation and access-code verification.
+- **Eighth documentation / follow-up pass:** README first-use steps were synchronized across five languages and a dedicated [localization QA guide](localization.md) was added. VIAE sidebar action labels now avoid repeating Semita/Compitum; Umbra's locked composer **Configure worldline** control now triggers the chat worldline modal rather than only opening the sidebar. These are source-verified changes, not browser-tested outcomes.
 - **Further completion remains:** verify any remaining mode-specific UI feedback and do real five-locale browser testing and an explicit `npx tsc --noEmit` / `npm run build` locally. Changes to legacy UI text must not overwrite archive contents or protocol strings.
 - No forced fallback to another language for custom Charta stage descriptions: if that exact locale was not authored, its stage description remains hidden. Built-in chronology descriptions use the existing translated `timeline.*` entries.
 
