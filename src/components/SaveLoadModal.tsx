@@ -65,7 +65,7 @@ export const SaveLoadModal = ({ isOpen, onClose, currentSession, onLoadSession }
 
     const handleSave = async (index: number) => {
         if (!currentSession) return;
-        if (slots[index] && !confirm(`⚠️ 覆盖 Slot ${index + 1}？`)) return;
+        if (slots[index] && !await dialog.confirm(`⚠️ 覆盖 Slot ${index + 1}？`)) return;
 
         const base64 = await captureScreen();
         setIsLoading(true);
