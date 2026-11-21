@@ -9,7 +9,7 @@ import { parseDrawTag, cleanDrawTag } from "../lib/parseDraw";
 import { useLanguage } from "../context/LanguageContext";
 import { asChartaSelfPromptData, selfName } from "../lib/chartaSelf";
 import { asChartaPromptData } from "../lib/charta";
-import { parseStoryWorldline, enabledWorldIds } from "../lib/storyWorldline";
+import { parseStoryWorldline, enabledWorldIds, advanceWorldlineFromState } from "../lib/storyWorldline";
 import { extractNovelState, stripNovelState } from "../lib/novelState";
 import { snapshotNovelState, restoreNovelState } from "../lib/novelStateRecovery";
 import { stripNovelSuggestions } from "../lib/novelSuggestions";
@@ -904,7 +904,12 @@ export const useChatEngine = ({
                         ...(s.memoryMode === "sliding" && resolvedTurnCast ? { storyNextCastIds: resolvedTurnCast } : {}),
                         ...(s.memoryMode === "novel" && resolvedTurnCast ? { storyNextCastIds: resolvedTurnCast } : {}),
                         ...(s.memoryMode === "novel" && novelState ? {
-                            novelState,
+                            novelState: s.storyWorldline ? {
+                                ...novelState,
+                                era: advanceWorldlineFromState(s.storyWorldline, novelState).era,
+                                period: advanceWorldlineFromState(s.storyWorldline, novelState).period,
+                            } : novelState,
+                            ...(s.storyWorldline ? { storyWorldline: advanceWorldlineFromState(s.storyWorldline, novelState) } : {}),
                             // Keep the current cast visible in the CAST picker.
                             // Do not overwrite it with the intentionally empty
                             // nextSceneCastIds legacy property from novel_state.
@@ -929,10 +934,13 @@ export const useChatEngine = ({
                                     .map((item: string) => item.trim().slice(0, 120)).filter(Boolean)
                                     .slice(0, Math.min(24, Math.max(1, config.danmakuCount || 8)))
                                 : [],
-                            timeline: capturedState.timeline,
-                            ...(s.memoryMode === "sliding" && s.storyWorldline && typeof capturedState.timeline?.minor === "string" && capturedState.timeline.minor.trim()
-                                ? { storyWorldline: { ...s.storyWorldline, event: capturedState.timeline.minor.trim().slice(0, 500) } }
-                                : {}),
+                            timeline: s.storyWorldline
+                                ? { ...capturedState.timeline,
+                                    era: advanceWorldlineFromState(s.storyWorldline, capturedState.timeline).era,
+                                    period: advanceWorldlineFromState(s.storyWorldline, capturedState.timeline).period }
+                                : capturedState.timeline,
+                            ...(s.memoryMode === "sliding" && s.storyWorldline
+                                ? { storyWorldline: advanceWorldlineFromState(s.storyWorldline, capturedState.timeline) } : {}),
                             
                             // Background/Live2D state remains readable from legacy saves, but
                             // new story replies no longer supply those retired automation fields.
@@ -1334,11 +1342,16 @@ export const useChatEngine = ({
                 return {
                     ...session, ...nextMemory,
                     protagonist, charStatus: character, sceneCastIds: stage,
-                    plotSuggestions: repaired.suggestions, timeline: repaired.timeline,
+                    plotSuggestions: repaired.suggestions,
+                    timeline: session.storyWorldline
+                        ? { ...repaired.timeline,
+                            era: advanceWorldlineFromState(session.storyWorldline, repaired.timeline).era,
+                            period: advanceWorldlineFromState(session.storyWorldline, repaired.timeline).period }
+                        : repaired.timeline,
                     lastDanmaku: config.danmakuEnabled && Array.isArray(repaired.danmaku)
                         ? repaired.danmaku.filter((v: unknown) => typeof v === "string").slice(0, Math.min(24, config.danmakuCount || 8)) : [],
-                    ...(session.storyWorldline && typeof repaired.timeline?.minor === "string" && repaired.timeline.minor.trim()
-                        ? { storyWorldline: { ...session.storyWorldline, event: repaired.timeline.minor.trim().slice(0, 500) } } : {}),
+                    ...(session.storyWorldline
+                        ? { storyWorldline: advanceWorldlineFromState(session.storyWorldline, repaired.timeline) } : {}),
                     messages: session.messages.map((message, i) => i === index ? { ...message, storyProtocolMissing: false, storyPendingMemory: undefined } : message),
                     updatedAt: Date.now(),
                 };
