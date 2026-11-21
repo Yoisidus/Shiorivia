@@ -92,13 +92,13 @@ export const SidebarLeft = ({
         try {
             const response = await fetch("/api/ide?action=projects", { cache: "no-store" });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "读取 IDE 项目失败");
+            if (!response.ok) throw new Error(data.error || deepText(locale, "sidebar.left.readFailed"));
             setIdeProjects(Array.isArray(data.projects) ? data.projects : []);
         } catch (e: any) { dialog.notify(e.message); }
         finally { setProjectLoading(false); }
     };
     const createBindingProject = async () => {
-        const name = await dialog.prompt("新项目根目录名称（创建在 Shiorivia/IDE 下）：");
+        const name = await dialog.prompt(deepText(locale, "sidebar.left.newRoot"));
         if (!name) return;
         try {
             const response = await fetch("/api/ide", { method: "POST",
@@ -149,7 +149,7 @@ export const SidebarLeft = ({
                             <img src="/shiorivia-app-icon.png" alt="" width={24} height={24} className="h-6 w-6 rounded-md" />
                             <span className="text-xs uppercase tracking-widest">Shiorivia</span>
                         </div>
-                        <button onClick={onClose} className="rounded-lg bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700" title="收起左侧栏" aria-label="收起左侧栏"><PanelLeftClose size={15} /></button>
+                        <button onClick={onClose} className="rounded-lg bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700" title={deepText(locale, "sidebar.left.collapse")} aria-label={deepText(locale, "sidebar.left.collapse")}><PanelLeftClose size={15} /></button>
                     </div>
 
                     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -157,7 +157,7 @@ export const SidebarLeft = ({
                                 <button type="button" onClick={() => setChatWorldlineOpen(true)}
                                     className="flex w-full items-center justify-between gap-2 rounded-xl border border-[#dae6df] bg-[#f8faf8] px-3 py-3 text-left transition hover:border-[#9eb8a9]">
                                     <span className="min-w-0"><span className="block text-[10px] font-semibold tracking-widest text-[#537566]">UMBRA · WORLDLINE</span>
-                                        <span className="mt-1 block truncate text-xs text-[#486453]">{chatWorldline ? describeStoryWorldline(chatWorldline, locale) : "尚未配置世界线 · 点击选择"}</span>
+                                        <span className="mt-1 block truncate text-xs text-[#486453]">{chatWorldline ? describeStoryWorldline(chatWorldline, locale) : deepText(locale, "sidebar.left.umbraMissing")}</span>
                                     </span><Globe size={17} className="shrink-0 text-[#6a9680]"/>
                                 </button>
                                 <StoryWorldlineFateModal tone="chat" isOpen={chatWorldlineOpen} value={chatWorldline}
@@ -165,7 +165,7 @@ export const SidebarLeft = ({
                                     onClose={() => setChatWorldlineOpen(false)} />
                             </div>}
                             <div className="h-[42%] min-h-[160px] shrink-0 overflow-y-auto border-b border-slate-200 bg-white p-3 scrollbar-thin">
-                                <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500"><span>Models · 模型</span><Package size={13} /></div>
+                                <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500"><span>{deepText(locale, "sidebar.left.models")}</span><Package size={13} /></div>
 
                                 <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg border border-[#edf0ef] bg-[#fafbfb] p-1 text-xs font-bold">
                                     {(providers as PublicLocalProvider[]).map((p) => (
@@ -176,7 +176,7 @@ export const SidebarLeft = ({
                                     ))}
                                     {providers.length === 0 && <p className="col-span-2 px-2 py-2 text-[11px] text-amber-600">{deepText(locale, "explorer.noKey")}</p>}
                                 </div>
-                                {!apiProvider.startsWith("custom_") && <p className="mb-2 text-[10px] text-slate-400">{catalogSource === "live" ? "Live models" : "Offline model fallbacks"}</p>}
+                                {!apiProvider.startsWith("custom_") && <p className="mb-2 text-[10px] text-slate-400">{catalogSource === "live" ? deepText(locale, "sidebar.left.liveModels") : deepText(locale, "sidebar.left.offlineModels")}</p>}
 
                                 {!apiProvider.startsWith("custom_") && modelGroups.map((g: any) => (
                                     <div key={g.groupName} className="mb-1">
@@ -196,13 +196,13 @@ export const SidebarLeft = ({
                                     </div>
                                 ))}
 
-                                {apiProvider.startsWith("custom_") && <p className="mb-2 text-[11px] leading-5 text-[#70818c]">自定义供应商不获取在线模型列表。请手动输入并保存你需要的模型 ID。</p>}
+                                {apiProvider.startsWith("custom_") && <p className="mb-2 text-[11px] leading-5 text-[#70818c]">{deepText(locale, "sidebar.left.customProviderHelp")}</p>}
                                 <div className="mt-3 border-t border-[#e7ebee] pt-3">
-                                    <div className="mb-2 flex items-center justify-between text-[10px] text-slate-500"><span className="font-semibold tracking-wide">自定义模型</span><span>当前供应商</span></div>
+                                    <div className="mb-2 flex items-center justify-between text-[10px] text-slate-500"><span className="font-semibold tracking-wide">{deepText(locale, "sidebar.left.customModel")}</span><span>{deepText(locale, "sidebar.left.currentProvider")}</span></div>
                                     <div className="flex gap-1.5">
-                                        <input aria-label="自定义模型 ID" value={customModelId} onChange={(e: any) => setCustomModelId(e.target.value)} placeholder="输入模型 ID" className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-slate-400" />
+                                        <input aria-label={deepText(locale, "sidebar.left.modelId")} value={customModelId} onChange={(e: any) => setCustomModelId(e.target.value)} placeholder={deepText(locale, "sidebar.left.modelPlaceholder")} className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-slate-400" />
                                         <button type="button" onClick={saveCustomModel} disabled={!apiProvider || !String(customModelId || "").trim() || String(customModelId).length > 200 || (savedModels[apiProvider] || []).includes(String(customModelId).trim())}
-                                            className="shrink-0 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-200 disabled:opacity-40">保存</button>
+                                            className="shrink-0 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-200 disabled:opacity-40">{deepText(locale, "common.save")}</button>
                                     </div>
                                     {(savedModels[apiProvider] || []).length > 0 && (
                                         <div className="mt-2 space-y-1">
@@ -210,9 +210,9 @@ export const SidebarLeft = ({
                                                 <div key={id} className={`flex items-center gap-1 rounded-lg px-1.5 py-1 ${customModelId === id ? 'bg-slate-100' : 'hover:bg-white'}`}>
                                                     <button type="button" onClick={() => setCustomModelId(id)} title={id} className="flex min-w-0 flex-1 items-center gap-2 text-left text-[11px] text-slate-600">
                                                         <span className="min-w-0 flex-1 truncate">{id}</span>
-                                                        <span className="shrink-0 rounded border border-slate-200 px-1 py-0.5 text-[9px] text-slate-500">自定义</span>
+                                                        <span className="shrink-0 rounded border border-slate-200 px-1 py-0.5 text-[9px] text-slate-500">{deepText(locale, "sidebar.left.custom")}</span>
                                                     </button>
-                                                    <button type="button" onClick={() => forgetCustomModel(id)} title={`移除保存的模型 ${id}`} aria-label={`移除保存的模型 ${id}`} className="rounded p-1 text-[#b5bdb7] hover:bg-[#f9e9e5] hover:text-[#aa6857]"><X size={12} /></button>
+                                                    <button type="button" onClick={() => forgetCustomModel(id)} title={`${deepText(locale, "sidebar.left.removeSaved")} ${id}`} aria-label={`${deepText(locale, "sidebar.left.removeSaved")} ${id}`} className="rounded p-1 text-[#b5bdb7] hover:bg-[#f9e9e5] hover:text-[#aa6857]"><X size={12} /></button>
                                                 </div>
                                             ))}
                                         </div>
@@ -241,7 +241,7 @@ export const SidebarLeft = ({
                                     </div>
                                 </div>
 
-                                <div className="relative mb-2"><Search size={12} className="absolute left-2 top-2 text-gray-400" /><input className="w-full bg-gray-50 border rounded-lg py-1 pl-7 pr-2 text-xs outline-none focus:ring-1 focus:ring-gray-200" placeholder="Search..." value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} /></div>
+                                <div className="relative mb-2"><Search size={12} className="absolute left-2 top-2 text-gray-400" /><input className="w-full bg-gray-50 border rounded-lg py-1 pl-7 pr-2 text-xs outline-none focus:ring-1 focus:ring-gray-200" placeholder={deepText(locale, "sidebar.left.search")} value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} /></div>
 
                                 <div className="flex-1 overflow-y-auto scrollbar-thin">
                                     {explorerEntries.map(entry => entry.kind === "folder" ? (
@@ -251,7 +251,7 @@ export const SidebarLeft = ({
                                                     <Folder size={12} className="fill-yellow-400 text-yellow-400"/>
                                                     {entry.item.name}
                                                 </div>
-                                                <button type="button" aria-label={`删除文件夹 ${entry.item.name}`} onClick={(event) => deleteFolder(event, entry.item.id)}
+                                                <button type="button" aria-label={`${deepText(locale, "sidebar.left.deleteFolder")} ${entry.item.name}`} onClick={(event) => deleteFolder(event, entry.item.id)}
                                                     className="rounded p-1 text-gray-400 opacity-0 hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100"><Trash2 size={12}/></button>
                                             </div>
                                             {entry.item.isExpanded && (
@@ -285,16 +285,16 @@ export const SidebarLeft = ({
 
 
                     {bindingSessionId && <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-950/35 p-4" onClick={() => setBindingSessionId(null)}>
-                        <div role="dialog" aria-modal="true" aria-label="绑定工程项目根目录"
+                        <div role="dialog" aria-modal="true" aria-label={deepText(locale, "sidebar.left.bindAria")}
                             className="w-full max-w-sm rounded-2xl border border-[#d8deea] bg-white p-5 shadow-2xl"
                             onClick={e => e.stopPropagation()}>
                             <div className="mb-3 flex items-center justify-between">
-                                <span className="text-sm font-semibold text-[#465675]">绑定 Officina 项目</span>
+                                <span className="text-sm font-semibold text-[#465675]">{deepText(locale, "sidebar.left.bindTitle")}</span>
                                 <button type="button" onClick={() => setBindingSessionId(null)} className="rounded-lg p-1.5 hover:bg-slate-100"><X size={16}/></button>
                             </div>
-                            <p className="mb-3 text-xs leading-5 text-slate-500">选择 Shiorivia/IDE 下的一个一级文件夹。每个工程会话只绑定一个项目，可在此重新绑定。</p>
+                            <p className="mb-3 text-xs leading-5 text-slate-500">{deepText(locale, "sidebar.left.bindHelp")}</p>
                             <div className="max-h-60 space-y-1 overflow-y-auto">
-                                {projectLoading ? <div className="p-3 text-xs text-slate-400">正在读取项目…</div>
+                                {projectLoading ? <div className="p-3 text-xs text-slate-400">{deepText(locale, "sidebar.left.loadingProjects")}</div>
                                     : ideProjects.length ? ideProjects.map(project => (
                                         <button key={project} type="button" onClick={() => {
                                             onBindEngineeringProject(bindingSessionId, project);
@@ -302,11 +302,11 @@ export const SidebarLeft = ({
                                         }} className="flex w-full items-center gap-2 rounded-lg border border-slate-100 px-3 py-2 text-left text-xs text-slate-700 hover:bg-indigo-50">
                                             <Folder size={14} className="text-indigo-400"/> {project}
                                         </button>
-                                    )) : <p className="p-3 text-xs text-slate-400">还没有项目，先创建一个吧。</p>}
+                                    )) : <p className="p-3 text-xs text-slate-400">{deepText(locale, "sidebar.left.noProjects")}</p>}
                             </div>
                             <button type="button" onClick={createBindingProject}
                                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
-                                <FolderPlus size={14}/> 新建并绑定项目
+                                <FolderPlus size={14}/> {deepText(locale, "sidebar.left.newAndBind")}
                             </button>
                         </div>
                     </div>}
