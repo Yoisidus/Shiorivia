@@ -56,6 +56,13 @@ Standard alerts, destructive confirmations, text input prompts and Officina code
 
 Complex feature-specific editors (for example novel archives, worldline editors and Memory Vault) retain their specialized interfaces; the shared manager handles their simple confirmation and notification steps rather than forcing these editors into a generic text prompt.
 
+### Officina response formatting / 工程模式回复显示
+
+- Officina chat bubbles now render standard Markdown, including `**bold**`. Bold text uses a fixed near-black ink (`#17212b`); the other modes keep their respective existing response renderers.
+- The display-only `normalizeOfficinaDisplay` helper repairs model prose that accidentally contains literal `\\n` or `\\r\\n` instead of real line breaks. It protects fenced code, inline code, `<file>`, and `<ide_edit>` blocks, leaving source files and edit JSON untouched. Engineering terminal output uses the same readable display normalization without modifying transmitted or stored raw provider content.
+- On approved `<ide_edit>` operations, successfully written filenames and operation/line counts are stored in the assistant message's optional `ideEditedFiles` field and shown as a separate blue results card. No extra `**IDE 局部修改成功：**` line is appended to the model reply. Older archive messages without the field remain valid.
+- Emoji are permitted in reader-visible reply prose in Officina, Via Lata, Umbra, and VIAE. Tela novel output continues to prohibit emoji. Control markup, machine-readable state, JSON and source code are not decorated with emoji unless specifically requested as a code change.
+
 ### AI request and response diagnostics / AI 请求与原文调试
 
 In **Settings → Developer**, **终端输出发送给 AI 的完整请求** (above the response switch) prints the final model request before dispatch: the system instructions, selected conversation history, model and generation parameters. This includes story worldline and memory injected by the backend. For Google Gemini, it displays the actual `systemInstruction`, `startChat.history` and `sendMessageStream` arguments; OpenAI-compatible providers display Chat Completions messages and parameters. API keys are never included.
