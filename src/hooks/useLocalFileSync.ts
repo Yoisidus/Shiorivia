@@ -2,8 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Session, ChatFolder } from "../types";
 import { collectAppendDeltas, completedTurns } from "../lib/appendSync";
 import type { LocalSyncPreferences } from "../lib/localSyncPreferences";
+import { useAppDialog } from "../context/DialogContext";
 
 export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: string) => void, preferences: LocalSyncPreferences) => {
+    const dialog = useAppDialog();
     const [sessions, setSessions] = useState<Session[]>([]);
     const [folders, setFolders] = useState<ChatFolder[]>([]);
     const [globalWorldInfo, setGlobalWorldInfo] = useState("");
@@ -35,7 +37,7 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
         // Severe losses are checked against the last saved snapshot below, not blocked forever.
 
         if (mode === 'manual') {
-            if (!confirm("💾 确定要将当前状态写入硬盘吗？\n(覆盖存档)")) {
+            if (!await dialog.confirm("💾 确定要将当前状态写入硬盘吗？\n(覆盖存档)")) {
                 console.log(`[Sync] User cancelled.`);
                 return;
             }
@@ -124,7 +126,7 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
             
             if (mode === 'manual' && !hasChanges) {
                 console.log(`[Sync] Manual check - No changes.`);
-                window.alert("当前内容已保存到本地，无需重复写入。");
+                void dialog.alert("当前内容已保存到本地，无需重复写入。");
                 hasUnsavedChanges.current = false; 
                 lastSavedMsgCount.current = countTotalMessages(sessions); 
                 setStatus('idle');
@@ -147,12 +149,12 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
                     hasUnsavedChanges.current = false;
 
                     setStatus('success');
-                    if (mode === 'manual') window.alert("保存成功 · 已写入本地磁盘。");
+                    if (mode === 'manual') void dialog.alert("保存成功 · 已写入本地磁盘。");
                     setTimeout(() => setStatus('idle'), 2000);
                 } else {
                     console.error(`[Sync] Save Failed: ${saveRes.status}`);
                     setStatus('error');
-                    if (mode === "manual") window.alert("保存失败，请检查本地服务和磁盘状态。");
+                    if (mode === "manual") void dialog.alert("保存失败，请检查本地服务和磁盘状态。");
                 }
             } else {
                 setStatus('idle');
@@ -161,9 +163,9 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
         } catch (e) {
             console.error("[Sync] CRITICAL ERROR:", e);
             setStatus('error');
-            if (mode === "manual") window.alert("保存失败，请检查本地服务和磁盘状态。");
+            if (mode === "manual") void dialog.alert("保存失败，请检查本地服务和磁盘状态。");
         }
-    }, [sessions, folders, globalWorldInfo, bgImage, initLoaded, lastServerTime, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating]);
+    }, [sessions, folders, globalWorldInfo, bgImage, initLoaded, lastServerTime, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating, dialog]);
 
     useEffect(() => {
         if (!initLoaded) return;
