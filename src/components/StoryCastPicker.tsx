@@ -58,7 +58,7 @@ export function StoryCastPicker({ session, worlds, customCharacters, busy, onApp
     setDraftIds(current => current.includes(id) ? current.filter(item => item !== id)
       : current.length < MAX_STORY_CAST ? [...current, id] : current);
   };
-  const apply = async () => {
+  const apply = () => {
     const selected = selectStoryCastIds(draftIds, allowedIds);
     onApply(selected, world?.crossWorld?.enabled === true);
     setOpen(false);
@@ -70,7 +70,7 @@ export function StoryCastPicker({ session, worlds, customCharacters, busy, onApp
     <section className={`rounded-xl border p-3 ${tone === "paper" ? "border-[#d6c29b] bg-[#fffaf0]" : "border-[#eebfcf] bg-[#fff6fa]"}`}>
       <button type="button" disabled={!world || busy || started} onClick={begin}
         className="flex w-full items-center justify-between gap-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label={started ? "查看本轮登场角色" : "选择首轮登场角色"}>
+        aria-label={started ? "本轮登场角色（由 AI 决定）" : "选择首轮登场角色"}>
         <span className={`flex min-w-0 items-center gap-2 text-xs font-semibold ${tone === "paper" ? "text-[#765b36]" : "text-[#b13f67]"}`}>
           {world && !started ? <UsersRound size={15} /> : <LockKeyhole size={15} />}
           登场角色 · CAST
