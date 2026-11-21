@@ -163,6 +163,29 @@ export function parseStoryWorldline(input: unknown): StoryWorldline | null {
   };
 }
 
+/**
+ * Apply only validated canon chronology (same stage or later). A malformed,
+ * unknown or backward proposal never overwrites persisted time. The model is
+ * allowed to describe the scene event independently of a date jump.
+ *
+ * For AU, a free-form "era" or "period" has no sortable order, so these
+ * fields remain anchored until an explicit future ordering system exists.
+ */
+export function advanceWorldlineFromState(
+  previous: StoryWorldline,
+  proposed: { era?: unknown; period?: unknown; event?: unknown } | null | undefined,
+): StoryWorldline {
+  if (!proposed) return previous;
+  const nextEvent = typeof proposed.event === "string" && proposed.event.trim()
+    ? proposed.event.trim().slice(0, 500) : previous.event;
+  const era = typeof proposed.era === "string" && proposed.era.trim() ? proposed.era.trim() : previous.era;
+  const period = typeof proposed.period === "string" && proposed.period.trim() ? proposed.period.trim() : previous.period;
+  const next = { ...previous, era, period, event: nextEvent };
+  // Canon progression uses its timeline ordering. AU changes are not
+  // auto-applied because free-form text cannot prove chronological order.
+  return canAdvanceWorldline(previous, next) ? next : { ...previous, event: nextEvent };
+}
+
 /** World availability and lore cutoffs are shared by Via Lata, Tela and VIAE. */
 export function enabledWorldIds(worldline: StoryWorldline): string[] {
   return [worldline.worldId, ...(worldline.crossWorld?.enabled
