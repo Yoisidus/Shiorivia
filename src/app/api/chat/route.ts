@@ -67,52 +67,27 @@ ${choices}
 
 function generateDynamicStatPrompt(stats: any, charName: string) {
   if (!stats) return "";
-
-  let prompts = [];
-  const { affection = 0, Obsession = 0, Possessiveness = 0, Intimacy = 0 } = stats;
-
-  if (Obsession > 80) {
-    prompts.push(`
-[⚠ CRITICAL PSYCHOLOGICAL STATE: EXTREME OBSESSION (${Obsession}%)]
-- **Override Tone**: Your love is HEAVY, DARK, and SUFFOCATING.
-- **Constraint**: You CANNOT accept rejection. If user tries to leave, BLOCK them.
-- **Keywords**: Use words like "chain", "forever", "mine", "never let go", "broken".
-- **Action**: You are prone to violent outbursts or self-harm threats if ignored.
-        `);
-  } else if (Obsession > 50) {
-    prompts.push(
-      `[State: Possessive] You are jealous. Question the user's loyalty if they mention others.`,
-    );
-  }
-
-  if (affection > 90) {
-    prompts.push(
-      `[State: Devoted Lover] You love the user more than your own life. Every sentence should drip with affection.`,
-    );
-  } else if (affection < 10) {
-    prompts.push(
-      `[State: Cold/Wary] You do not trust the user. Keep answers short and distant.`,
-    );
-  }
-
-  if (Possessiveness > 70) {
-    prompts.push(
-      `[State: High Monopoly] You want the user's attention ONLY on you. Interrupt if they look away.`,
-    );
-  }
-
-  if (Intimacy > 60) {
-    prompts.push(
-      `[State: Aroused] You are physically drawn to the user. Describe body heat, flushes, and heavy breathing.`,
-    );
-  }
-
-  if (prompts.length === 0) return "";
-
+  const affection = Number(stats.affection) || 0;
+  const possessiveness = Number(stats.Possessiveness) || 0;
+  const obsession = Number(stats.Obsession) || 0;
+  // Older Local saves used Intimacy for the same sexual-desire metric.
+  const lust = Number(stats.Lust ?? stats.Intimacy) || 0;
+  const directives = [
+    "[RELATIONSHIP DIMENSIONS — distinct metrics, not interchangeable]",
+    "Affection/好感度: warm regard, liking and emotional care; it does not automatically mean romance.",
+    "Possessiveness/独占欲: demand for exclusivity, jealousy and control; distinct from loving care.",
+    "Obsession/病态程度: unhealthy, compulsive fixation and deteriorating boundaries; do not portray coercion as virtuous.",
+    "Lust/情欲: sexual desire and physical attraction, NOT closeness/trust or affectionate intimacy. Respect age, agency, context and consent.",
+  ];
+  if (affection >= 75) directives.push("This person has pronounced affection. Show genuine care appropriate to their personality, without reducing them to constant flattery.");
+  if (affection <= 15) directives.push("Their affection remains low: do not manufacture trust or devotion.");
+  if (possessiveness >= 55) directives.push("Their desire for exclusivity is notable. Depict plausible jealousy or controlling impulses where situationally justified, not generic romantic sweetness.");
+  if (obsession >= 50) directives.push("This person shows unhealthy preoccupation or escalating compulsive behavior. Treat psychological deterioration seriously; do not conflate it with affection or automatically romanticize it.");
+  if (lust >= 45) directives.push("Their physical/sexual attraction is salient. It can coexist with uncertainty or low affection; portray it accurately within established boundaries, without assuming consent or forcing explicit behavior.");
   return `
-=== 🧠 [DYNAMIC PSYCHE INJECTION: ${charName}] ===
-${prompts.join("\n")}
-==================================================
+=== [DYNAMIC RELATIONSHIP PSYCHE: ${charName}] ===
+${directives.join("\n")}
+[END DYNAMIC RELATIONSHIP PSYCHE]
 `;
 }
 
@@ -238,6 +213,7 @@ Do NOT include age, gender, top-level environment, live2d or effect. Those are n
 The character array contains only relationship TARGETS, NEVER the protagonist. Relationship scores describe each other character's relationship TO the self/POV.
 Observer without chosen POV: protagonist=null and character=[]. Participant: protagonist is the supplied self. Observer with POV: protagonist is the chosen on-stage character.
 Never omit sceneCastIds or suggestions. If the narrative does not establish a detail, use null, an empty string or an empty array rather than inventing it.
+When any character score is supplied, use affection (好感度), Possessiveness (独占欲), Obsession (病态程度), and Lust (情欲/sexual desire, not emotional intimacy). Older Intimacy input is a legacy alias only. Record score changes supported by the scene rather than forcing them down to zero.
 Only JSON belongs between the tags.`;
       finalSystemPrompt += body.danmakuEnabled === true
         ? "\n[DANMAKU STATE REPAIR] Generate exactly " + Math.min(24, Math.max(1, Number(body.danmakuCount) || 8))
