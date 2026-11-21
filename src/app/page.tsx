@@ -287,10 +287,10 @@ export default function Home() {
         } : s));
     };
     const changeStoryPov = (id: string) => {
-        if (!currentSessionId || currentSession?.memoryMode !== "sliding" || currentSession.storyRole === "participant" || currentSession.storyPovLocked) return;
+        if (!currentSessionId || currentSession?.memoryMode !== "sliding" || currentSession.storyRole === "participant" || (currentSession.storyPovLocked && Boolean(currentSession.storyPovId))) return;
         if (!currentSession.messages.some(m => m.role === "assistant" && m.modelName !== "System" && !!String(m.content || "").trim())) return;
         if (id && (!(currentSession.sceneCastIds || []).includes(id) || !allChars.some(c => c.id === id))) return;
-        cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, storyPovId: id || null, protagonist: undefined, charStatus: undefined } : s));
+        cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? { ...s, storyPovId: id || null, storyPovLocked: false, protagonist: undefined, charStatus: undefined } : s));
     };
 
     const engine = useChatEngine({
