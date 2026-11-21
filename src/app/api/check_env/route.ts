@@ -9,7 +9,6 @@ export async function GET() {
   return NextResponse.json({
     hasOpenRouter: !!process.env.OPENROUTER_API_KEY,
     hasGoogle: !!process.env.GOOGLE_API_KEY,
-    hasTavily: !!process.env.TAVILY_API_KEY,
     
     hasComfy: Boolean(process.env.COMFYUI_URL),
     hasFal: Boolean(process.env.FAL_KEY),
