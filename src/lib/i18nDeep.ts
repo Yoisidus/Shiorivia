@@ -2,6 +2,13 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "viae.worldline.title": ["道路世界线", "道路世界線", "Path worldline", "道の世界線", "길 세계선"],
+  "viae.worldline.primary": ["主世界观", "主世界觀", "Primary world", "主要世界観", "주 세계관"],
+  "viae.worldline.canon": ["原作", "原作", "Canon", "原作", "원작"],
+  "viae.worldline.au": ["平行世界", "平行世界", "Alternate universe", "パラレルワールド", "평행 세계"],
+  "viae.worldline.baselineHelp": ["AU 原作基准 · 角色认知截至这一时期", "AU 原作基準 · 角色認知截至這個時期", "AU canon baseline · Character knowledge ends here", "AU の原作基準 · キャラクターの認知はこの時点まで", "AU 원작 기준 · 캐릭터의 지식은 이 시기까지"],
+  "viae.worldline.timeline": ["时间线：", "時間線：", "Timeline: ", "時間軸：", "타임라인: "],
+  "viae.worldline.unlocked": ["已解锁，可向后推进", "已解鎖，可往後推進", "Unlocked · Can advance", "ロック解除済み · 先へ進行可能", "잠금 해제 · 앞으로 진행 가능"],
   "memory.ui.title": ["记忆档案", "記憶檔案", "Memory Vault", "記憶アーカイブ", "기억 보관함"],
   "memory.ui.open": ["打开", "開啟", "Open", "開く", "열기"],
   "memory.ui.latest": ["最近一条", "最近一則", "Latest", "最新", "최근"],
