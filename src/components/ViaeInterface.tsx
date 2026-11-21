@@ -138,7 +138,10 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
     if (!activeGroup || isLoading) return;
     const last = activeGroup.messages[activeGroup.messages.length - 1];
     if (!last || last.role !== "assistant") return;
-    if (!await dialog.confirm("确定刷新当前最后一条 VIAE 回复吗？会替换原有角色消息，并从本轮生成前的记忆与时间线重新推演。旧存档缺少快照时会拒绝刷新，避免错误覆盖。",
+    const refreshPrompt = last.viaeTurnBefore
+      ? "确定刷新当前最后一条 VIAE 回复吗？会替换原有角色消息，并从本轮生成前的记忆与时间线重新推演。若请求失败，原回复会保留。"
+      : "这是一条旧存档回复，没有生成前的记忆快照。仍然可以刷新角色消息，但原 STM/LTM 和时间线会原样保留，刷新后可能需要在 Memory Vault 手动校对。确认继续吗？";
+    if (!await dialog.confirm(refreshPrompt,
       { title: "VIAE · 刷新回复", tone: "viae", confirmLabel: "重新生成" })) return;
     if (!isLoading) {
       setEditingBubble(null);
