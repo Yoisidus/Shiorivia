@@ -5,8 +5,8 @@ This applies to **seemoon1/Shiorivia** (Local Edition), not Shiorivia_Cloud.
 ## Chronology and localized stage descriptions
 
 - Via Lata, Tela and Umbra share the rose/parchment/mint time editor: each canonical period is labeled with its exact-locale description when one exists. VIAE uses the same data in its route editor. Existing sessions must explicitly unlock time before moving forward; backward shifts remain prohibited.
-- VIAE and Umbra may emit a private, optional `worldline_update` tag when the current response actually advances time. The client strips it from chat and applies only a valid forward canonical stage. The tag is never a command to change the user-selected world or AU baseline.
-- AU creative dates are unsorted freeform text; the system does not invent a comparable chronology for them. Saved AU main time and source-canon baseline remain unchanged.
+- **Umbra never receives a chronology-advance tool** and cannot update a saved worldline from AI output; only the user advances Umbra time. VIAE retains its existing optional private `worldline_update` handling for future VIAE-specific work; generated tags are stripped from visible chat and subject to canon stage validation.
+- AU creative dates are unsorted freeform text. In the shared Via Lata/Tela/Umbra editor, the user can unlock and freely change saved AU ERA/PERIOD without stage-order validation. AI must echo rather than update them in Story/Tela; the original-canon baseline stays immutable. VIAE-specific changes beyond the shared validator are deferred.
 
 ## Worldline and cast boundaries
 
