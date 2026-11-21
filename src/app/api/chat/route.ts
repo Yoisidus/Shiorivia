@@ -782,7 +782,7 @@ Never put session_title or game_state inside <thinking>, and never copy historic
       finalSystemPrompt += "\n\n" + titleInstruction(
         typeof body.currentSessionTitle === "string" ? body.currentSessionTitle : "",
         Number.isSafeInteger(body.titleReviewTurn) ? body.titleReviewTurn : 0,
-        body.titleManuallyEdited === true, memoryMode === "novel",
+        body.titleManuallyEdited === true, memoryMode === "novel", memoryMode === "sliding",
       );
       if (memoryMode !== "infinite" && body.titleManuallyEdited !== true && shouldReviewInlineTitle(body.titleReviewTurn)) {
         finalSystemPrompt += "\n[TITLE REVIEW MEMORY — REFERENCE ONLY]\n"
