@@ -75,10 +75,10 @@ function generateDynamicStatPrompt(stats: any, charName: string) {
   const lust = Number(stats.Lust ?? stats.Intimacy) || 0;
   const directives = [
     "[RELATIONSHIP DIMENSIONS — distinct metrics, not interchangeable]",
-    "Affection/好感度: warm regard, liking and emotional care; it does not automatically mean romance.",
-    "Possessiveness/独占欲: demand for exclusivity, jealousy and control; distinct from loving care.",
-    "Obsession/病态程度: unhealthy, compulsive fixation and deteriorating boundaries; do not portray coercion as virtuous.",
-    "Lust/情欲: sexual desire and physical attraction, NOT closeness/trust or affectionate intimacy. Respect age, agency, context and consent.",
+    "Affection: warm regard, liking and emotional care; it does not automatically mean romance.",
+    "Possessiveness: demand for exclusivity, jealousy and control; distinct from loving care.",
+    "Obsession: unhealthy, compulsive fixation and deteriorating boundaries; do not portray coercion as virtuous.",
+    "Lust: sexual desire and physical attraction, NOT closeness/trust or affectionate intimacy. Respect age, agency, context and consent.",
   ];
   if (affection >= 75) directives.push("This person has pronounced affection. Show genuine care appropriate to their personality, without reducing them to constant flattery.");
   if (affection <= 15) directives.push("Their affection remains low: do not manufacture trust or devotion.");
@@ -214,7 +214,7 @@ Do NOT include age, gender, top-level environment, live2d or effect. Those are n
 The character array contains only relationship TARGETS, NEVER the protagonist. Relationship scores describe each other character's relationship TO the self/POV.
 Observer without chosen POV: protagonist=null and character=[]. Participant: protagonist is the supplied self. Observer with POV: protagonist is the chosen on-stage character.
 Never omit sceneCastIds or suggestions. If the narrative does not establish a detail, use null, an empty string or an empty array rather than inventing it.
-When any character score is supplied, use affection (好感度), Possessiveness (独占欲), Obsession (病态程度), and Lust (情欲/sexual desire, not emotional intimacy). Older Intimacy input is a legacy alias only. Record score changes supported by the scene rather than forcing them down to zero.
+When any character score is supplied, use affection (fondness), Possessiveness (exclusivity/jealousy), Obsession (unhealthy fixation), and Lust (sexual desire, not emotional intimacy). Older Intimacy input is a legacy alias only. Record score changes supported by the scene rather than forcing them down to zero.
 Only JSON belongs between the tags.`;
       finalSystemPrompt += body.danmakuEnabled === true
         ? "\n[DANMAKU STATE REPAIR] Generate exactly " + Math.min(24, Math.max(1, Number(body.danmakuCount) || 8))
