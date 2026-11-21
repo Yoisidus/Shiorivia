@@ -6,6 +6,7 @@ import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME } from "../lib/storyWorldlin
 import { useLanguage } from "../context/LanguageContext";
 import { useAppDialog } from "../context/DialogContext";
 import { chartaText } from "../lib/chartaText";
+import { deepText } from "../lib/i18nDeep";
 import {
   CHARTA_LANGUAGES, CHARTA_PRESET_AVATARS, decodeChartaImport, encodeChartaExport,
   makeChartaId, nameForCharta, parseChartaCharacter, type ChartaCharacter,
@@ -74,6 +75,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
   const [childDirty, setChildDirty] = useState(false);
   const onChildDirty = useCallback((value: boolean) => setChildDirty(value), []);
   const txt = (key: Parameters<typeof chartaText>[1]) => chartaText(locale, key);
+  const cabinetText = (key: string) => deepText(locale, `charta.cabinet.${key}`);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [dirty, setDirty] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -100,14 +102,14 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
   const saveDraft = async () => {
     if (busy || !draft) return;
     if (!draft.characterCode?.trim() || !/^[a-zA-Z][a-zA-Z0-9_-]{1,63}$/.test(draft.characterCode.trim())) {
-      setMessage("请填写有效角色 ID（2–64 位，字母开头；仅允许字母、数字、下划线、短横线）。"); return;
+      setMessage(cabinetText("invalidCharacterId")); return;
     }
     if (codeUsedBy(draft.characterCode, draft.id)) {
-      setMessage("这个角色 ID 已被内置角色或其他自定义角色使用，请更换。"); return;
+      setMessage(cabinetText("duplicateCharacterId")); return;
     }
     if (!draft.names[draft.primaryLanguage]?.trim() || !draft.hex || !draft.avatar) { setMessage(txt("required")); return; }
     if (draft.worldId && draft.worldId !== BANG_DREAM_WORLD_ID && !worldLibrary.worlds.some(world => world.id === draft.worldId)) {
-      setMessage("所属世界观不存在，请先在 Charta 创建世界观后再绑定。"); return;
+      setMessage(cabinetText("missingWorld")); return;
     }
     const selectedStages = draft.worldId === BANG_DREAM_WORLD_ID ? BANG_DREAM_CANON : worldLibrary.worlds.find(world=>world.id===draft.worldId)?.canonTimeline || [];
     const warning = validateChartaTimelineLinks(editingProfile(draft), selectedStages);
@@ -140,7 +142,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
     setBusy(true);
     const kind = importKindRef.current;
     try {
-      if (file.size > 1024 * 1024) throw new Error("JSON 文件过大（上限 1 MB）");
+      if (file.size > 1024 * 1024) throw new Error(cabinetText("fileTooLarge"));
       const source: unknown = JSON.parse(await file.text());
       const now = Date.now();
       if (kind === "characters") {
@@ -151,14 +153,14 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
         });
         if (imported.worldId && imported.worldId !== BANG_DREAM_WORLD_ID
           && !worldLibrary.worlds.some(w => w.id === imported.worldId)) {
-          throw new Error("原 JSON 所属的世界观尚不存在。请先导入对应世界观 JSON。");
+          throw new Error(cabinetText("importWorldMissing"));
         }
         const stages = imported.worldId === BANG_DREAM_WORLD_ID ? BANG_DREAM_CANON
           : worldLibrary.worlds.find(w => w.id === imported.worldId)?.canonTimeline || [];
         const validation = imported.profile && (validateChartaTimelineLinks(imported.profile, stages)
           || validateChartaRelationshipTargets(imported.profile, imported.worldId, [...characters, ...selfLibrary.selves]));
-        if (validation) throw new Error(validation + "。如涉及其他档案，请先导入关联角色。");
-        if (!await save(imported)) throw new Error("角色保存失败，请检查档案关联");
+        if (validation) throw new Error(validation + cabinetText("importDependencySuffix"));
+        if (!await save(imported)) throw new Error(cabinetText("characterSaveFailed"));
         setSection("characters");
         setCabinetSelection({kind:"characters",id:imported.id});
         setDraft(imported); setDirty(false); setCabinetHome(false);
@@ -171,14 +173,14 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
         });
         if (imported.worldId && imported.worldId !== BANG_DREAM_WORLD_ID
           && !worldLibrary.worlds.some(w => w.id === imported.worldId)) {
-          throw new Error("原 JSON 所属的世界观尚不存在。请先导入对应世界观 JSON。");
+          throw new Error(cabinetText("importWorldMissing"));
         }
         const stages = imported.worldId === BANG_DREAM_WORLD_ID ? BANG_DREAM_CANON
           : worldLibrary.worlds.find(w => w.id === imported.worldId)?.canonTimeline || [];
         const validation = imported.profile && (validateChartaTimelineLinks(imported.profile, stages)
           || validateChartaRelationshipTargets(imported.profile, imported.worldId, [...characters, ...selfLibrary.selves]));
-        if (validation) throw new Error(validation + "。如涉及其他档案，请先导入关联角色。");
-        if (!await selfLibrary.saveSelf(imported)) throw new Error("自设保存失败，请检查档案关联");
+        if (validation) throw new Error(validation + cabinetText("importDependencySuffix"));
+        if (!await selfLibrary.saveSelf(imported)) throw new Error(cabinetText("selfSaveFailed"));
         setSection("self");
         setCabinetSelection({kind:"self",id:imported.id});
         setRequestVersion(version => version + 1);
@@ -190,15 +192,15 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
             ? `world-${crypto.randomUUID()}` : original.id,
           createdAt: now, updatedAt: now,
         });
-        if (!await worldLibrary.saveWorld(imported)) throw new Error("世界观保存失败，请检查时间线");
+        if (!await worldLibrary.saveWorld(imported)) throw new Error(cabinetText("worldSaveFailed"));
         setSection("worlds");
         setCabinetSelection({kind:"worlds",id:imported.id});
         setRequestVersion(version => version + 1);
         setChildDirty(false); setCabinetHome(false);
       }
-      setMessage("导入成功：不会覆盖原有资料。若导入的世界观 ID 已存在，会创建新 ID，关联角色需要重新绑定。");
+      setMessage(cabinetText("importSuccess"));
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "JSON 导入失败");
+      setMessage(e instanceof Error ? e.message : cabinetText("importFailed"));
     } finally { setBusy(false); }
   };
   const uploadImage = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -238,7 +240,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
     update({ ...draft, names: { ...draft.names, [lang]: "" } }); setShowAdd(false); setCustomLang("");
   };
   const chooseArchive = async (kind: "characters" | "self" | "worlds", id: string | null) => {
-    if ((dirty || childDirty) && !await dialog.confirm("有尚未保存的档案修改，确定切换吗？")) return;
+    if ((dirty || childDirty) && !await dialog.confirm(cabinetText("unsavedSwitch"))) return;
     setSection(kind); setCabinetSelection({ kind, id }); setChildDirty(false); setCabinetHome(false); setImportMenuOpen(false);
     if (kind === "characters") {
       const item = id ? characters.find(character => character.id === id) : null;
@@ -251,7 +253,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
   };
   const closeArchive = async () => {
     if (!cabinetHome) {
-      if ((dirty || childDirty) && !await dialog.confirm("有尚未保存的档案修改，确定返回 Charta 主界面吗？")) return;
+      if ((dirty || childDirty) && !await dialog.confirm(cabinetText("unsavedReturn"))) return;
       setCabinetHome(true);
       setDraft(null); setDirty(false); setChildDirty(false); setMessage("");
       setCabinetSelection({ kind: section, id: null });
@@ -267,24 +269,24 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
     <input ref={portraitRef} type="file" className="hidden" accept="image/png,image/jpeg,image/webp" onChange={uploadStandee} />
     <div className="mx-auto max-w-7xl px-4 py-7 sm:px-8">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dce5dc] pb-5">
-        <button type="button" onClick={closeArchive} className="flex items-center gap-2 rounded-xl border border-[#d7e1d8] bg-white px-3 py-2 text-xs hover:border-[#7a9b83]"><ArrowLeft size={16}/>{cabinetHome ? "返回导航页" : "返回 Charta 主界面"}</button>
-        <div className="text-center"><h1 className="font-serif text-3xl tracking-[0.16em]">CHARTA · 档案柜</h1><p className="pt-1 text-[11px] tracking-[0.22em] text-[#7c9181]">CHARACTER · SELF · WORLD</p></div>
+        <button type="button" onClick={closeArchive} className="flex items-center gap-2 rounded-xl border border-[#d7e1d8] bg-white px-3 py-2 text-xs hover:border-[#7a9b83]"><ArrowLeft size={16}/>{cabinetHome ? cabinetText("backToHub") : cabinetText("backToCabinet")}</button>
+        <div className="text-center"><h1 className="font-serif text-3xl tracking-[0.16em]">CHARTA · {cabinetText("title")}</h1><p className="pt-1 text-[11px] tracking-[0.22em] text-[#7c9181]">CHARACTER · SELF · WORLD</p></div>
         <div className="relative">
           {cabinetHome ? <>
-            <button type="button" onClick={()=>setImportMenuOpen(open=>!open)} aria-expanded={importMenuOpen} aria-controls="charta-import-menu" className="flex items-center gap-2 rounded-xl border border-[#d7e1d8] bg-white px-3 py-2 text-xs hover:border-[#7a9b83]"><Upload size={15}/>导入 JSON<ChevronDown size={14}/></button>
+            <button type="button" onClick={()=>setImportMenuOpen(open=>!open)} aria-expanded={importMenuOpen} aria-controls="charta-import-menu" className="flex items-center gap-2 rounded-xl border border-[#d7e1d8] bg-white px-3 py-2 text-xs hover:border-[#7a9b83]"><Upload size={15}/>{cabinetText("importJson")}<ChevronDown size={14}/></button>
             {importMenuOpen && <div id="charta-import-menu" className="absolute right-0 top-full z-30 mt-2 w-44 overflow-hidden rounded-xl border border-[#d7e1d8] bg-white p-1 shadow-lg">
-              {([{kind:"characters" as const,label:"导入角色 JSON"},{kind:"self" as const,label:"导入自设 JSON"},{kind:"worlds" as const,label:"导入世界观 JSON"}]).map(option=>
+              {([{kind:"characters" as const,label:cabinetText("importCharacter")},{kind:"self" as const,label:cabinetText("importSelf")},{kind:"worlds" as const,label:cabinetText("importWorld")}]).map(option=>
                 <button type="button" key={option.kind} onClick={()=>openImport(option.kind)} className="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-[#f0f5ef]">{option.label}</button>)}
             </div>}
           </> : <span className="text-xs text-[#7b8e80]">CHARTA EDITOR</span>}
         </div>
       </header>
       {cabinetHome && (
-        <section aria-label="Charta 档案创建与导入建议" className="mx-auto mt-6 max-w-3xl rounded-2xl border border-[#dce7dd] bg-[#f0f6ef] px-4 py-4 sm:px-5">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-[#446c53]"><FilePlus2 size={17} />开始之前的小建议</h2>
-          <p className="mt-2 text-xs leading-6 text-[#607d69]">建议先创建<strong className="mx-1 text-[#436b50]">世界观和对应时间线</strong>，再创建自设或角色，这样人物关系、经历就能直接关联正确的时期。</p>
-          <p className="mt-1 text-xs leading-6 text-[#607d69]">从 JSON 恢复档案时，也建议<strong className="mx-1 text-[#436b50]">先导入世界观</strong>，再导入自设或角色，避免找不到原本绑定的世界观。</p>
-          <p className="mt-2 text-[11px] text-[#879b88]">这是推荐顺序，不限制自由创建；没有现成世界观，也可以先整理角色构思。</p>
+        <section aria-label={cabinetText("tipsAria")} className="mx-auto mt-6 max-w-3xl rounded-2xl border border-[#dce7dd] bg-[#f0f6ef] px-4 py-4 sm:px-5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-[#446c53]"><FilePlus2 size={17} />{cabinetText("tipTitle")}</h2>
+          <p className="mt-2 text-xs leading-6 text-[#607d69]"> {cabinetText("tipCreateBefore")}<strong className="mx-1 text-[#436b50]">{cabinetText("tipCreateHighlight")}</strong>{cabinetText("tipCreateAfter")}</p>
+          <p className="mt-1 text-xs leading-6 text-[#607d69]"> {cabinetText("tipImportBefore")}<strong className="mx-1 text-[#436b50]">{cabinetText("tipImportHighlight")}</strong>{cabinetText("tipImportAfter")}</p>
+          <p className="mt-2 text-[11px] text-[#879b88]">{cabinetText("tipFlexible")}</p>
         </section>
       )}
       <div className={cabinetHome ? "mt-6 mx-auto max-w-3xl" : "mt-6 grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]"}>
@@ -305,50 +307,50 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
                 <button type="button" onClick={() => setShowAdd(!showAdd)} title={txt("addName")} aria-label={txt("addName")} className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#d7e0d6] text-[#5b8168] hover:bg-[#eaf1e9]"><Plus size={18}/></button>
               </div>
               <div className="space-y-1">
-                <label className="block text-xs text-[#6e8472]">角色 ID · CHARACTER ID *（与内置及自定义角色唯一）
+                <label className="block text-xs text-[#6e8472]">{cabinetText("characterIdLabel")}
                   <input value={draft.characterCode || ""} maxLength={64}
                     onChange={e => update({ ...draft, characterCode: e.target.value.trim() })}
-                    placeholder="例如: sakiko_alt"
+                    placeholder={cabinetText("characterIdPlaceholder")}
                     className="mt-2 w-full rounded-xl border border-[#d7e0d6] bg-[#fbfcf9] px-3 py-3 font-mono text-sm outline-none focus:border-[#7e9f86]" />
                 </label>
                 {draft.characterCode?.trim() && <p role="status" className={`text-[11px] ${/^[a-zA-Z][a-zA-Z0-9_-]{1,63}$/.test(draft.characterCode)
                   && !codeUsedBy(draft.characterCode, draft.id) ? "text-emerald-700" : "text-rose-600"}`}>
                   {/^[a-zA-Z][a-zA-Z0-9_-]{1,63}$/.test(draft.characterCode)
-                    ? (codeUsedBy(draft.characterCode, draft.id) ? "此角色 ID 已被使用" : "✓ 此角色 ID 可用")
-                    : "角色 ID 需要字母开头，长度 2–64 位"}
+                    ? (codeUsedBy(draft.characterCode, draft.id) ? cabinetText("characterIdTaken") : cabinetText("characterIdAvailable"))
+                    : cabinetText("characterIdFormat")}
                 </p>}
               </div>
               {primaryOther && <div className="flex flex-wrap items-end gap-2 rounded-xl border border-[#dce4dc] bg-[#f7f9f5] p-3"><label className="min-w-[160px] flex-1 text-xs">{txt("otherLanguage")}<input value={primaryLangInput} onChange={e=>setPrimaryLangInput(e.target.value)} placeholder="fr / de / es" className="mt-2 w-full rounded-lg border px-3 py-2 text-sm"/></label><button type="button" className="rounded-lg bg-[#456b57] px-3 py-2 text-xs text-white" onClick={()=>{const lang=primaryLangInput.trim();if(!/^[a-z]{2,3}(?:-[a-zA-Z0-9]{2,8}){0,3}$/.test(lang)){setMessage(txt("required"));return;}update({...draft,primaryLanguage:lang,names:{...draft.names,[lang]:draft.names[lang]||""}});setPrimaryOther(false);}}>{txt("language")}</button></div>}
               {showAdd && <div className="grid items-end gap-2 rounded-xl border border-[#e1e8dc] bg-[#f7f9f5] p-3 sm:grid-cols-[1fr_1fr_auto]"><label className="text-xs">{txt("language")}<select value={extraLang} onChange={e=>setExtraLang(e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{CHARTA_LANGUAGES.map(o=><option key={o.code} value={o.code}>{o.label}</option>)}</select></label>{extraLang==="other"?<input value={customLang} onChange={e=>setCustomLang(e.target.value)} placeholder={txt("otherLanguage")} className="rounded-lg border p-2 text-sm"/>:<span/>}<button type="button" onClick={addLanguage} className="rounded-lg bg-[#65876d] p-2 text-xs text-white">{txt("addName")}</button></div>}
-              {Object.keys(draft.names).filter(lang=>lang!==draft.primaryLanguage).map(lang=><div key={lang} className="flex items-center gap-2"><span className="w-14 shrink-0 text-xs text-[#809587]">{lang}</span><input value={draft.names[lang]||""} onChange={e=>update({...draft,names:{...draft.names,[lang]:e.target.value}})} placeholder={txt("extraName")} maxLength={100} className="w-full rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm outline-none focus:border-[#7e9f86]"/><button type="button" title="Remove" onClick={()=>{const next={...draft.names};delete next[lang];update({...draft,names:next});}}><X size={16}/></button></div>)}
-              <div className="space-y-2"><label className="block text-xs text-[#6e8472]">性别设定</label><div className="flex flex-wrap gap-2">{([ ["male","男"], ["female","女"], ["undisclosed","不愿透露"], ["custom","自定义"] ] as const).map(([value,label])=><button key={value} type="button" aria-pressed={(draft.gender||"undisclosed")===value} onClick={()=>update({...draft,gender:value})} className={`rounded-xl border px-3 py-2 text-xs ${(draft.gender||"undisclosed")===value ? "border-[#60856a] bg-[#edf5ec] text-[#345443]" : "border-[#d8e4d8] text-[#819588]"}`}>{label}</button>)}</div>{draft.gender==="custom"&&<input maxLength={100} value={draft.genderCustom||""} onChange={e=>update({...draft,genderCustom:e.target.value})} placeholder="自定义性别设定" className="w-full rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm"/>}</div>
+              {Object.keys(draft.names).filter(lang=>lang!==draft.primaryLanguage).map(lang=><div key={lang} className="flex items-center gap-2"><span className="w-14 shrink-0 text-xs text-[#809587]">{lang}</span><input value={draft.names[lang]||""} onChange={e=>update({...draft,names:{...draft.names,[lang]:e.target.value}})} placeholder={txt("extraName")} maxLength={100} className="w-full rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm outline-none focus:border-[#7e9f86]"/><button type="button" title={cabinetText("removeOtherName")} onClick={()=>{const next={...draft.names};delete next[lang];update({...draft,names:next});}}><X size={16}/></button></div>)}
+              <div className="space-y-2"><label className="block text-xs text-[#6e8472]">{deepText(locale, "charta.self.gender")}</label><div className="flex flex-wrap gap-2">{([ ["male","charta.self.male"], ["female","charta.self.female"], ["undisclosed","charta.self.undisclosed"], ["custom","charta.self.custom"] ] as const).map(([value,labelKey])=><button key={value} type="button" aria-pressed={(draft.gender||"undisclosed")===value} onClick={()=>update({...draft,gender:value})} className={`rounded-xl border px-3 py-2 text-xs ${(draft.gender||"undisclosed")===value ? "border-[#60856a] bg-[#edf5ec] text-[#345443]" : "border-[#d8e4d8] text-[#819588]"}`}>{deepText(locale, labelKey)}</button>)}</div>{draft.gender==="custom"&&<input maxLength={100} value={draft.genderCustom||""} onChange={e=>update({...draft,genderCustom:e.target.value})} placeholder={deepText(locale, "charta.self.customGenderHint")} className="w-full rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm"/>}</div>
               <section className="space-y-4 rounded-2xl border border-[#e0e9df] bg-[#fbfdfa] p-4">
-                <h4 className="text-xs font-semibold tracking-wider text-[#51745e]">外号／别号、外观与萌点（均选填）</h4>
-                <p className="text-[11px] text-[#91a393]">别号和萌点可以添加多个，不区分语言；其他字段自由填写，不会凭空自动补全。</p>
+                <h4 className="text-xs font-semibold tracking-wider text-[#51745e]">{cabinetText("profileExtrasTitle")}</h4>
+                <p className="text-[11px] text-[#91a393]">{cabinetText("profileExtrasHint")}</p>
                 <div className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-[#688270]">别号 / 外号</span><button type="button" disabled={(draft.aliases||[]).length>=50} onClick={()=>update({...draft,aliases:[...(draft.aliases||[]),""]})} className="flex items-center gap-1 text-xs text-[#568466] disabled:opacity-40"><Plus size={14}/>增加别号</button></div>
-                  {(draft.aliases||[]).map((alias,i)=><div key={i} className="flex gap-2"><input value={alias} onChange={e=>update({...draft,aliases:(draft.aliases||[]).map((x,j)=>j===i?e.target.value:x)})} maxLength={100} placeholder="别号，例如客服S（笑）" className="min-w-0 flex-1 rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm"/><button type="button" aria-label="删除别号" onClick={()=>update({...draft,aliases:(draft.aliases||[]).filter((_,j)=>j!==i)})} className="text-[#b0837d]"><X size={15}/></button></div>)}
+                  <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-[#688270]">{deepText(locale, "charta.self.alias")}</span><button type="button" disabled={(draft.aliases||[]).length>=50} onClick={()=>update({...draft,aliases:[...(draft.aliases||[]),""]})} className="flex items-center gap-1 text-xs text-[#568466] disabled:opacity-40"><Plus size={14}/>{deepText(locale, "charta.self.addAlias")}</button></div>
+                  {(draft.aliases||[]).map((alias,i)=><div key={i} className="flex gap-2"><input value={alias} onChange={e=>update({...draft,aliases:(draft.aliases||[]).map((x,j)=>j===i?e.target.value:x)})} maxLength={100} placeholder={deepText(locale, "charta.self.aliasExample")} className="min-w-0 flex-1 rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm"/><button type="button" aria-label={deepText(locale, "charta.self.removeAlias")} onClick={()=>update({...draft,aliases:(draft.aliases||[]).filter((_,j)=>j!==i)})} className="text-[#b0837d]"><X size={15}/></button></div>)}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {([{key:"hairColor",label:"发色",placeholder:"例如：蓝色"},{key:"eyeColor",label:"瞳色",placeholder:"例如：琥珀色"},{key:"height",label:"身高",placeholder:"例如：155cm"},{key:"birthday",label:"生日",placeholder:"例如：2月14日"},{key:"zodiac",label:"星座",placeholder:"例如：水瓶座"}] as const).map(({key,label,placeholder})=><label key={key} className="text-xs text-[#6e8472]">{label}<input value={draft[key]||""} onChange={e=>update({...draft,[key]:e.target.value})} maxLength={100} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm"/></label>)}
+                  {([{key:"hairColor",label:deepText(locale,"charta.self.hair"),placeholder:cabinetText("hairExample")},{key:"eyeColor",label:deepText(locale,"charta.self.eyes"),placeholder:cabinetText("eyesExample")},{key:"height",label:deepText(locale,"charta.self.height"),placeholder:cabinetText("heightExample")},{key:"birthday",label:deepText(locale,"charta.self.birthday"),placeholder:cabinetText("birthdayExample")},{key:"zodiac",label:deepText(locale,"charta.self.zodiac"),placeholder:cabinetText("zodiacExample")}] as const).map(({key,label,placeholder})=><label key={key} className="text-xs text-[#6e8472]">{label}<input value={draft[key]||""} onChange={e=>update({...draft,[key]:e.target.value})} maxLength={100} placeholder={placeholder} className="mt-2 w-full rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm"/></label>)}
                 </div>
                 <div className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-[#688270]">萌点（笑）</span><button type="button" disabled={(draft.moeTags||[]).length>=50} onClick={()=>update({...draft,moeTags:[...(draft.moeTags||[]),""]})} className="flex items-center gap-1 text-xs text-[#568466] disabled:opacity-40"><Plus size={14}/>添加萌点</button></div>
-                  {(draft.moeTags||[]).map((tag,i)=><div key={i} className="flex gap-2"><input value={tag} onChange={e=>update({...draft,moeTags:(draft.moeTags||[]).map((x,j)=>j===i?e.target.value:x)})} maxLength={100} placeholder="例如：包子脸、中二病" className="min-w-0 flex-1 rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm"/><button type="button" aria-label="删除萌点" onClick={()=>update({...draft,moeTags:(draft.moeTags||[]).filter((_,j)=>j!==i)})} className="text-[#b0837d]"><X size={15}/></button></div>)}
+                  <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-[#688270]">{deepText(locale, "charta.self.moe")}</span><button type="button" disabled={(draft.moeTags||[]).length>=50} onClick={()=>update({...draft,moeTags:[...(draft.moeTags||[]),""]})} className="flex items-center gap-1 text-xs text-[#568466] disabled:opacity-40"><Plus size={14}/>{deepText(locale, "charta.self.addMoe")}</button></div>
+                  {(draft.moeTags||[]).map((tag,i)=><div key={i} className="flex gap-2"><input value={tag} onChange={e=>update({...draft,moeTags:(draft.moeTags||[]).map((x,j)=>j===i?e.target.value:x)})} maxLength={100} placeholder={deepText(locale, "charta.self.moeExample")} className="min-w-0 flex-1 rounded-xl border border-[#d7e0d6] px-3 py-2 text-sm"/><button type="button" aria-label={deepText(locale, "charta.self.removeMoe")} onClick={()=>update({...draft,moeTags:(draft.moeTags||[]).filter((_,j)=>j!==i)})} className="text-[#b0837d]"><X size={15}/></button></div>)}
                 </div>
               </section>
               <p className="text-[11px] leading-6 text-[#8ba08f]">{txt("nameHint")}</p>
-              <label className="block text-xs text-[#6e8472]">所属世界观 · WORLD
+              <label className="block text-xs text-[#6e8472]">{deepText(locale, "charta.self.world")} · WORLD
                 <select value={draft.worldId || ""} onChange={e => update({ ...draft, worldId: e.target.value || undefined })}
                   className="mt-2 w-full rounded-xl border border-[#d7e0d6] bg-[#fbfcf9] px-3 py-3 text-sm outline-none focus:border-[#7e9f86]">
-                  <option value="">未绑定 · 通用角色</option>
-                  <option value={BANG_DREAM_WORLD_ID}>{BANG_DREAM_WORLD_NAME}（内置）</option>
+                  <option value="">{cabinetText("characterNoWorld")}</option>
+                  <option value={BANG_DREAM_WORLD_ID}>{BANG_DREAM_WORLD_NAME}{deepText(locale, "charta.self.builtIn")}</option>
                   {worldLibrary.worlds.map(world => <option key={world.id} value={world.id}>{world.name}</option>)}
                   {draft.worldId && draft.worldId !== BANG_DREAM_WORLD_ID && !worldLibrary.worlds.some(world => world.id === draft.worldId) &&
-                    <option value={draft.worldId}>原世界观已删除 · 请重新选择</option>}
+                    <option value={draft.worldId}>{deepText(locale, "charta.self.worldDeleted")}</option>}
                 </select>
               </label>
-              <p className="text-[11px] leading-5 text-[#8ba08f]">建议先在 Charta「世界观」中创建世界与对应时间线，再为角色绑定所属世界。这样下方人物关系、主要经历才能关联正确的时期；未关联的条目将始终注入。</p>
+              <p className="text-[11px] leading-5 text-[#8ba08f]">{cabinetText("characterWorldHelp")}</p>
             </div>
             <div className="space-y-4">
               <h3 className="text-xs font-bold tracking-widest uppercase text-[#547562]">02 · {txt("appearance")}</h3>
