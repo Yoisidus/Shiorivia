@@ -319,7 +319,7 @@ const SidebarRightComponent = ({
                             setConfirmModal({ isOpen: false, text: "" });
                         }}
                     />
-                    <StoryWorldlineFateModal tone={isStoryMode ? "story" : "novel"} isOpen={worldlineOpen} value={currentSession?.storyWorldline}
+                    <StoryWorldlineFateModal tone={isStoryMode ? "story" : isChatMode ? "chat" : "story"} isOpen={worldlineOpen} value={currentSession?.storyWorldline}
                         legacyTimeline={currentSession?.timeline} worlds={worlds}
                         onSave={handleWorldlineUpdate} onClose={() => setWorldlineOpen(false)}
                         onOpenCharta={onOpenChartaWorld ? () => { setWorldlineOpen(false); onOpenChartaWorld(); } : undefined}/>
