@@ -773,7 +773,6 @@ export const NovelInterface = ({
                                     draft={{ selectedCharIds, selfId:novelRole === "participant" ? novelSelfId : null, environment, event, style, outline, themeMode: "paper" }}
                                     onImport={onImportNovelSession}
                                     disabled={isLoading}
-                                    tone="paper"
                                     className="rounded-2xl border-2 border-[#c5a97a] bg-[#fffaf0] p-4 text-[#67533a] shadow-[0_6px_22px_rgba(121,89,45,.12)]"
                                 />
 
