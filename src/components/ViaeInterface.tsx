@@ -23,6 +23,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAppDialog } from "../context/DialogContext";
 import { characterDisplayName } from "../lib/characterNames";
 import { deepText } from "../lib/i18nDeep";
+import { DEFAULT_CONTEXT_WINDOW_TOKENS } from "../lib/contextWindow";
 
 // Historical Local JSON keeps `limeGroups`, `limeGroupId`, and memoryMode="lime".
 // Viae, Semita, and Compitum are presentation names, not a save-format migration.
@@ -91,7 +92,7 @@ interface ViaeProps {
   contextWindowTokens?: number;
 }
 
-export function ViaeInterface({ session, updateSession, characters, customCharacters = [], worlds = [], activeSelf = null, onExit, onSettings, providers, provider, onProviderChange, model, customModel, onModelChange, onCustomModelChange, notify, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = 32768 }: ViaeProps) {
+export function ViaeInterface({ session, updateSession, characters, customCharacters = [], worlds = [], activeSelf = null, onExit, onSettings, providers, provider, onProviderChange, model, customModel, onModelChange, onCustomModelChange, notify, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = DEFAULT_CONTEXT_WINDOW_TOKENS }: ViaeProps) {
   const { locale } = useLanguage();
   const dialog = useAppDialog();
   const { activeGroup, input, setInput, isLoading, send, stop, deleteMessage } = useViaeEngine({
