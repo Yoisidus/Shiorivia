@@ -120,14 +120,14 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
   const [scanningMusic, setScanningMusic] = useState(false);
   const [scanNotice, setScanNotice] = useState("");
   const scanMusic = async () => {
-    if (scanningMusic || !await dialog.confirm("扫描 Shiorivia/music/ 中的音乐与同名 .lrc？\n这会更新本地曲库索引，不会移动或修改音乐文件。")) return;
+    if (scanningMusic || !await dialog.confirm(deepText(locale, "settings.musicConfirm"))) return;
     setScanningMusic(true); setScanNotice("");
     try {
       const response = await fetch("/api/local/music", { method: "POST" });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "音乐扫描失败");
+      if (!response.ok) throw new Error(result.error || deepText(locale, "settings.musicScanFailed"));
       await refreshLibrary();
-      setScanNotice(`已扫描 ${result.count} 首歌曲，歌单已更新。`);
+      setScanNotice(`${deepText(locale, "settings.musicScanned")}${result.count} ${deepText(locale, "settings.musicScannedSuffix")}`);
     } catch (error) { setScanNotice(error instanceof Error ? error.message : "音乐扫描失败"); }
     finally { setScanningMusic(false); }
   };
@@ -224,7 +224,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
               <section>
                 <h2 className="mb-2 text-xl font-bold">{t("settings.ai")}</h2>
                 <p className="mb-8 text-sm text-slate-400">{t("settings.ai.description")}</p>
-                <SectionTitle>通用模型 · {t("settings.providers")}</SectionTitle>
+                <SectionTitle>{deepText(locale, "settings.providerHeading")} · {t("settings.providers")}</SectionTitle>
                 <div className="mb-7 space-y-2">
                   {providers.map((provider) => (
                     <div key={provider.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm">
@@ -232,13 +232,13 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                         <p className="font-semibold">{provider.label} {provider.id === "fal" && <span className="ml-2 text-[10px] font-normal text-[#71917d]">IMAGE ONLY</span>} {provider.id !== "fal" && activeProvider === provider.id && <span className="ml-1 text-[10px] text-emerald-600">{t("settings.active")}</span>}</p>
                         <p className="mt-1 text-xs text-slate-400">{provider.configured ? t("settings.configured") : t("settings.unconfigured")}{" · "}{provider.custom ? t("settings.custom") : t("settings.default")}</p>
                       </div>
-                      {provider.custom && <label className="block mt-2 max-w-[250px] text-[11px] text-slate-500">自定义供应商显示名称（仅本地 UI）
-                        <input aria-label={`${provider.id} 显示名称`} value={providerAliases[provider.id] || ""}
+                      {provider.custom && <label className="block mt-2 max-w-[250px] text-[11px] text-slate-500">{deepText(locale, "settings.providerAlias")}
+                        <input aria-label={`${provider.id} ${deepText(locale, "settings.displayName")}`} value={providerAliases[provider.id] || ""}
                           onChange={event => onProviderAliasChange(provider.id, event.target.value)}
                           placeholder={provider.id} maxLength={40}
                           className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-[#8ea9cd]" />
                       </label>}
-                      {provider.custom && <div className="flex shrink-0 gap-2 text-[11px] text-slate-600"><label className="flex items-center gap-1"><input type="checkbox" checked={capabilityFor(provider.id, providerCapabilities).llm} onChange={e => onProviderCapabilitiesChange(provider.id, { llm: e.target.checked })}/>LLM</label><label className="flex items-center gap-1"><input type="checkbox" checked={capabilityFor(provider.id, providerCapabilities).image} onChange={e => onProviderCapabilitiesChange(provider.id, { image: e.target.checked })}/>生图</label></div>}
+                      {provider.custom && <div className="flex shrink-0 gap-2 text-[11px] text-slate-600"><label className="flex items-center gap-1"><input type="checkbox" checked={capabilityFor(provider.id, providerCapabilities).llm} onChange={e => onProviderCapabilitiesChange(provider.id, { llm: e.target.checked })}/>LLM</label><label className="flex items-center gap-1"><input type="checkbox" checked={capabilityFor(provider.id, providerCapabilities).image} onChange={e => onProviderCapabilitiesChange(provider.id, { image: e.target.checked })}/>{deepText(locale, "settings.imageCapability")}</label></div>}
                       <button type="button" disabled={!provider.configured} aria-pressed={!disabledProviders.includes(provider.id)} onClick={() => onToggleProvider(provider.id)}
                         className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold ${disabledProviders.includes(provider.id) ? "border-slate-200 bg-slate-50 text-slate-400" : "border-emerald-200 bg-emerald-50 text-emerald-700"} disabled:opacity-40`}>
                         {disabledProviders.includes(provider.id) ? t("settings.disabled") : t("settings.enabled")}
@@ -247,7 +247,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   ))}
                 </div>
                 <p className="mb-6 text-xs leading-6 text-slate-500">{t("settings.providers.description")}</p>
-                <SectionTitle>扩展能力 · EXTENSIONS</SectionTitle>
+                <SectionTitle>{deepText(locale, "settings.extensionHeading")} · EXTENSIONS</SectionTitle>
                 {(activeMode === "sliding" || activeMode === "novel") && <>
                   <SwitchRow title={deepText(locale, "settings.danmaku")} description={deepText(locale, "settings.danmakuHelp")} checked={danmakuEnabled} onClick={onToggleDanmaku} icon={Sparkles} />
                   {danmakuEnabled && <div className="mb-4 rounded-xl border border-amber-200 bg-[#fffaf0] p-4">
@@ -265,8 +265,8 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   </div>}
                 </>}
                 {(activeMode === "sliding" || activeMode === "novel") && <SwitchRow
-                  title="文风优化"
-                  description="参考 Gemini 与日轻文风优化叙事节奏。作用于 Via Lata 故事正文及 Tela 小说正文，不改变角色设定、世界线、状态 JSON、修复请求或摘要；默认关闭。"
+                  title={deepText(locale, "settings.narrativeStyle")}
+                  description={deepText(locale, "settings.narrativeStyleHelp")}
                   checked={geminiNarrativeStyleEnabled}
                   onClick={onToggleGeminiNarrativeStyle}
                   icon={BookOpen}
@@ -274,67 +274,67 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
 
                 {activeMode === "infinite" && <div className="mt-3 space-y-2">
                   <div className="px-1">
-                    <p className="text-xs font-semibold text-slate-700">Officina · 角色工程师设定</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">基础性格与角色还原指南始终加载；以下扩展资料默认关闭，可按需要独立开启。</p>
+                    <p className="text-xs font-semibold text-slate-700">Officina · {deepText(locale, "settings.engineerLore")}</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">{deepText(locale, "settings.engineerLoreHelp")}</p>
                   </div>
                   <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white px-3">
-                    <SwitchRow title="核心人物关系" description="附加全时间线的重要关系与互动记录，增加 Token 用量。" checked={engineeringLoreRelationshipsEnabled} onClick={onToggleEngineeringLoreRelationships} icon={BookOpen} />
-                    <SwitchRow title="主要经历" description="附加全时间线的主要事件与角色经历，增加 Token 用量。" checked={engineeringLoreExperiencesEnabled} onClick={onToggleEngineeringLoreExperiences} icon={BookOpen} />
+                    <SwitchRow title={deepText(locale, "settings.relationships")} description={deepText(locale, "settings.relationshipsHelp")} checked={engineeringLoreRelationshipsEnabled} onClick={onToggleEngineeringLoreRelationships} icon={BookOpen} />
+                    <SwitchRow title={deepText(locale, "settings.experiences")} description={deepText(locale, "settings.experiencesHelp")} checked={engineeringLoreExperiencesEnabled} onClick={onToggleEngineeringLoreExperiences} icon={BookOpen} />
                   </div>
                 </div>}
                 {activeMode === "infinite" && <>
-                  <SwitchRow title="Officina · AI 联网搜索工具" description="开启后，AI 会先判断当前对话是否需要检索；只有选择联网工具时才请求搜索供应商。未配置或模型不支持时明确报错，不会静默切换搜索引擎。" checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
+                  <SwitchRow title={deepText(locale, "settings.officinaSearch")} description={deepText(locale, "settings.officinaSearchHelp")} checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
                   {values.webSearch && <div className="mt-2 mb-5 space-y-3 rounded-xl border border-sky-200 bg-[#f5f9ff] p-4">
-                    <p className="text-xs font-semibold text-[#3b6589]">搜索路由</p>
+                    <p className="text-xs font-semibold text-[#3b6589]">{deepText(locale, "settings.searchRoute")}</p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <button type="button" aria-pressed={webToolConfig.mode === "native"}
                         onClick={() => onWebToolConfigChange({mode:"native"})}
                         className={`rounded-lg border px-3 py-3 text-left text-xs ${webToolConfig.mode === "native" ? "border-blue-400 bg-white font-semibold text-[#275b94]" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
-                        当前模型原生联网搜索
-                        <span className="mt-1 block text-[10px] font-normal">尝试当前对话供应商与模型的搜索能力，不支持则报错。</span>
+                        {deepText(locale, "settings.searchNative")}
+                        <span className="mt-1 block text-[10px] font-normal">{deepText(locale, "settings.searchNativeHelp")}</span>
                       </button>
                       <button type="button" aria-pressed={webToolConfig.mode === "model"}
                         onClick={() => onWebToolConfigChange({mode:"model"})}
                         className={`rounded-lg border px-3 py-3 text-left text-xs ${webToolConfig.mode === "model" ? "border-blue-400 bg-white font-semibold text-[#275b94]" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
-                        指定搜索模型
-                        <span className="mt-1 block text-[10px] font-normal">使用另一已配置供应商和手动填写的模型 ID。</span>
+                        {deepText(locale, "settings.searchModel")}
+                        <span className="mt-1 block text-[10px] font-normal">{deepText(locale, "settings.searchModelHelp")}</span>
                       </button>
                     </div>
                     {webToolConfig.mode === "model" && <>
-                      <label className="block text-xs text-slate-600">搜索供应商
+                      <label className="block text-xs text-slate-600">{deepText(locale, "settings.searchProvider")}
                         <select value={webToolConfig.provider} onChange={e => onWebToolConfigChange({provider:e.target.value})}
                           className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
                           {providers.filter(provider => provider.configured && provider.id !== "fal" && !disabledProviders.includes(provider.id)).map(provider =>
                             <option key={provider.id} value={provider.id}>{provider.label}</option>)}
                         </select>
                       </label>
-                      <label className="block text-xs text-slate-600">搜索模型 ID
+                      <label className="block text-xs text-slate-600">{deepText(locale, "settings.searchModelId")}
                         <input value={webToolConfig.model} onChange={e => onWebToolConfigChange({model:e.target.value})}
-                          placeholder="例如支持原生联网搜索的模型 ID" maxLength={160}
+                          placeholder={deepText(locale, "settings.searchModelPlaceholder")} maxLength={160}
                           className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs" />
                       </label>
                     </>}
-                    <p className="text-[11px] leading-5 text-slate-500">只有当前模型或指定模型具备兼容的联网接口时才能成功。AI 选择搜索之后，结果会作为参考资料提供给当前回复。</p>
+                    <p className="text-[11px] leading-5 text-slate-500">{deepText(locale, "settings.searchInfo")}</p>
                   </div>}
                 </>}
                 {(["sliding", "novel", "infinite", "chat"].includes(activeMode)) && <>
                 <SwitchRow title={t("settings.imageGen")} description={t("settings.imageGen.description")} checked={values.imageGen} onClick={() => onToggle("imageGen")} icon={ImageIcon} />
                 {values.imageGen && <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs font-semibold tracking-wide text-slate-700">Image Studio · 生图设置</p>
-                  <label className="block text-xs text-slate-600">图像供应商<select value={imageSettings.provider} onChange={e => onImageSettingsChange({provider: e.target.value})} className="mt-1 block w-full rounded-lg border bg-white p-2 text-sm">
+                  <p className="text-xs font-semibold tracking-wide text-slate-700">Image Studio · {deepText(locale, "settings.imageHeading")}</p>
+                  <label className="block text-xs text-slate-600">{deepText(locale, "settings.imageProvider")}<select value={imageSettings.provider} onChange={e => onImageSettingsChange({provider: e.target.value})} className="mt-1 block w-full rounded-lg border bg-white p-2 text-sm">
                     <option value="comfyui">ComfyUI · Local</option>
                     {falConfigured && !disabledProviders.includes("fal") && <option value="fal">fal.ai</option>}
                     {providers.filter(p => p.configured && (p.id === 'google' || p.id === 'openrouter' || (p.custom && capabilityFor(p.id, providerCapabilities).image))).map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select></label>
-                  <label className="block text-xs text-slate-600">{imageSettings.provider === "comfyui" ? "模板 Checkpoint（可选；自定义工作流以 ComfyUI 为准）" : "生图模型 ID"}<input value={imageSettings.model} onChange={e => onImageSettingsChange({model:e.target.value})} placeholder={imageSettings.provider === "comfyui" ? "可留空，使用 ComfyUI 工作流的模型" : "请输入供应商模型 ID"} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>
+                  <label className="block text-xs text-slate-600">{imageSettings.provider === "comfyui" ? deepText(locale, "settings.imageCheckpoint") : deepText(locale, "settings.imageModel")}<input value={imageSettings.model} onChange={e => onImageSettingsChange({model:e.target.value})} placeholder={imageSettings.provider === "comfyui" ? deepText(locale, "settings.imageModelComfyHelp") : deepText(locale, "settings.imageModelPlaceholder")} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>
                   {imageSettings.provider !== "comfyui" && <div className="space-y-3">
-                  <label className="block text-xs text-slate-600">正面风格提示词<textarea rows={2} value={imageSettings.positive} onChange={e => onImageSettingsChange({positive:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>
-                  <label className="block text-xs text-slate-600">负面提示词<textarea rows={2} value={imageSettings.negative} onChange={e => onImageSettingsChange({negative:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>
+                  <label className="block text-xs text-slate-600">{deepText(locale, "settings.imagePositive")}<textarea rows={2} value={imageSettings.positive} onChange={e => onImageSettingsChange({positive:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>
+                  <label className="block text-xs text-slate-600">{deepText(locale, "settings.imageNegative")}<textarea rows={2} value={imageSettings.negative} onChange={e => onImageSettingsChange({negative:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                    {([['width','宽度'],['height','高度'],['steps','步数'],['cfg','CFG']] as const).map(([key,label]) => <label key={key} className="text-xs text-slate-600">{label}<input type="number" min={1} max={2048} value={imageSettings[key]} onChange={e => onImageSettingsChange({[key]:Number(e.target.value)})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>)}
+                    {([['width',deepText(locale, "settings.imageWidth")],['height',deepText(locale, "settings.imageHeight")],['steps',deepText(locale, "settings.imageSteps")],['cfg','CFG']] as const).map(([key,label]) => <label key={key} className="text-xs text-slate-600">{label}<input type="number" min={1} max={2048} value={imageSettings[key]} onChange={e => onImageSettingsChange({[key]:Number(e.target.value)})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>)}
                   </div>
                   </div>}
-                  <p className="text-[11px] leading-5 text-slate-500">ComfyUI 从 API 工作流读取模型、CLIP、KSampler 和尺寸；Shiorivia 只填入 {"{{SHIORIVIA_SCENE}}"}。保存至 data_storage/comfyui-workflow.json。</p>
+                  <p className="text-[11px] leading-5 text-slate-500">{deepText(locale, "settings.comfyHelp")} {"{{SHIORIVIA_SCENE}}"}</p>
                 </div>}
                 </>}
               </section>
@@ -348,14 +348,14 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-400"><Mic size={18}/><span>{t("settings.tts")} · 开发中 / In development</span></div>
                 {(activeMode === "sliding" || activeMode === "novel") && <SwitchRow
                   title={t("settings.autoDJ")}
-                  description="开启后，把当前歌单提供给故事／小说模型。只有找到适合场景的歌曲才输出音乐配置；没有合适曲目则保持为空，不进行额外工具轮询。"
+                  description={deepText(locale, "settings.autoDJDetail")}
                   checked={values.musicControl} onClick={() => onToggle("musicControl")} icon={Music2}
                 />}
                 <div className="mt-6 rounded-2xl border border-[#dfE8df] bg-white p-5">
-                  <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold text-[#345b48]">本地音乐 · 扫描曲库</h3><p className="mt-2 text-xs leading-6 text-slate-500">扫描项目根目录 music/ 中的歌曲与同名歌词。子文件夹自动成为歌单与子歌单，重复扫描更新配置。</p></div><Music2 size={19} className="shrink-0 text-[#8ca58f]"/></div>
-                  <div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" disabled={scanningMusic} onClick={() => void scanMusic()} className="rounded-xl border border-[#bed1c2] bg-[#edf5ef] px-4 py-2 text-xs font-semibold text-[#416952] transition hover:bg-[#e1eee4] disabled:opacity-50">{scanningMusic ? "扫描中…" : "扫描本地音乐"}</button><span className="text-xs text-slate-400">当前曲库：{allTracks.filter(track => track.id.startsWith("local_")).length} 首本地歌曲</span></div>
+                  <div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-semibold text-[#345b48]">{deepText(locale, "settings.musicScan")}</h3><p className="mt-2 text-xs leading-6 text-slate-500">{deepText(locale, "settings.musicScanHelp")}</p></div><Music2 size={19} className="shrink-0 text-[#8ca58f]"/></div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" disabled={scanningMusic} onClick={() => void scanMusic()} className="rounded-xl border border-[#bed1c2] bg-[#edf5ef] px-4 py-2 text-xs font-semibold text-[#416952] transition hover:bg-[#e1eee4] disabled:opacity-50">{scanningMusic ? deepText(locale, "settings.musicScanning") : deepText(locale, "settings.musicScanButton")}</button><span className="text-xs text-slate-400">{deepText(locale, "settings.musicLibrary")}{allTracks.filter(track => track.id.startsWith("local_")).length} {deepText(locale, "settings.musicTracks")}</span></div>
                   {scanNotice && <p role="status" className="mt-3 text-xs leading-6 text-[#607866]">{scanNotice}</p>}
-                  <p className="mt-3 text-[11px] leading-5 text-slate-400">建议采用「歌手 - 歌名」命名；冷门或较新的歌曲可能不被 AI 熟悉。封面提取失败时使用默认唱片。</p>
+                  <p className="mt-3 text-[11px] leading-5 text-slate-400">{deepText(locale, "settings.musicNamingHelp")}</p>
                 </div>
               </section>
             )}
@@ -367,12 +367,12 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 <SectionTitle>{t("settings.debugging")}</SectionTitle>
                 <SwitchRow title="Debug Mode" description={t("settings.debug.description")} checked={debugMode} onClick={onToggleDebug} icon={Bug} />
                 {debugMode && <>
-                <SwitchRow title="显示生图协议标签" description="在故事、小说或工程回复中显示生图指令与请求参数。只用于调试，不影响生图功能本身。" checked={debugDrawTagsEnabled} onClick={onToggleDebugDrawTags} icon={ImageIcon} />
-                <SwitchRow title="终端输出发送给 AI 的完整请求" description="默认关闭；在 Node.js 终端查看最终 System Prompt、对话内容及模型参数（不含 API Key）。可能包含私密设定、对话和图片数据。" checked={terminalRequestLogEnabled} onClick={onToggleTerminalRequestLog} icon={Bug} />
-                <SwitchRow title="终端输出 AI 完整原文" description="默认关闭；开启后在运行 Shiorivia 的终端打印模型的完整流式原文（包括隐藏标签与状态 JSON）。可能包含私人对话，请勿分享终端日志。" checked={terminalLogEnabled} onClick={onToggleTerminalLog} icon={Bug} />
+                <SwitchRow title={deepText(locale, "settings.debugDraw")} description={deepText(locale, "settings.debugDrawHelp")} checked={debugDrawTagsEnabled} onClick={onToggleDebugDrawTags} icon={ImageIcon} />
+                <SwitchRow title={deepText(locale, "settings.terminalRequest")} description={deepText(locale, "settings.terminalRequestHelp")} checked={terminalRequestLogEnabled} onClick={onToggleTerminalRequestLog} icon={Bug} />
+                <SwitchRow title={deepText(locale, "settings.terminalRaw")} description={deepText(locale, "settings.terminalRawHelp")} checked={terminalLogEnabled} onClick={onToggleTerminalLog} icon={Bug} />
                 </>}
                 <SwitchRow title={t("settings.transition")} description={t("settings.transition.description")} checked={engineeringTransitionEnabled} onClick={onToggleEngineeringTransition} icon={Sparkles} />
-                <SwitchRow title="Tela 羊皮纸卷轴转场" description="进入或退出小说模式时展开羊皮纸卷轴。原幕布动画仍可在下方预览；关闭后直接切换界面。" checked={curtainTransitionEnabled} onClick={onToggleCurtainTransition} icon={Sparkles} />
+                <SwitchRow title={deepText(locale, "settings.telaTransition")} description={deepText(locale, "settings.telaTransitionHelp")} checked={curtainTransitionEnabled} onClick={onToggleCurtainTransition} icon={Sparkles} />
                 <SectionTitle>{t("settings.preview")}</SectionTitle>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {([
