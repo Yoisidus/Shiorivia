@@ -10,6 +10,7 @@ import type { ImageSettings, ProviderCapability } from "../lib/imageSettings";
 import type { WebToolConfig } from "../lib/webToolSettings";
 import { capabilityFor } from "../lib/imageSettings";
 import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 import { useAppDialog } from "../context/DialogContext";
 import { LANGUAGE_OPTIONS, type Locale } from "../lib/locale";
 import { CONTEXT_WINDOW_OPTIONS, type ContextWindowTokens } from "../lib/contextWindow";
@@ -175,19 +176,17 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 </div>
                 <div className="mb-7 rounded-xl border border-slate-200 bg-white p-4">
                   <label htmlFor="shiorivia-context-window" className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
-                    <BookOpen size={16} /> 默认上下文窗口
+                    <BookOpen size={16} /> {deepText(locale, "settings.contextWindow")}
                   </label>
                   <select id="shiorivia-context-window" value={contextWindowTokens}
                     onChange={event => onContextWindowChange(Number(event.target.value) as ContextWindowTokens)}
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-400">
                     {CONTEXT_WINDOW_OPTIONS.map(tokens => <option key={tokens} value={tokens}>
-                      {tokens / 1024}K Token{tokens === 262144 ? " · 默认" : ""}
+                      {tokens / 1024}K Token{tokens === 262144 ? ` · ${deepText(locale, "settings.contextDefault")}` : ""}
                     </option>)}
                   </select>
                   <p className="mt-2 text-xs leading-5 text-slate-500">
-                    所有模式通用。按 Token 预算优先保留连续的近期对话，不再按固定消息数量截断；
-                    故事、小说、聊天和 VIAE 继续使用记忆档案。窗口包含系统提示与输出预留空间。
-                    实际上限仍受所选模型与供应商限制，较大窗口可能增加费用。
+                    {deepText(locale, "settings.contextHelp")}
                   </p>
                 </div>
                 {isStory ? (
@@ -211,8 +210,8 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 )}
                 <SectionTitle>{t("settings.data")}</SectionTitle>
                 <div className="mb-6 rounded-2xl border border-[#dce7de] bg-white p-5">
-                  <div className="flex items-center justify-between gap-4"><div><h3 className="text-sm font-semibold text-[#345b48]">自动增量同步</h3><p className="mt-2 text-xs leading-5 text-slate-500">默认关闭。仅在完整对话达到设定轮数后追加新消息；删除和编辑仍需手动保存。</p></div><button type="button" role="switch" aria-checked={autoSync} aria-label="自动增量同步" onClick={() => onAutoSyncChange(!autoSync)} className={`h-6 w-11 shrink-0 rounded-full p-1 transition ${autoSync ? "bg-[#5c927b]" : "bg-slate-200"}`}><span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition ${autoSync ? "translate-x-5" : ""}`}/></button></div>
-                  <label className="mt-4 block text-xs text-[#61786d]">每隔多少轮完整对话同步<select disabled={!autoSync} value={autoSyncInterval} onChange={e => onAutoSyncIntervalChange(Number(e.target.value) as 3 | 4 | 5)} className="mt-2 block w-full rounded-xl border border-[#dce7de] bg-[#f9fbf9] px-3 py-2 text-sm disabled:opacity-40"><option value={3}>3 轮</option><option value={4}>4 轮 · 默认</option><option value={5}>5 轮</option></select></label>
+                  <div className="flex items-center justify-between gap-4"><div><h3 className="text-sm font-semibold text-[#345b48]">{deepText(locale, "settings.autoSync")}</h3><p className="mt-2 text-xs leading-5 text-slate-500">{deepText(locale, "settings.autoSyncHelp")}</p></div><button type="button" role="switch" aria-checked={autoSync} aria-label={deepText(locale, "settings.autoSync")} onClick={() => onAutoSyncChange(!autoSync)} className={`h-6 w-11 shrink-0 rounded-full p-1 transition ${autoSync ? "bg-[#5c927b]" : "bg-slate-200"}`}><span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition ${autoSync ? "translate-x-5" : ""}`}/></button></div>
+                  <label className="mt-4 block text-xs text-[#61786d]">{deepText(locale, "settings.autoSyncFrequency")}<select disabled={!autoSync} value={autoSyncInterval} onChange={e => onAutoSyncIntervalChange(Number(e.target.value) as 3 | 4 | 5)} className="mt-2 block w-full rounded-xl border border-[#dce7de] bg-[#f9fbf9] px-3 py-2 text-sm disabled:opacity-40"><option value={3}>3 {deepText(locale, "settings.turns")}</option><option value={4}>4 {deepText(locale, "settings.turns")} · {deepText(locale, "settings.contextDefault")}</option><option value={5}>5 {deepText(locale, "settings.turns")}</option></select></label>
                 </div>
                 <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-6 text-slate-500">
                   <BookOpen size={17} className="mt-0.5 shrink-0 text-[#65927c]" />
@@ -250,14 +249,14 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 <p className="mb-6 text-xs leading-6 text-slate-500">{t("settings.providers.description")}</p>
                 <SectionTitle>扩展能力 · EXTENSIONS</SectionTitle>
                 {(activeMode === "sliding" || activeMode === "novel") && <>
-                  <SwitchRow title="趣味弹幕" description="默认关闭。开启后 AI 为本轮故事或小说生成有趣、贴合场景的虚拟观众弹幕，不参与剧情或角色对话。" checked={danmakuEnabled} onClick={onToggleDanmaku} icon={Sparkles} />
+                  <SwitchRow title={deepText(locale, "settings.danmaku")} description={deepText(locale, "settings.danmakuHelp")} checked={danmakuEnabled} onClick={onToggleDanmaku} icon={Sparkles} />
                   {danmakuEnabled && <div className="mb-4 rounded-xl border border-amber-200 bg-[#fffaf0] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <label htmlFor="danmaku-count" className="text-xs font-medium text-[#745a3d]">每轮弹幕数量</label>
-                      <output htmlFor="danmaku-count" className="rounded-lg border border-[#dec39e] bg-white px-3 py-1 text-sm font-bold tabular-nums text-[#8a6236]">{danmakuCount} <span className="text-[10px] font-normal">条</span></output>
+                      <label htmlFor="danmaku-count" className="text-xs font-medium text-[#745a3d]">{deepText(locale, "settings.danmakuCount")}</label>
+                      <output htmlFor="danmaku-count" className="rounded-lg border border-[#dec39e] bg-white px-3 py-1 text-sm font-bold tabular-nums text-[#8a6236]">{danmakuCount} <span className="text-[10px] font-normal">{deepText(locale, "settings.danmakuUnit")}</span></output>
                     </div>
                     <input id="danmaku-count" type="range" min={1} max={24} step={1}
-                      aria-label="弹幕数量" aria-valuetext={`${danmakuCount} 条`}
+                      aria-label={deepText(locale, "settings.danmakuCount")} aria-valuetext={`${danmakuCount} ${deepText(locale, "settings.danmakuUnit")}`}
                       value={danmakuCount}
                       onChange={event => onDanmakuCountChange(Math.max(1, Math.min(24, Number(event.target.value))))}
                       className="w-full cursor-pointer accent-[#bc8550]"
