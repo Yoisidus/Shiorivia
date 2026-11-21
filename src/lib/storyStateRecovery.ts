@@ -134,9 +134,29 @@ export function normalizeStoryProtocol(value: unknown): unknown {
 export function storyProtocolIssues(value: unknown): string[] {
   if (!isRecord(value)) return ["game_state 必须为 JSON 对象"];
   const issues: string[] = [];
-  if (!("protagonist" in value)) issues.push("缺少 protagonist");
+  if (!("protagonist" in value) || (value.protagonist !== null && !isRecord(value.protagonist))) {
+    issues.push("protagonist 必须为对象或 null");
+  } else if (isRecord(value.protagonist)) {
+    for (const key of ["name", "timeDesc", "environment", "temperature", "clothing", "sensation", "innerState"]) {
+      if (typeof value.protagonist[key] !== "string") issues.push("protagonist." + key + " 必须为字符串");
+    }
+  }
   if (!Array.isArray(value.character)) issues.push("character 必须为数组");
-  if (!Array.isArray(value.sceneCastIds)) issues.push("sceneCastIds 必须为数组");
+  if (!Array.isArray(value.sceneCastIds) || !value.sceneCastIds.every(id => typeof id === "string")) {
+    issues.push("sceneCastIds 必须为角色 ID 数组");
+  }
+  if (!Array.isArray(value.nextSceneCastIds) || !value.nextSceneCastIds.every(id => typeof id === "string")) {
+    issues.push("nextSceneCastIds 必须为数组（可为空）");
+  }
+  if (!Array.isArray(value.danmaku) || !value.danmaku.every(item => typeof item === "string")) {
+    issues.push("danmaku 必须为字符串数组");
+  }
+  if (!isRecord(value.timeline) || ["major", "medium", "minor"].some(key => typeof (value.timeline as StoryObject)[key] !== "string")) {
+    issues.push("timeline 必须包含 major / medium / minor 字符串");
+  }
+  if (!("music" in value) || (value.music !== null && !isRecord(value.music))) {
+    issues.push("music 必须为对象或 null");
+  }
   if (!isRecord(value.suggestions)) {
     issues.push("suggestions 必须为包含 fun / rational / radical 的对象");
   } else {
