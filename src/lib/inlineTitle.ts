@@ -15,11 +15,13 @@ export function titleInstruction(currentTitle: string, userTurn: number, manual:
       ? "You MUST review whether the saved title accurately describes the CURRENT conversation and memory, including changed focus after deletions. "
         + (story
           ? "In Story, FIRST output <thinking>...</thinking>, THEN exactly ONE <session_title>NEW_TITLE_OR_KEEP</session_title> immediately after the closing thinking tag, BEFORE story prose."
-          : "At the start of your response (AFTER the first-line <meta ... /> tag for novels) emit exactly ONE <session_title>NEW_TITLE_OR_KEEP</session_title> tag.")
+          : novel
+            ? "Review the saved novel title and decide whether to KEEP it or replace it with a concise meaningful title in the active UI language. The central Tela output contract defines the location and syntax of the session_title tag."
+            : "At the start of your response emit exactly ONE <session_title>NEW_TITLE_OR_KEEP</session_title> tag.")
         + " Use KEEP if the current title still fits; otherwise a concise meaningful new title in the active UI language. Do not use the words NEW_TITLE_OR_KEEP literally."
       : "Do NOT emit a <session_title> tag this turn. The saved session title must remain unchanged.",
     novel
-      ? "Novel only: independent of the session_title review, ALWAYS begin each chapter's literary content with <meta title=\"CURRENT_NOVEL_TITLE\" chapter=\"MEANINGFUL_CHAPTER_TITLE\" />. Chapter title is mandatory EVERY turn; reuse it only when the chapter's main scene/theme is truly continuous. The meta title reflects the latest saved session title unless this turn's session_title changes it."
+      ? "Novel chapter metadata and title placement are defined exclusively by TELA OUTPUT CONTRACT. Apply the above title review decision consistently."
       : story
         ? "Story output order: <thinking>...</thinking>, optional <session_title>...</session_title> only on review turns, visible story prose, and finally <game_state> JSON. Do not place title metadata inside thinking or prose."
         : "Put session_title before the visible reply (but AFTER novel <meta>), and do not quote or explain the tag. Do not let it interrupt story prose, code blocks or game_state JSON.",
