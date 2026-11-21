@@ -1,21 +1,45 @@
-import type { ChartaWorld, ChartaTimelineStage } from "./chartaWorld";
+import { TIMELINE_LOCALES, type TimelineLocale, type ChartaWorld, type ChartaTimelineStage } from "./chartaWorld";
+import { deepText } from "./i18nDeep";
 
 export const BANG_DREAM_WORLD_ID = "bang-dream";
 export const BANG_DREAM_WORLD_NAME = "BanG Dream!";
 
-/** Same T-x-y stages used by VIAE, grouped into the requested ERA periods. */
-export const BANG_DREAM_CANON: ChartaTimelineStage[] = [
-  { era: "早年", period: "T-0-1" },
-  { era: "初三春夏季", period: "T-1-2" },
-  { era: "初三、毕业后的暑假", period: "T-2-3" },
-  { era: "高一秋冬季", period: "T-3-4" },
-  { era: "高一秋冬季", period: "T-4-5" },
-  { era: "高一春夏季", period: "T-5-6" },
-  { era: "高一春夏季", period: "T-6-7" },
-  { era: "高一春夏季", period: "T-7-8" },
-  { era: "高一春夏季", period: "T-8-9" },
-  { era: "未来", period: "T-9-10" },
-];
+/** Built-in timeline IDs are stored, while their descriptions reuse existing i18nDeep translations. */
+const BUILT_IN_PERIODS = [
+  ["早年", "T-0-1"], ["初三春夏季", "T-1-2"], ["初三、毕业后的暑假", "T-2-3"],
+  ["高一秋冬季", "T-3-4"], ["高一秋冬季", "T-4-5"], ["高一春夏季", "T-5-6"],
+  ["高一春夏季", "T-6-7"], ["高一春夏季", "T-7-8"], ["高一春夏季", "T-8-9"],
+  ["未来", "T-9-10"],
+] as const;
+export const BANG_DREAM_CANON: ChartaTimelineStage[] = BUILT_IN_PERIODS.map(([era, period]) => ({
+  era, period,
+  descriptions: Object.fromEntries(TIMELINE_LOCALES.map(locale => [
+    locale, deepText(locale, `timeline.${period.slice(2)}` as import("./i18nDeep").DeepTextKey),
+  ])) as Partial<Record<TimelineLocale, string>>,
+}));
+
+/** Show a timeline description only in the exact selected language. Never fall back. */
+export function timelineStageDescription(stage: ChartaTimelineStage | undefined, locale: string): string {
+  if (!stage || !TIMELINE_LOCALES.some(value => value === locale)) return "";
+  return stage.descriptions?.[locale as TimelineLocale]?.trim() || "";
+}
+
+/** The archive order, not the T-x-y number or era spelling, defines progression. */
+export function worldlineStageIndex(worldline: Pick<StoryWorldline, "kind" | "canonTimeline" | "era" | "period">): number {
+  return worldline.canonTimeline.findIndex(stage => stage.era === worldline.era && stage.period === worldline.period);
+}
+
+/** Validate a forward-only progression on the original (canon) timeline. AU freeform
+ * dates are not forcibly compared; any AU era/period edits need an explicit
+ * model/user direction instead of guessing order from arbitrary strings. */
+export function canAdvanceWorldline(previous: StoryWorldline, next: StoryWorldline): boolean {
+  if (previous.kind !== next.kind) return false;
+  if (previous.era === next.era && previous.period === next.period) return true;
+  if (previous.kind !== "canon") return false;
+  const from = worldlineStageIndex(previous), to = worldlineStageIndex(next);
+  return from >= 0 && to >= from;
+}
+
 
 export type SecondaryStoryWorld = {
   worldId: string;
@@ -55,6 +79,17 @@ export const worldlineFor = (world: ChartaWorld | null): StoryWorldline => ({
   kind: "canon", era: "", period: "", event: "",
 });
 
+function sanitizeTimelineDescriptions(value: unknown): Partial<Record<TimelineLocale, string>> | null {
+  if (value === undefined) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const descriptions: Partial<Record<TimelineLocale, string>> = {};
+  for (const locale of TIMELINE_LOCALES) {
+    const text = (value as Record<string, unknown>)[locale];
+    if (typeof text === "string" && text.trim() && text.length <= 500) descriptions[locale] = text.trim();
+  }
+  return Object.keys(descriptions).length ? descriptions : null;
+}
+
 /** Validate a snapshot from a save or request; never trust client-supplied world data blindly. */
 export function parseStoryWorldline(input: unknown): StoryWorldline | null {
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
@@ -73,7 +108,8 @@ export function parseStoryWorldline(input: unknown): StoryWorldline | null {
   for (const stage of rawStages) {
     if (!stage || typeof stage !== "object" || typeof stage.era !== "string" || typeof stage.period !== "string"
       || stage.era.length > 100 || stage.period.length > 100 || !stage.era.trim() || !stage.period.trim()) return null;
-    stages.push({ era: stage.era.trim(), period: stage.period.trim() });
+      const descriptions = sanitizeTimelineDescriptions(stage.descriptions);
+      stages.push({ era: stage.era.trim(), period: stage.period.trim(), ...(descriptions ? { descriptions } : {}) });
   }
   if (kind === "canon" && !stages.some(stage => stage.era === era && stage.period === period)) return null;
   // For AU, the story's creative ERA/PERIOD remains free-form, while the
@@ -110,7 +146,8 @@ export function parseStoryWorldline(input: unknown): StoryWorldline | null {
       for (const t of item.canonTimeline) {
         if (!t || typeof t !== "object" || typeof t.era !== "string" || typeof t.period !== "string"
           || !t.era.trim() || !t.period.trim() || t.era.length > 100 || t.period.length > 100) return null;
-        timeline.push({ era: t.era.trim(), period: t.period.trim() });
+      const descriptions = sanitizeTimelineDescriptions(t.descriptions);
+      timeline.push({ era: t.era.trim(), period: t.period.trim(), ...(descriptions ? { descriptions } : {}) });
       }
       if (!timeline.some(t => t.era === item.baseEra && t.period === item.basePeriod)) return null;
       seen.add(item.worldId);
