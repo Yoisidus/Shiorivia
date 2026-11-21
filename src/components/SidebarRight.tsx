@@ -192,7 +192,7 @@ const SidebarRightComponent = ({
                                 <button type="button" onClick={() => setWorldlineOpen(true)} className="group relative w-full overflow-hidden rounded-2xl border border-[#dc7197]/55 bg-[#672b48] p-4 text-left shadow-[0_10px_25px_rgba(103,43,72,.16)] transition hover:border-[#f0b8cf] hover:shadow-lg">
                                     <span aria-hidden className="pointer-events-none absolute -right-7 -top-8 h-28 w-28 rounded-full border border-[#e2c996]/40" />
                                     <span aria-hidden className="pointer-events-none absolute right-0 top-1 h-16 w-16 rounded-full border border-[#e2c996]/20" />
-                                    <div className="relative flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-[11px] font-semibold tracking-[.15em] text-[#ffd1e3]" style={{fontFamily:'Bahnschrift,"Arial Narrow",sans-serif'}}>✧ WORLDLINE / 世界线</span><span className="text-[10px] text-[#f1b9d2] group-hover:text-white">{deepText(locale, "sidebar.story.openWorld")}</span></div>
+                                    <div className="relative flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-[11px] font-semibold tracking-[.15em] text-[#ffd1e3]" style={{fontFamily:'Bahnschrift,"Arial Narrow",sans-serif'}}>✧ WORLDLINE / {deepText(locale, "sidebar.story.worldline")}</span><span className="text-[10px] text-[#f1b9d2] group-hover:text-white">{deepText(locale, "sidebar.story.openWorld")}</span></div>
                                     <p className="relative mt-2 text-[11px] leading-5 text-[#ffe4ed]">{currentSession?.storyWorldline ? describeStoryWorldline(currentSession.storyWorldline, locale) : currentSession?.timeline?.major ? `${deepText(locale, "sidebar.story.legacy")}${currentSession.timeline.major} / ${currentSession.timeline.medium || deepText(locale, "sidebar.story.notSet")}` : deepText(locale, "sidebar.story.worldMissing")}</p>
                                 </button>
                                 {currentSession && <StoryCastPicker key={currentSession.id} session={currentSession}
@@ -203,14 +203,14 @@ const SidebarRightComponent = ({
                                     <div className="rounded-lg border shadow-sm relative overflow-hidden" style={{ backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }}>
                                         <div className="absolute top-0 right-0 w-16 h-16 bg-[#E0E0FF]/30 rounded-bl-full -mr-4 -mt-4"></div>
                                         <div className="p-3 relative z-10">
-                                            <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider flex items-center gap-1"><User size={10} /> 自身状态</div>
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider flex items-center gap-1"><User size={10} /> {deepText(locale, "sidebar.story.selfStatus")}</div>
                                             <div className="grid grid-cols-2 gap-2 text-xs leading-5">
-                                                <div className="col-span-2 text-gray-500">Name: <span className="font-bold" style={{ color: storyRole === "participant" ? storySelf?.hex || "#799783" : viewpointColor }}>{storyRole === "participant" && storySelf ? selfName(storySelf, locale) : prota.name || "未命名"}</span></div>
+                                                <div className="col-span-2 text-gray-500">Name: <span className="font-bold" style={{ color: storyRole === "participant" ? storySelf?.hex || "#799783" : viewpointColor }}>{storyRole === "participant" && storySelf ? selfName(storySelf, locale) : prota.name || deepText(locale, "sidebar.story.unnamed")}</span></div>
                                                 <div className="col-span-2 text-gray-500">Time: <span className="text-gray-800">{prota.timeDesc || "—"}</span></div>
                                                 <div className="col-span-2 text-gray-500">Env: <span className="text-gray-800">{prota.environment || "—"}</span></div>
                                                 <div className="col-span-2 text-gray-500">Outfit: <span className="text-gray-800">{prota.clothing || "—"}</span></div>
                                                 <div className="col-span-2 flex items-start gap-1 text-gray-500"><Thermometer size={11} className="mt-0.5 shrink-0"/><span>{prota.temperature || "—"} · {prota.sensation || "—"}</span></div>
-                                                <div className="col-span-2 border-t border-slate-200 pt-2 text-[11px] italic text-gray-700">{prota.innerState && prota.innerState !== "—" ? `“${prota.innerState}”` : "内心状态：未记录"}</div>
+                                                <div className="col-span-2 border-t border-slate-200 pt-2 text-[11px] italic text-gray-700">{prota.innerState && prota.innerState !== "—" ? `“${prota.innerState}”` : deepText(locale, "sidebar.story.innerMissing")}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -220,7 +220,7 @@ const SidebarRightComponent = ({
                                     <div className="rounded-lg border shadow-sm transition-colors duration-500" style={{ backgroundColor: `${themeColor}10`, borderColor: `${themeColor}40` }}>
                                         <div className="p-3">
                                             <div className="flex justify-between items-center mb-3">
-                                                <div className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1" style={{ color: themeColor }}><Heart size={10} /> Target: {characterDisplayName((dbChars?.length ? dbChars : CHAR_DATA).find((c: any) => c.name === currentChar.name)?.id, currentChar.name, locale)}</div>
+                                                <div className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1" style={{ color: themeColor }}><Heart size={10} /> {deepText(locale, "sidebar.story.target")}: {characterDisplayName((dbChars?.length ? dbChars : CHAR_DATA).find((c: any) => c.name === currentChar.name)?.id, currentChar.name, locale)}</div>
                                                 {charList.length > 1 && (
                                                     <div className="flex gap-1">
                                                         <button onClick={() => setPageIndex(p => p > 0 ? p - 1 : charList.length - 1)} className="p-1 hover:bg-white rounded shadow-sm"><ChevronLeft size={10} /></button>
@@ -230,20 +230,20 @@ const SidebarRightComponent = ({
                                                 )}
                                             </div>
 
-                                            <StatBar label="Affection" value={currentChar.affection} color={themeColor} icon={Heart} />
-                                            <StatBar label="Possessiveness" value={currentChar.Possessiveness} color="#9333ea" icon={Zap} />
-                                            <StatBar label="Obsession" value={currentChar.Obsession} color="#dc2626" icon={Skull} />
-                                            <StatBar label="Lust" value={currentChar.Lust ?? currentChar.Intimacy ?? 0} color="#fb7185" icon={Sparkles} />
+                                            <StatBar label={deepText(locale, "sidebar.story.affection")} value={currentChar.affection} color={themeColor} icon={Heart} />
+                                            <StatBar label={deepText(locale, "sidebar.story.possessiveness")} value={currentChar.Possessiveness} color="#9333ea" icon={Zap} />
+                                            <StatBar label={deepText(locale, "sidebar.story.obsession")} value={currentChar.Obsession} color="#dc2626" icon={Skull} />
+                                            <StatBar label={deepText(locale, "sidebar.story.lust")} value={currentChar.Lust ?? currentChar.Intimacy ?? 0} color="#fb7185" icon={Sparkles} />
 
                                             <div className="mt-3 text-[10px] space-y-2 text-gray-600 border-t pt-2" style={{ borderColor: `${themeColor}30` }}>
                                                 {currentChar.innerState && (
                                                     <div className="bg-white/60 p-2 rounded border border-black/5 italic relative">
-                                                        <span className="absolute -top-2 left-1 bg-white px-1 text-[9px] text-gray-400 font-bold not-italic">💭 Inner</span>
+                                                        <span className="absolute -top-2 left-1 bg-white px-1 text-[9px] text-gray-400 font-bold not-italic">💭 {deepText(locale, "sidebar.story.inner")}</span>
                                                         "{currentChar.innerState}"
                                                     </div>
                                                 )}
-                                                <div><div className="font-bold text-gray-400 flex items-center gap-1 mb-0.5"><Shirt size={10} /> Clothing:</div><div className="leading-relaxed pl-1">{currentChar.clothing}</div></div>
-                                                <div><div className="font-bold text-gray-400 flex items-center gap-1 mb-0.5"><Footprints size={10} /> Legs/Shoes:</div><div className="leading-relaxed pl-1">{currentChar.shoes} {currentChar.legState}</div></div>
+                                                <div><div className="font-bold text-gray-400 flex items-center gap-1 mb-0.5"><Shirt size={10} /> {deepText(locale, "sidebar.story.clothing")}:</div><div className="leading-relaxed pl-1">{currentChar.clothing}</div></div>
+                                                <div><div className="font-bold text-gray-400 flex items-center gap-1 mb-0.5"><Footprints size={10} /> {deepText(locale, "sidebar.story.legs")}:</div><div className="leading-relaxed pl-1">{currentChar.shoes} {currentChar.legState}</div></div>
                                             </div>
                                         </div>
                                     </div>
@@ -251,10 +251,10 @@ const SidebarRightComponent = ({
 
                                 {suggestions && (
                                     <div className="space-y-3 pb-4">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Sparkles size={10} /> {storyRole === "observer" ? "旁观引导" : "剧情指引"}</div>
-                                        <SuggestionItem type="Fun / Chaos" content={suggestions.fun} colorBg="bg-yellow-50" colorBorder="border-yellow-200" colorText="text-yellow-800" icon="🤪" />
-                                        <SuggestionItem type="Rational" content={suggestions.rational} colorBg="bg-blue-50" colorBorder="border-blue-200" colorText="text-blue-800" icon="🧠" />
-                                        <SuggestionItem type="Radical" content={suggestions.radical} colorBg="bg-red-50" colorBorder="border-red-200" colorText="text-red-800" icon="🔥" />
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><Sparkles size={10} /> {deepText(locale, storyRole === "observer" ? "sidebar.story.observerDirection" : "sidebar.story.plotDirection")}</div>
+                                        <SuggestionItem type={deepText(locale, "sidebar.story.fun")} content={suggestions.fun} colorBg="bg-yellow-50" colorBorder="border-yellow-200" colorText="text-yellow-800" icon="🤪" />
+                                        <SuggestionItem type={deepText(locale, "sidebar.story.rational")} content={suggestions.rational} colorBg="bg-blue-50" colorBorder="border-blue-200" colorText="text-blue-800" icon="🧠" />
+                                        <SuggestionItem type={deepText(locale, "sidebar.story.radical")} content={suggestions.radical} colorBg="bg-red-50" colorBorder="border-red-200" colorText="text-red-800" icon="🔥" />
                                     </div>
                                 )}
                             </div>
@@ -262,10 +262,10 @@ const SidebarRightComponent = ({
                             <div className="p-2 space-y-4">
                                 <div className="space-y-2">
                                     {isEngineeringMode && <label className="block rounded-xl border border-slate-200 bg-white px-3 py-3 text-[11px] font-semibold text-slate-600">
-                                        <span className="mb-2 block">按世界观筛选 · WORLD</span>
+                                        <span className="mb-2 block">{deepText(locale, "sidebar.persona.worldFilter")}</span>
                                         <select value={personaWorldFilter} onChange={e => setPersonaWorldFilter(e.target.value)}
                                             className="w-full rounded-lg border border-[#e0e7e9] bg-white px-3 py-2 text-xs text-[#314c63] outline-none focus:border-[#9cacaa]">
-                                            <option value="all">全部世界观 · All worlds</option>
+                                            <option value="all">{deepText(locale, "sidebar.persona.allWorlds")}</option>
                                             {personaWorldChoices.map(worldId => <option key={worldId} value={worldId}>
                                                 {worldNameFor(worldId === "universal" ? null : worldId)}
                                             </option>)}
