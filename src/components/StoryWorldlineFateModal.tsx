@@ -50,7 +50,6 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
   const primaryLocked = Boolean(value && parseStoryWorldline(value));
   const timeEditable = !primaryLocked || timeUnlocked;
   const minStageIndex = value?.kind === "canon" ? worldlineStageIndex(value) : -1;
-  const currentStage = stages.find(stage => stage.era === draft.era && stage.period === draft.period);
   const previousSecondary = new Set(value?.crossWorld?.secondary.map(w => w.worldId) || []);
   const choices = useMemo(() => {
     const list = [{ id: BANG_DREAM_WORLD_ID, name: BANG_DREAM_WORLD_NAME }, ...worlds];
@@ -58,7 +57,8 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
     return list;
   }, [worlds, value]);
   const stages = draft.canonTimeline || [];
-  const eras = [...new Set(stages.filter((s, index) => (minStageIndex < 0 || index >= minStageIndex) && (!draft.period || s.period === draft.period)).map(s => s.era))];
+  const currentStage = stages.find(stage => stage.era === draft.era && stage.period === draft.period);
+  const eras = [...new Set(stages.filter((s, index) => (minStageIndex < 0 || index >= minStageIndex) && true).map(s => s.era))];
   const periods = [...new Set(stages.filter((s, index) => (minStageIndex < 0 || index >= minStageIndex) && (!draft.era || s.era === draft.era)).map(s => s.period))];
   const baseEras = [...new Set(stages.map(s => s.era))];
   const basePeriods = stages.filter(s => !draft.baseEra || s.era === draft.baseEra);
