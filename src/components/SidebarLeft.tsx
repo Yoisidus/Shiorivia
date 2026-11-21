@@ -94,7 +94,7 @@ export const SidebarLeft = ({
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "读取 IDE 项目失败");
             setIdeProjects(Array.isArray(data.projects) ? data.projects : []);
-        } catch (e: any) { void dialog.alert(e.message); }
+        } catch (e: any) { dialog.notify(e.message); }
         finally { setProjectLoading(false); }
     };
     const createBindingProject = async () => {
@@ -109,7 +109,7 @@ export const SidebarLeft = ({
             setIdeProjects(prev => [...new Set([...prev, data.project])].sort());
             if (bindingSessionId) onBindEngineeringProject(bindingSessionId, data.project);
             setBindingSessionId(null);
-        } catch (e: any) { void dialog.alert(e.message); }
+        } catch (e: any) { dialog.notify(e.message); }
     };
     const [modelGroups, setModelGroups] = useState<LocalModelGroup[]>(fallbackModelGroups(apiProvider));
     const [catalogSource, setCatalogSource] = useState("fallback");
