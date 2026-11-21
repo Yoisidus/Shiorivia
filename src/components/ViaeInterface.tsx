@@ -198,7 +198,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
     updateSession(current => ({ ...current, limeGroups: (current.limeGroups || []).filter(g => g.id !== id), limeGroupId: current.limeGroupId === id ? null : current.limeGroupId, updatedAt: Date.now() }));
   };
   const rename = async (group: ViaeConversation) => {
-    const name = await dialog.prompt("为这段道路重新命名", group.name)?.trim();
+    const name = (await dialog.prompt("为这段道路重新命名", group.name))?.trim();
     if (name) updateGroup(group.id, g => ({ ...g, name: name.slice(0, 70), updatedAt: Date.now() }));
   };
   const toggleMember = (id: string) => {
