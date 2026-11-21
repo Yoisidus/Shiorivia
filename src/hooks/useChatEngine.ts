@@ -1099,13 +1099,17 @@ export const useChatEngine = ({
                 "此前自身状态: " + JSON.stringify(previous?.protagonist ?? currentSession.protagonist ?? null).slice(0, 2400),
                 "此前其他角色状态: " + JSON.stringify(previous?.charStatus ?? currentSession.charStatus ?? []).slice(0, 4000),
                 "世界线: " + JSON.stringify(currentSession.storyWorldline),
+                "上一轮 STM: " + String(currentSession.stm || "").slice(-4800),
+                "上一轮 LTM: " + String(currentSession.ltm || "").slice(-6500),
                 "已完成正文:\n" + String(target.content).slice(-14000),
             ].join("\n\n");
             const response = await fetch("/api/chat", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 signal: controller.signal,
                 body: JSON.stringify({
-                    stateRepair: true, memoryMode: "sliding", model: modelToUse,
+                    stateRepair: true, repairMemory: target.memoryRepairMissing === true,
+                    memoryTurnCount: parseLocalMemoryEntries(currentSession.stm).length,
+                    memoryMode: "sliding", model: modelToUse,
                     provider: apiProvider, uiLanguage: locale,
                     debugRequestPayload: config.terminalRequestLog === true,
                     debugFullOutput: config.terminalLog === true,
@@ -1133,6 +1137,11 @@ export const useChatEngine = ({
                 raw += decoder.decode(value, { stream: true });
             }
             raw += decoder.decode();
+            const recoveredMemory = target.memoryRepairMissing ? parseStoryTurnMemory(raw) : null;
+            if (target.memoryRepairMissing && (!recoveredMemory?.stm ||
+                (parseLocalMemoryEntries(currentSession.stm).length >= 6 && !recoveredMemory.ltm))) {
+                throw new Error("模型未补齐本轮 STM/LTM");
+            }
             const block = lastStoryGameState(raw);
             if (!block) throw new Error("模型未返回 game_state");
             const state = normalizeStoryProtocol(JSON.parse(block.json));
@@ -1185,7 +1194,7 @@ export const useChatEngine = ({
                 // The inline memory arrived in the same original stream. Preserve it
                 // until state recovery succeeds; never pay for a second summary
                 // when this metadata is already complete.
-                const pending = currentTarget.storyPendingMemory;
+                const pending = recoveredMemory || currentTarget.storyPendingMemory;
                 const count = Math.max(0, session.turnCount || 0);
                 const nextMemory = pending?.stm
                     ? count >= 6 && pending.ltm
@@ -1207,13 +1216,13 @@ export const useChatEngine = ({
                         ? repaired.danmaku.filter((v: unknown) => typeof v === "string").slice(0, Math.min(24, config.danmakuCount || 8)) : [],
                     ...(session.storyWorldline
                         ? { storyWorldline: advanceWorldlineFromState(session.storyWorldline, repaired.timeline) } : {}),
-                    messages: session.messages.map((message, i) => i === index ? { ...message, storyProtocolMissing: false, storyPendingMemory: undefined } : message),
+                    messages: session.messages.map((message, i) => i === index ? { ...message, storyProtocolMissing: false, storyPendingMemory: undefined, metadataRepairMissing: false, memoryRepairMissing: false } : message),
                     updatedAt: Date.now(),
                 };
             }));
-            showToast("故事状态已补齐，正文保持不变。");
+            dialog.notify("故事状态已补齐，正文保持不变。", { type: "success", tone: "story" });
         } catch (error) {
-            if (!controller.signal.aborted) showToast("补齐状态失败：" + String(error instanceof Error ? error.message : error));
+            if (!controller.signal.aborted) dialog.notify("补齐状态失败：" + String(error instanceof Error ? error.message : error), { type: "error", tone: "story" });
         } finally {
             if (abortControllerRef.current === controller) abortControllerRef.current = null;
             setStoryStateRepairing(false);
