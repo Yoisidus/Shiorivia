@@ -663,9 +663,8 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
       // Keyword-only activation lost already-present characters and could not use
       // the built-in LORE_LIBRARY (CHAR_DATA does not contain full biographies).
 
-      if (ltm?.trim()) finalSystemPrompt += `[LTM]:\n${ltm}\n`;
-      if (stm?.trim()) finalSystemPrompt += `[STM]:\n${stm}\n`;
-
+      // STM/LTM continuity is supplied once by STORY TURN MEMORY below;
+      // avoid injecting the same memories in multiple prompt sections.
       if (imageToolSelected) {
         finalSystemPrompt += `\n[IMAGE TOOL SELECTED] If a useful illustration is warranted, provide a valid <draw> JSON tag following the visualizer protocol. Do NOT add an imageGen property to game_state or any unrelated JSON.\n[Available Outfits]:\n${outfitList}\n`;
       }
