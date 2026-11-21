@@ -4,6 +4,7 @@ import "./globals.css";
 import Script from "next/script"; 
 import { MusicProvider } from "../context/MusicContext";
 import { LanguageProvider } from "../context/LanguageContext";
+import { DialogProvider } from "../context/DialogContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Noto_Serif_SC({ 
@@ -79,7 +80,7 @@ export default function RootLayout({
           `}
         </Script>
         <MusicProvider>
-          <LanguageProvider>{children}</LanguageProvider>
+          <LanguageProvider><DialogProvider>{children}</DialogProvider></LanguageProvider>
         </MusicProvider>
       </body>
     </html>
