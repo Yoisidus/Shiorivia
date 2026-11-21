@@ -157,7 +157,7 @@ export const SidebarLeft = ({
                                 <button type="button" onClick={() => setChatWorldlineOpen(true)}
                                     className="flex w-full items-center justify-between gap-2 rounded-xl border border-[#dae6df] bg-[#f8faf8] px-3 py-3 text-left transition hover:border-[#9eb8a9]">
                                     <span className="min-w-0"><span className="block text-[10px] font-semibold tracking-widest text-[#537566]">UMBRA · WORLDLINE</span>
-                                        <span className="mt-1 block truncate text-xs text-[#486453]">{chatWorldline ? describeStoryWorldline(chatWorldline) : "尚未配置世界线 · 点击选择"}</span>
+                                        <span className="mt-1 block truncate text-xs text-[#486453]">{chatWorldline ? describeStoryWorldline(chatWorldline, locale) : "尚未配置世界线 · 点击选择"}</span>
                                     </span><Globe size={17} className="shrink-0 text-[#6a9680]"/>
                                 </button>
                                 <StoryWorldlineFateModal tone="chat" isOpen={chatWorldlineOpen} value={chatWorldline}
