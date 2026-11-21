@@ -49,7 +49,7 @@ Manual smoke test matrix:
 4. Add a custom Charta world, linked Charta character and linked self; verify their timeline-gated details enter the model prompt.
 5. Change worlds; stale cast and incompatible self selections should be cleared. Cross-world eligibility is configured in the worldline modal, not in the next-cast picker. Configure three secondary worlds with separate canonical baseline ERA/PERIOD values; a fourth must be impossible. Unbound characters require the explicit universal-character switch.
 6. Generate a chapter and check that <novel_state> is not printed in the reading pane, that Environment/Event update, and that the selected next-chapter cast becomes the AI prediction.
-7. Try manually editing the two fields or the predicted cast after the first chapter: each route must require a confirmation.
+7. Try manually editing Environment/Event after chapter one (requires confirmation). The cast picker must be read-only after the first chapter; later casts come from the model lookup round.
 8. Break the JSON or omit <novel_state> with a model and verify state-only recovery. If repair fails, the previous state must remain intact.
 9. Export a novel JSON, import into a new session, verify worldline, novelState, cast, Style, parchment appearance and self draft selection. Also import an older JSON with scenario/action.
 10. Try a Style field with `3000字` and another with no explicit count; check the two different length instructions.
