@@ -140,7 +140,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
         </header>
 
         <div className={`min-h-0 flex-1 space-y-6 overflow-y-auto p-5 sm:p-8 ${novel ? "bg-[#fff9ee]" : chat ? "bg-[#f5fcf6]" : "bg-[#fff6fa]"}`}>
-          {value && <div className={`rounded-xl border-l-[3px] px-4 py-3 text-xs leading-6 ${novel ? "border-[#b8884d] bg-[#f6e8d4] text-[#785334]" : chat ? "border-[#63a081] bg-[#e2f4e8] text-[#35664e]" : "border-[#c65d88] bg-[#fce5ef] text-[#823757]"}`}><span className="font-semibold">既定星路</span><span className="mx-2 text-[#a6b5a7]">/</span>{describeStoryWorldline(value)}</div>}
+          {value && <div className={`rounded-xl border-l-[3px] px-4 py-3 text-xs leading-6 ${novel ? "border-[#b8884d] bg-[#f6e8d4] text-[#785334]" : chat ? "border-[#63a081] bg-[#e2f4e8] text-[#35664e]" : "border-[#c65d88] bg-[#fce5ef] text-[#823757]"}`}><span className="font-semibold">既定星路</span><span className="mx-2 text-[#a6b5a7]">/</span>{describeStoryWorldline(value, locale)}</div>}
           {!value && legacyTimeline?.major && <div className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800">旧时间线仍保留：{legacyTimeline.major} / {legacyTimeline.medium || "未知时期"}。新世界线保存后将优先采用新设定。</div>}
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3"><label htmlFor="fate-world-select" className="text-xs font-bold tracking-[.14em]" style={geometric}><Globe2 size={15} className="mr-2 inline text-[#7a956e]"/>01 · WORLD / 世界观</label>{onOpenCharta && <button type="button" onClick={onOpenCharta} className="flex items-center gap-1 text-[11px] font-semibold text-[#667e6c] hover:underline">Charta · 创造世界 <ArrowUpRight size={12}/></button>}</div>
