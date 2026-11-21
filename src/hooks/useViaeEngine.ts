@@ -177,9 +177,118 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
     }
   };
 
+  /** Manual, user-confirmed metadata recovery; no automatic summaries. */
+  const repairMessage = async (index: number) => {
+    if (!activeGroup || busyRef.current || isLoading) return;
+    if (index !== activeGroup.messages.length - 1) {
+      dialog.notify("只能补齐当前道路的最后一轮状态。", { type: "error", tone: "viae" });
+      return;
+    }
+    const target = activeGroup.messages[index];
+    if (!target || target.role !== "assistant" || !target.metadataRepairMissing) return;
+    if (!await dialog.confirm("确认调用当前模型补齐 VIAE 消息协议或记忆吗？请求期间会锁定输入框，原消息不会被自动摘要覆盖。",
+      { title: "VIAE · 补齐状态", tone: "viae", confirmLabel: "确认补齐" })) return;
+    if (busyRef.current) return;
+    const rawChat = String(target.content || "");
+    const match = rawChat.match(/<(?:viae_chat|lime_chat)>\s*([\s\S]*?)<\/(?:viae_chat|lime_chat)>/i);
+    let needsChat = !match;
+    if (match) {
+      try {
+        const parsed: unknown = JSON.parse(match[1]);
+        needsChat = !Array.isArray(parsed) || !parsed.length ||
+          !parsed.every(item => item && typeof item === "object" &&
+            typeof item.text === "string" && typeof item.charId === "string" &&
+            activeGroup.members.includes(item.charId));
+      } catch { needsChat = true; }
+    }
+    const previous = { stm: activeGroup.stm || "", ltm: activeGroup.ltm || "" };
+    const repairMemory = true; // A valid completed response stores memory already; the flag indicates missing metadata.
+    const controller = new AbortController();
+    abortRef.current = controller;
+    busyRef.current = true;
+    setIsLoading(true);
+    dialog.notify("正在补齐 VIAE 状态…", { tone: "viae" });
+    try {
+      const prompt = [
+        "Restore ONLY missing machine metadata from the completed VIAE dialogue. Never continue the conversation.",
+        "Original message: " + rawChat.slice(-17000),
+        "Known road member IDs: " + JSON.stringify(activeGroup.members),
+        "Earlier STM/LTM (untrusted reference): " + JSON.stringify(previous).slice(-10000),
+      ].join("\n\n");
+      const response = await fetch("/api/chat", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          metadataRepair: true, repairChat: needsChat, repairMemory,
+          allowedCastIds: activeGroup.members, memoryMode: "lime",
+          memoryTurnCount: parseLocalMemoryEntries(previous.stm).length,
+          provider, model, uiLanguage: locale, contextWindowTokens,
+          messages: [{ role: "user", content: prompt }],
+          debugRequestPayload: terminalRequestLogEnabled,
+          debugFullOutput: terminalLogEnabled,
+        }),
+      });
+      if (!response.ok || !response.body) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "VIAE 补齐请求失败");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let raw = "";
+      while (raw.length < 35000) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        raw += decoder.decode(value, { stream: true });
+      }
+      raw += decoder.decode();
+      const repairedMemory = parseStoryTurnMemory(raw);
+      if (!repairedMemory?.stm ||
+          (parseLocalMemoryEntries(previous.stm).length >= LOCAL_STM_SLOTS && !repairedMemory.ltm)) {
+        throw new Error("模型没有返回完整的 STM/LTM");
+      }
+      let restoredChat = rawChat;
+      if (needsChat) {
+        const block = raw.match(/<viae_chat>\s*([\s\S]*?)<\/viae_chat>/i);
+        if (!block) throw new Error("模型未补齐 viae_chat");
+        const items: unknown = JSON.parse(block[1]);
+        if (!Array.isArray(items) || !items.length || !items.every(item =>
+          item && typeof item === "object" && typeof item.charId === "string" &&
+          activeGroup.members.includes(item.charId) && typeof item.text === "string" && item.text.trim())) {
+          throw new Error("模型补齐的角色消息格式不正确");
+        }
+        restoredChat = "<viae_chat>" + JSON.stringify(items) + "</viae_chat>";
+      }
+      let applied = false;
+      patchGroup(activeGroup.id, group => {
+        const live = group.messages[index];
+        if (index !== group.messages.length - 1 || live?.id !== target.id ||
+            live?.content !== target.content || !live.metadataRepairMissing ||
+            (group.stm || "") !== previous.stm || (group.ltm || "") !== previous.ltm) return group;
+        const memory = nextConversationMemory(previous, repairedMemory);
+        if (!memory) return group;
+        applied = true;
+        return {
+          ...group, stm: memory.stm, ltm: memory.ltm, turnCount: memory.turnCount,
+          updatedAt: Date.now(),
+          messages: group.messages.map((msg, i) => i === index
+            ? { ...msg, content: restoredChat, metadataRepairMissing: false } : msg),
+        };
+      });
+      dialog.notify(applied ? "VIAE 状态补齐成功。" : "会话已变化，未覆盖当前状态。",
+        { tone: "viae", type: applied ? "success" : "error" });
+    } catch (error) {
+      if (!controller.signal.aborted) dialog.notify("VIAE 状态补齐失败：" +
+        (error instanceof Error ? error.message : String(error)), { tone: "viae", type: "error" });
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null;
+      busyRef.current = false;
+      setIsLoading(false);
+    }
+  };
+
   const deleteMessage = (index: number) => {
     if (!activeGroup || busyRef.current) return;
     patchGroup(activeGroup.id, group => ({ ...group, messages: group.messages.filter((_, i) => i !== index) }));
   };
-  return { activeGroup, input, setInput, isLoading, send, stop, deleteMessage };
+  return { activeGroup, input, setInput, isLoading, send, stop, deleteMessage, repairMessage };
 }
