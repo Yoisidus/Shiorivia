@@ -262,7 +262,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   </div>
                 </div>}
                 {activeMode === "infinite" && <>
-                  <SwitchRow title="Officina · AI 联网搜索工具" description="开启后，AI 会先判断当前对话是否需要检索；只有选择联网工具时才请求搜索供应商。未配置或模型不支持时明确报错，不再依赖 Tavily。" checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
+                  <SwitchRow title="Officina · AI 联网搜索工具" description="开启后，AI 会先判断当前对话是否需要检索；只有选择联网工具时才请求搜索供应商。未配置或模型不支持时明确报错，不会静默切换搜索引擎。" checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
                   {values.webSearch && <div className="mt-2 mb-5 space-y-3 rounded-xl border border-sky-200 bg-[#f5f9ff] p-4">
                     <p className="text-xs font-semibold text-[#3b6589]">搜索路由</p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
