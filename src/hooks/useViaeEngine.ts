@@ -151,13 +151,27 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
 
       // No automatic summarize: any missing memory or invalid chat envelope
       // remains recoverable via the explicit manual repair button.
-      const completeChat = /<viae_chat\s*>[\s\S]*?<\/viae_chat\s*>/i.test(fullText);
+      const chatBlock = fullText.match(/<viae_chat\s*>([\s\S]*?)<\/viae_chat\s*>/i);
+      let completeChat = false;
+      if (chatBlock) {
+        try {
+          const parsed: unknown = JSON.parse(chatBlock[1]);
+          completeChat = Array.isArray(parsed) && parsed.length > 0 && parsed.every(item =>
+            item && typeof item === "object" && typeof item.text === "string"
+            && item.text.trim() && typeof item.charId === "string"
+            && activeGroup.members.includes(item.charId));
+          if (completeChat && activeGroup.pov === "outsider") {
+            completeChat = new Set(parsed.map((item: { charId: string }) => item.charId)).size >= 2;
+          }
+        } catch { completeChat = false; }
+      }
       const memoryMissing = !regenerate && (!inlineMemory?.stm ||
         (parseLocalMemoryEntries(originalStm).length >= LOCAL_STM_SLOTS && !inlineMemory.ltm));
       const needsRepair = memoryMissing || !completeChat;
       if (needsRepair) {
         patchGroup(groupId, group => ({ ...group, messages: group.messages.map(m =>
-          m.id === requestId ? { ...m, metadataRepairMissing: true } : m) }));
+          m.id === requestId ? { ...m, metadataRepairMissing: true,
+            memoryRepairMissing: memoryMissing } : m) }));
         notify?.("本轮 VIAE 状态不完整，可点击「补齐状态」。");
       }
     } catch (error) {
@@ -202,7 +216,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
       } catch { needsChat = true; }
     }
     const previous = { stm: activeGroup.stm || "", ltm: activeGroup.ltm || "" };
-    const repairMemory = true; // A valid completed response stores memory already; the flag indicates missing metadata.
+    const repairMemory = target.memoryRepairMissing === true;
     const controller = new AbortController();
     abortRef.current = controller;
     busyRef.current = true;
@@ -241,9 +255,9 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         raw += decoder.decode(value, { stream: true });
       }
       raw += decoder.decode();
-      const repairedMemory = parseStoryTurnMemory(raw);
-      if (!repairedMemory?.stm ||
-          (parseLocalMemoryEntries(previous.stm).length >= LOCAL_STM_SLOTS && !repairedMemory.ltm)) {
+      const repairedMemory = repairMemory ? parseStoryTurnMemory(raw) : null;
+      if (repairMemory && (!repairedMemory?.stm ||
+          (parseLocalMemoryEntries(previous.stm).length >= LOCAL_STM_SLOTS && !repairedMemory.ltm))) {
         throw new Error("模型没有返回完整的 STM/LTM");
       }
       let restoredChat = rawChat;
@@ -264,14 +278,15 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         if (index !== group.messages.length - 1 || live?.id !== target.id ||
             live?.content !== target.content || !live.metadataRepairMissing ||
             (group.stm || "") !== previous.stm || (group.ltm || "") !== previous.ltm) return group;
-        const memory = nextConversationMemory(previous, repairedMemory);
-        if (!memory) return group;
+        const memory = repairedMemory ? nextConversationMemory(previous, repairedMemory) : null;
+        if (repairMemory && !memory) return group;
         applied = true;
         return {
-          ...group, stm: memory.stm, ltm: memory.ltm, turnCount: memory.turnCount,
+          ...group,
+          ...(memory ? { stm: memory.stm, ltm: memory.ltm, turnCount: memory.turnCount } : {}),
           updatedAt: Date.now(),
           messages: group.messages.map((msg, i) => i === index
-            ? { ...msg, content: restoredChat, metadataRepairMissing: false } : msg),
+            ? { ...msg, content: restoredChat, metadataRepairMissing: false, memoryRepairMissing: false } : msg),
         };
       });
       dialog.notify(applied ? "VIAE 状态补齐成功。" : "会话已变化，未覆盖当前状态。",
