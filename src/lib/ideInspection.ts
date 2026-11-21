@@ -7,7 +7,6 @@ type Provider = { id: string; apiKey: string; baseURL?: string };
 type TextMessage = { role: string; content: unknown };
 type Request = { project: string; provider: Provider; model: string; messages: TextMessage[]; contextWindowTokens?: number };
 const MAX_ROUNDS = 20;
-const DEFAULT_CONTEXT = 36000;
 const MAX_CONTEXT = 64000;
 const MAX_PLANNER_TRACE = 22000;
 function contentText(value: unknown): string {
@@ -69,8 +68,10 @@ async function executeTool(project: string, call: ToolRequest): Promise<unknown>
  */
 export async function inspectIdeProject(request: Request): Promise<string> {
   const { project, provider, model, messages } = request;
-  const contextBudget = Math.min(MAX_CONTEXT, Math.max(DEFAULT_CONTEXT,
-    Math.floor((Number.isFinite(request.contextWindowTokens) ? Number(request.contextWindowTokens) : 32768) * 1.1)));
+  // Short windows must keep a proportional inspection budget; a fixed 36K
+  // character result could overwhelm an 8K-token context configuration.
+  const requestedWindow = Number.isFinite(request.contextWindowTokens) ? Number(request.contextWindowTokens) : 32768;
+  const contextBudget = Math.min(MAX_CONTEXT, Math.max(6000, Math.floor(requestedWindow * 1.1)));
   const history = messages.slice(-8).map(m =>
     m.role + ": " + contentText(m.content).slice(0, 1600)).join("\n");
 
