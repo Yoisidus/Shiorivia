@@ -236,6 +236,11 @@ Observer without chosen POV: protagonist=null and character=[]. Participant: pro
 Never omit sceneCastIds or suggestions. If the narrative does not establish a detail, use null, an empty string or an empty array rather than inventing it.
 When any character score is supplied, use affection (fondness), Possessiveness (exclusivity/jealousy), Obsession (unhealthy fixation), and Lust (sexual desire, not emotional intimacy). Older Intimacy input is a legacy alias only. Record score changes supported by the scene rather than forcing them down to zero.
 Only JSON belongs between the tags.`;
+      if (body.repairMemory === true) {
+        finalSystemPrompt += "\nAlso return a complete <turn_memory>{\"stm\":\"factual summary\",\"ltm\":"
+          + (Number(body.memoryTurnCount || 0) >= 6 ? \"\"updated consolidated long-term memory\"\" : "null")
+          + "}</turn_memory> after </game_state>. Derive only from the supplied completed story, earlier STM and prior LTM. When consolidating, LTM must be a nonempty string. Do not continue story prose.";
+      }
       finalSystemPrompt += body.danmakuEnabled === true
         ? "\n[DANMAKU STATE REPAIR] Generate exactly " + Math.min(24, Math.max(1, Number(body.danmakuCount) || 8))
           + " short, witty, scene-specific fictional viewer comments as the danmaku string array, grounded ONLY in the provided completed story. Avoid spoilers and repetition."
