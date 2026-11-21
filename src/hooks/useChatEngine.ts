@@ -458,10 +458,10 @@ export const useChatEngine = ({
                     const allowed = new Set([...CHARACTERS, ...customCharacters].filter((char: any) =>
                         worldline && storyCastAllowed(char, worldline)
                     ).map((char: any) => char.id as string));
-                    novelState = {
-                        ...novelState,
-                        nextSceneCastIds: selectStoryCastIds(resolvedTurnCast ?? novelState.nextSceneCastIds, allowed),
-                    };
+                    // novel_state.nextSceneCastIds is a legacy wire field and stays
+                    // separate from the model tool's CURRENT chapter cast.
+                    // Only save eligible IDs for the current cast on the session.
+                    if (resolvedTurnCast) resolvedTurnCast = selectStoryCastIds(resolvedTurnCast, allowed);
                 }
                 currentText = stripNovelState(currentText);
                 // The session title and chapter title are generated in the
@@ -905,12 +905,15 @@ export const useChatEngine = ({
                         ...(s.memoryMode === "novel" && resolvedTurnCast ? { storyNextCastIds: resolvedTurnCast } : {}),
                         ...(s.memoryMode === "novel" && novelState ? {
                             novelState,
-                            storyNextCastIds: novelState.nextSceneCastIds,
+                            // Keep the current cast visible in the CAST picker.
+                            // Do not overwrite it with the intentionally empty
+                            // nextSceneCastIds legacy property from novel_state.
+                            storyNextCastIds: resolvedTurnCast ?? s.storyNextCastIds ?? [],
                             novelDraft: {
                                 ...(s.novelDraft || {}),
                                 environment: novelState.environment,
                                 event: novelState.event,
-                                selectedCharIds: novelState.nextSceneCastIds,
+                                selectedCharIds: resolvedTurnCast ?? s.storyNextCastIds ?? [],
                             },
                         } : {}),
                         ...(capturedState ? {
