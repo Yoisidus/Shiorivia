@@ -935,7 +935,11 @@ export const useChatEngine = ({
                                 storyNextCastIds: capturedState.nextSceneCastIds || [],
                             } : {}),
                             plotSuggestions: capturedState.suggestions,
-                            lastDanmaku: config.danmakuEnabled ? (capturedState.danmaku || []).slice(0, Math.min(24, Math.max(1, config.danmakuCount || 8))) : [],
+                            lastDanmaku: config.danmakuEnabled && Array.isArray(capturedState.danmaku)
+                                ? capturedState.danmaku.filter((item: unknown): item is string => typeof item === "string")
+                                    .map((item: string) => item.trim().slice(0, 120)).filter(Boolean)
+                                    .slice(0, Math.min(24, Math.max(1, config.danmakuCount || 8)))
+                                : [],
                             timeline: capturedState.timeline,
                             ...(s.memoryMode === "sliding" && s.storyWorldline && typeof capturedState.timeline?.minor === "string" && capturedState.timeline.minor.trim()
                                 ? { storyWorldline: { ...s.storyWorldline, event: capturedState.timeline.minor.trim().slice(0, 500) } }
