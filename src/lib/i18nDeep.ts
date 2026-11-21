@@ -2,6 +2,7 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "novel.ui.nextPossibilities": ["后续发展", "後續發展", "Next possibilities", "次の展開", "다음 전개"],
   // Display-only controls for the local Chat and Tela interfaces.
   "chat.toolbar.noDialogue": ["没有可朗读的对话", "沒有可朗讀的對話", "No dialogue available", "読み上げる台詞がありません", "읽을 대사가 없습니다"],
   "chat.toolbar.voiceDeck": ["语音面板", "語音面板", "Voice deck", "音声パネル", "음성 패널"],
