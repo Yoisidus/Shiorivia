@@ -5,7 +5,7 @@ import { Check, Download, Plus, Save, Trash2 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { deepText } from "../lib/i18nDeep";
 import { type ChartaGender } from "../lib/charta";
-import { newChartaSelf, parseChartaSelf, selfGenderLabel, selfName, SELF_LANGUAGES, type ChartaSelf } from "../lib/chartaSelf";
+import { newChartaSelf, parseChartaSelf, selfName, SELF_LANGUAGES, type ChartaSelf } from "../lib/chartaSelf";
 import { encodeChartaSelfExport, saveChartaJsonFile } from "../lib/chartaJson";
 import { type ChartaCharacter } from "../lib/charta";
 import { type ChartaWorld } from "../lib/chartaWorld";
@@ -101,7 +101,7 @@ export function ChartaSelfPanel({ selves, activeId, loaded, error, saveSelf, rem
       <div className="mt-4 space-y-2">
         {selves.map(self => <button type="button" key={self.id} onClick={() => choose(self)} className={`flex w-full items-center gap-2 rounded-xl border p-3 text-left ${draft?.id === self.id ? "border-[#9bbb9d] bg-[#f1f6ef]" : "border-transparent hover:bg-[#f8faf7]"}`}>
           <span className="h-8 w-1 shrink-0 rounded-full" style={{ backgroundColor: self.hex }}/>
-          <span className="min-w-0 flex-1"><span className="block truncate text-sm">{selfName(self, locale)}</span><span className="block text-[10px] text-[#91a398]">{selfGenderLabel(self.gender, self.genderCustom)}</span></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-sm">{selfName(self, locale)}</span><span className="block text-[10px] text-[#91a398]">{self.gender === "custom" && self.genderCustom ? self.genderCustom : deepText(locale, `charta.self.${self.gender}`)}</span></span>
           {activeId === self.id && <Check size={15} className="text-[#567e63]"/>}
         </button>)}
         {!selves.length && <p className="py-5 text-center text-xs text-[#9aab9e]">{deepText(locale, "charta.self.none")}</p>}
