@@ -595,7 +595,7 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
       finalMessages = messages;
     } else {
       console.log("🌹 Mode: Story Roleplay");
-      finalSystemPrompt += `${STORY_PRE_PROMPT}\n\n`;
+      finalSystemPrompt += STORY_PRE_PROMPT.trim() + "\n";
       const selectedWorldline = parseStoryWorldline(body.storyWorldline);
       if (!selectedWorldline) return Response.json({ error: "请先在世界线面板选择世界观、ERA 和 PERIOD" }, { status: 400 });
       const storyRole = body.storyRole === "participant" ? "participant" : "observer";
@@ -958,6 +958,13 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
     // A single budget applies after ALL persona, worldline and project
     // inspection context has been assembled. This is the only normal-turn
     // history trimming point for every Shiorivia mode.
+    if (memoryMode === "sliding") {
+      // Keep adjacent prompt sections tidy without reflowing user-authored
+      // setting data, profile texts or narrative style examples.
+      finalSystemPrompt = finalSystemPrompt
+        .replace(/(\[END STORY NARRATIVE\])\n{2,}/g, "$1\n")
+        .replace(/(\[END STORY NARRATIVE PERSPECTIVE\])\n{2,}/g, "$1\n");
+    }
     const initialMessages = finalMessages;
     const selectedContext = selectContextMessages(
       initialMessages, finalSystemPrompt, body.contextWindowTokens,
