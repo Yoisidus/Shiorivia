@@ -91,6 +91,13 @@ The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint 
 - Stored legacy **32K default** values migrate to 256K, avoiding old Local settings silently keeping the former restrictive default. Other removed legacy presets migrate upward to the next supported size. Existing 64K and 128K choices remain unchanged.
 - The selection is a **user-controlled budget**, not a claim that every model supports that context size. The model/provider may reject unsupported lengths; the application continues reserving output tokens and trimming older messages to fit its configured budget.
 
+### Umbra & VIAE inline memories / 即时通讯的内联记忆
+
+- Umbra and VIAE now share a separate English-only **conversation memory contract** (`src/lib/conversationTurnMemory.ts`). The former summarizes memory per current speaker (`chatCharacterMemories[characterId]`); the latter per road (`limeGroups[]`). The app strips `<turn_memory>` from visible chat while retaining the original in-memory response for parsing.
+- Each of the first six completed turns adds one STM. The seventh consolidates the prior six and current turn into an LTM within the same model response. A valid inline response needs **no** separate summarize request. If tags are missing or seventh-turn LTM is empty, the existing summarizer is a guarded fallback; it never prematurely clears STM on failure, nor overwrites newer memory/manual edits.
+- VIAE now uses an English system prompt for role-played phone messages, while the characters' own messages follow the UI language and character voice. The visible `<viae_chat>` JSON tag is unchanged; private optional `<worldline_update>` appears before `<turn_memory>`. Observer mode's director instructions are not phone messages.
+- No new Local save fields or migration are required; current Memory Vaults continue editing the existing plain-text STM/LTM values and their per-speaker/per-road namespaces. Regenerating a reply does not append a second STM record.
+
 ### Session-specific notes / 会话设定
 
 - Via Lata's **故事手记** and Umbra's **聊天笔记** each edit their own session worldbook. The legacy global worldbook is no longer shown or injected into AI prompts for either mode.
