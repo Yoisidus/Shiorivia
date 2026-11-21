@@ -61,6 +61,10 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
       return;
     }
     if (activeGroup.type === "group" && activeGroup.members.length < 2) { notify?.("路口至少需要两位角色"); return; }
+    const phoneOwnerId = activeGroup.members.includes(activeGroup.defaultPovChar || "")
+      ? activeGroup.defaultPovChar! : activeGroup.members[0];
+    const permittedReplies = activeGroup.pov === "outsider" || activeGroup.type === "direct"
+      ? activeGroup.members : activeGroup.members.filter(id => id !== phoneOwnerId);
     const text = input.trim();
     const previous = activeGroup.messages || [];
     const isReplace = regenerate && previous[previous.length - 1]?.role === "assistant";
@@ -161,7 +165,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
           completeChat = Array.isArray(parsed) && parsed.length > 0 && parsed.every(item =>
             item && typeof item === "object" && typeof item.text === "string"
             && item.text.trim() && typeof item.charId === "string"
-            && activeGroup.members.includes(item.charId));
+            && permittedReplies.includes(item.charId));
           if (completeChat && activeGroup.pov === "outsider") {
             completeChat = new Set(parsed.map((item: { charId: string }) => item.charId)).size >= 2;
           }
@@ -205,6 +209,10 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
     if (!await dialog.confirm("确认调用当前模型补齐 VIAE 消息协议或记忆吗？请求期间会锁定输入框，原消息不会被自动摘要覆盖。",
       { title: "VIAE · 补齐状态", tone: "viae", confirmLabel: "确认补齐" })) return;
     if (busyRef.current) return;
+    const phoneOwnerId = activeGroup.members.includes(activeGroup.defaultPovChar || "")
+      ? activeGroup.defaultPovChar! : activeGroup.members[0];
+    const permittedReplies = activeGroup.pov === "outsider" || activeGroup.type === "direct"
+      ? activeGroup.members : activeGroup.members.filter(id => id !== phoneOwnerId);
     const rawChat = String(target.content || "");
     const match = rawChat.match(/<(?:viae_chat|lime_chat)>\s*([\s\S]*?)<\/(?:viae_chat|lime_chat)>/i);
     let needsChat = !match;
@@ -214,7 +222,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         needsChat = !Array.isArray(parsed) || !parsed.length ||
           !parsed.every(item => item && typeof item === "object" &&
             typeof item.text === "string" && typeof item.charId === "string" &&
-            activeGroup.members.includes(item.charId));
+            permittedReplies.includes(item.charId));
       } catch { needsChat = true; }
     }
     const previous = { stm: activeGroup.stm || "", ltm: activeGroup.ltm || "" };
@@ -228,7 +236,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
       const prompt = [
         "Restore ONLY missing machine metadata from the completed VIAE dialogue. Never continue the conversation.",
         "Original message: " + rawChat.slice(-17000),
-        "Known road member IDs: " + JSON.stringify(activeGroup.members),
+        "Permitted generated reply IDs: " + JSON.stringify(permittedReplies),
         "Earlier STM/LTM (untrusted reference): " + JSON.stringify(previous).slice(-10000),
       ].join("\n\n");
       const response = await fetch("/api/chat", {
@@ -236,7 +244,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         signal: controller.signal,
         body: JSON.stringify({
           metadataRepair: true, repairChat: needsChat, repairMemory,
-          allowedCastIds: activeGroup.members, memoryMode: "lime",
+          allowedCastIds: permittedReplies, memoryMode: "lime",
           memoryTurnCount: parseLocalMemoryEntries(previous.stm).length,
           provider, model, uiLanguage: locale, contextWindowTokens,
           messages: [{ role: "user", content: prompt }],
@@ -269,7 +277,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         const items: unknown = JSON.parse(block[1]);
         if (!Array.isArray(items) || !items.length || !items.every(item =>
           item && typeof item === "object" && typeof item.charId === "string" &&
-          activeGroup.members.includes(item.charId) && typeof item.text === "string" && item.text.trim())) {
+          permittedReplies.includes(item.charId) && typeof item.text === "string" && item.text.trim())) {
           throw new Error("模型补齐的角色消息格式不正确");
         }
         restoredChat = "<viae_chat>" + JSON.stringify(items) + "</viae_chat>";
