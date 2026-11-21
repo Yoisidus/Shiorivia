@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, User, Heart, Zap, Skull, Thermometer, Shirt, Footprints, Sparkles, ChevronLeft, Send, Lock, Check, Brain, TreeDeciduous, X } from "lucide-react";
 import { CHAR_DATA } from "../data/char_config";
 import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 import { characterDisplayName } from "../lib/characterNames";
 import { useAppDialog } from "../context/DialogContext";
 import { StoryWorldlineFateModal } from "./StoryWorldlineFateModal";
@@ -130,13 +131,13 @@ const SidebarRightComponent = ({
     const confirmSuggestion = async (text: string, mode: "send" | "insert") => {
         if (isGenerating || currentSession?.memoryMode !== "sliding" || !text.trim()) return;
         const accepted = await dialog.confirm(
-            mode === "send" ? "确认立即发送这条剧情建议吗？" : "确认将这条剧情建议填入输入框吗？",
-            { title: mode === "send" ? "采纳剧情建议 · 直接发送" : "采纳剧情建议 · 填入输入框",
-              confirmLabel: mode === "send" ? "确认发送" : "确认填入", tone: "story", preview: text },
+            mode === "send" ? deepText(locale, "story.suggestion.sendAsk") : deepText(locale, "story.suggestion.insertAsk"),
+            { title: mode === "send" ? deepText(locale, "story.suggestion.sendTitle") : deepText(locale, "story.suggestion.insertTitle"),
+              confirmLabel: mode === "send" ? deepText(locale, "story.suggestion.sendConfirm") : deepText(locale, "story.suggestion.insertConfirm"), tone: "story", preview: text },
         );
         if (!accepted || isGenerating) return;
-        if (mode === "send") { void handleSend(text); dialog.notify("剧情建议已确认发送。", { tone: "story", type: "success" }); }
-        else { setInput?.(text); dialog.notify("剧情建议已填入输入框，可以继续修改。", { tone: "story", type: "success" }); }
+        if (mode === "send") { void handleSend(text); dialog.notify(deepText(locale, "story.suggestion.sent"), { tone: "story", type: "success" }); }
+        else { setInput?.(text); dialog.notify(deepText(locale, "story.suggestion.inserted"), { tone: "story", type: "success" }); }
     };
 
     const SuggestionItem = ({ type, content, colorBg, colorText, colorBorder, icon }: any) => {
@@ -145,7 +146,7 @@ const SidebarRightComponent = ({
             <div className={`group rounded border ${colorBg} ${colorBorder} ${colorText} text-xs transition-all hover:shadow-sm`}>
                 <button type="button" disabled={!suggestion || isGenerating} onClick={() => void confirmSuggestion(suggestion, "send")}
                     className="block w-full rounded p-2.5 text-left transition-colors hover:bg-white/40 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="查看建议并确认发送">
+                    title={deepText(locale, "story.suggestion.viewAndSend")}>
                     <span className="mb-1.5 flex items-center gap-1 font-bold">{icon} {type}</span>
                     <span className="block leading-relaxed opacity-90">{suggestion}</span>
                 </button>
@@ -153,7 +154,7 @@ const SidebarRightComponent = ({
                     <button type="button" disabled={!suggestion || isGenerating}
                         onClick={() => void confirmSuggestion(suggestion, "insert")}
                         className="flex items-center gap-1 rounded-md border border-current/20 bg-white/60 px-2 py-1 text-[10px] font-medium hover:bg-white disabled:opacity-40"
-                        title="仅填入输入框，不立即发送"><Send size={11} /> 填入输入框</button>
+                        title={deepText(locale, "story.suggestion.insertOnly")}><Send size={11} /> {deepText(locale, "story.suggestion.insert")}</button>
                 </div>
             </div>
         );
