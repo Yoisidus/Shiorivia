@@ -5,7 +5,7 @@ import { ChevronRight, User, Heart, Zap, Skull, Thermometer, Shirt, Footprints, 
 import { CHAR_DATA } from "../data/char_config";
 import { useLanguage } from "../context/LanguageContext";
 import { characterDisplayName } from "../lib/characterNames";
-import { SuggestionModal } from "./Modals";
+import { useAppDialog } from "../context/DialogContext";
 import { StoryWorldlineFateModal } from "./StoryWorldlineFateModal";
 import { StoryCastPicker } from "./StoryCastPicker";
 import { describeStoryWorldline, type StoryWorldline } from "../lib/storyWorldline";
@@ -42,7 +42,7 @@ const SidebarRightComponent = ({
     const suggestions = currentSession?.plotSuggestions;
 
     const [pageIndex, setPageIndex] = useState(0);
-    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, text: string }>({ isOpen: false, text: "" });
+    const dialog = useAppDialog();
     const [worldlineOpen, setWorldlineOpen] = useState(false);
     const [personaWorldFilter, setPersonaWorldFilter] = useState("all");
     useEffect(() => { setPersonaWorldFilter("all"); }, [currentSession?.memoryMode]);
@@ -127,11 +127,23 @@ const SidebarRightComponent = ({
         </div>;
     };
 
+    const confirmSuggestion = async (text: string, mode: "send" | "insert") => {
+        if (isGenerating || currentSession?.memoryMode !== "sliding" || !text.trim()) return;
+        const accepted = await dialog.confirm(
+            (mode === "send" ? "确认立即发送这条剧情建议吗？" : "确认将这条剧情建议填入输入框吗？") + "\n\n" + text,
+            { title: mode === "send" ? "采纳剧情建议 · 直接发送" : "采纳剧情建议 · 填入输入框",
+              confirmLabel: mode === "send" ? "确认发送" : "确认填入", tone: "story" },
+        );
+        if (!accepted || isGenerating) return;
+        if (mode === "send") void handleSend(text);
+        else setInput?.(text);
+    };
+
     const SuggestionItem = ({ type, content, colorBg, colorText, colorBorder, icon }: any) => {
         const suggestion = String(content || "").trim();
         return (
             <div className={`group rounded border ${colorBg} ${colorBorder} ${colorText} text-xs transition-all hover:shadow-sm`}>
-                <button type="button" disabled={!suggestion || isGenerating} onClick={() => setConfirmModal({ isOpen: true, text: suggestion })}
+                <button type="button" disabled={!suggestion || isGenerating} onClick={() => void confirmSuggestion(suggestion, "send")}
                     className="block w-full rounded p-2.5 text-left transition-colors hover:bg-white/40 disabled:cursor-not-allowed disabled:opacity-50"
                     title="查看建议并确认发送">
                     <span className="mb-1.5 flex items-center gap-1 font-bold">{icon} {type}</span>
@@ -139,7 +151,7 @@ const SidebarRightComponent = ({
                 </button>
                 <div className="flex items-center justify-end gap-2 px-2.5 pb-2.5">
                     <button type="button" disabled={!suggestion || isGenerating}
-                        onClick={() => setInput?.(suggestion)}
+                        onClick={() => void confirmSuggestion(suggestion, "insert")}
                         className="flex items-center gap-1 rounded-md border border-current/20 bg-white/60 px-2 py-1 text-[10px] font-medium hover:bg-white disabled:opacity-40"
                         title="仅填入输入框，不立即发送"><Send size={11} /> 填入输入框</button>
                     <button type="button" disabled={!suggestion}
@@ -308,17 +320,6 @@ const SidebarRightComponent = ({
                         )}
                     </div>
 
-                    <SuggestionModal
-                        isOpen={confirmModal.isOpen} onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                        content={confirmModal.text}
-                        mode="send"
-                        onConfirm={() => {
-                            if (!isGenerating && currentSession?.memoryMode === "sliding" && confirmModal.text.trim()) {
-                                void handleSend(confirmModal.text);
-                            }
-                            setConfirmModal({ isOpen: false, text: "" });
-                        }}
-                    />
                     <StoryWorldlineFateModal tone={isStoryMode ? "story" : isChatMode ? "chat" : "story"} isOpen={worldlineOpen} value={currentSession?.storyWorldline}
                         legacyTimeline={currentSession?.timeline} worlds={worlds}
                         onSave={handleWorldlineUpdate} onClose={() => setWorldlineOpen(false)}
