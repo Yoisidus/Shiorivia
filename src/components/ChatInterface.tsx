@@ -283,7 +283,7 @@ export const ChatInterface = ({
     toggleWardrobe,
     apiProvider, setApiProvider,
     debugMode, setDebugMode, showDrawDebugTags = false,
-    onGenerateDraw, imageSettings, useImageGen, onCompleteEngineeringOutput,
+    onGenerateDraw, imageSettings, useImageGen, onCompleteEngineeringOutput, onCompleteStoryState, storyStateRepairing = false,
     triggerEffect,
 
     currentOutfitId,
@@ -300,7 +300,7 @@ export const ChatInterface = ({
     const requiresEngineer = currentSession?.memoryMode === "infinite" && !currentSession.characterId;
     const requiresChatWorldline = currentSession?.memoryMode === "chat" && !parseStoryWorldline(currentSession.storyWorldline);
     const requiresChatCharacter = currentSession?.memoryMode === "chat" && !currentSession.characterId;
-    const inputLocked = requiresWorldline || requiresEngineer || requiresChatWorldline || requiresChatCharacter;
+    const inputLocked = requiresWorldline || requiresEngineer || requiresChatWorldline || requiresChatCharacter || storyStateRepairing;
     const savedSelf = currentSession?.memoryMode === "sliding" && currentSession.storyRole === "participant"
         ? currentSession.storySelfSnapshot : null;
     const selfColors: Record<string, string> = savedSelf?.hex && savedSelf?.names
@@ -697,7 +697,15 @@ export const ChatInterface = ({
                                     </div>
                                 )}
                                 {msg.role === 'assistant' && msg.storyProtocolMissing && (
-                                     <div role="status" className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-5 text-amber-800"><AlertTriangle size={15} className="mt-0.5 shrink-0"/><span>本轮 AI 未返回完整故事状态。正文已保留，状态与记忆未更新；可以重试这轮回复。</span></div>
+                                     <div role="status" className="mt-2 flex items-center gap-3 rounded-xl border border-[#ecc3d3] bg-[#fff3f7] p-3 text-[11px] leading-5 text-[#8a3453]">
+                                         <AlertTriangle size={15} className="shrink-0"/>
+                                         <span className="flex-1">本轮 AI 未返回完整故事状态，正文已保留，原有状态未覆盖。</span>
+                                         <button type="button" disabled={isLoading || i !== currentSession.messages.length - 1}
+                                             onClick={() => onCompleteStoryState?.(i)}
+                                             className="shrink-0 rounded-lg border border-[#dca3bb] bg-white px-3 py-1.5 font-semibold text-[#922c55] disabled:opacity-40">
+                                             {storyStateRepairing ? "补齐中…" : "确认补齐状态"}
+                                         </button>
+                                     </div>
                                  )}
                                 {msg.role === 'assistant' && activeDrawMatch && (
                                     <DrawPlaceholder busy={drawingIndex === i} disabled={drawingIndex !== null}
@@ -821,7 +829,7 @@ export const ChatInterface = ({
                         boxShadow: isLoading ? `0 0 10px ${currentCharacter.hex}20` : 'none'
                     }}
                 >
-                    <textarea value={input} disabled={inputLocked} style={{ caretColor: currentCharacter.hex }} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!inputLocked) handleSend() } }} placeholder={requiresChatWorldline ? "请先配置 Umbra 世界线" : requiresChatCharacter ? "请先选择聊天角色" : requiresEngineer ? "请先在右侧栏选择角色工程师" : requiresWorldline ? "请先设定世界线（WORLD / ERA / PERIOD）" : currentSession?.memoryMode === 'sliding' ? "Start your dream..." : currentSession?.memoryMode === 'chat' ? `和${currentCharacter.name}聊聊天...` : `Speak to ${currentCharacter.name}...`} className="w-full bg-transparent border-none outline-none py-3 pl-4 pr-20 resize-none min-h-[50px] max-h-32 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f6f1] disabled:text-[#9a988c]" />
+                    <textarea value={input} disabled={inputLocked} style={{ caretColor: currentCharacter.hex }} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!inputLocked) handleSend() } }} placeholder={storyStateRepairing ? "正在补齐故事状态，请稍候…" : requiresChatWorldline ? "请先配置 Umbra 世界线" : requiresChatCharacter ? "请先选择聊天角色" : requiresEngineer ? "请先在右侧栏选择角色工程师" : requiresWorldline ? "请先设定世界线（WORLD / ERA / PERIOD）" : currentSession?.memoryMode === 'sliding' ? "Start your dream..." : currentSession?.memoryMode === 'chat' ? `和${currentCharacter.name}聊聊天...` : `Speak to ${currentCharacter.name}...`} className="w-full bg-transparent border-none outline-none py-3 pl-4 pr-20 resize-none min-h-[50px] max-h-32 text-sm disabled:cursor-not-allowed disabled:bg-[#f8f6f1] disabled:text-[#9a988c]" />
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,text/plain,.txt" />
                     <div className="absolute bottom-2 right-2 flex gap-1">
                         {isMultimodal && <button disabled={inputLocked} onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-emerald-500 disabled:opacity-30"><Paperclip size={18} /></button>}
