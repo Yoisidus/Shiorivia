@@ -896,6 +896,8 @@ export const useChatEngine = ({
                             ? { engineeringProjectRoot: outputProject } : {}),
                         messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing,
                             ...(storyProtocolMissing && inlineStoryMemory ? { storyPendingMemory: inlineStoryMemory } : {}),
+                            ...(s.memoryMode === "novel" && novelState?.choices ? { novelChoices: novelState.choices } : {}),
+                            ...(s.memoryMode === "novel" ? { novelDanmaku } : {}),
                             ...(ideEditedFiles.length ? { ideEditedFiles } : {}) }],
                         codeRepository: updatedRepo,
                         ...(s.memoryMode === "novel" ? { lastDanmaku: config.danmakuEnabled ? novelDanmaku : [] } : {}),
