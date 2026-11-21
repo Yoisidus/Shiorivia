@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Lock, Check, Clock, Calendar, Bookmark, Hash, X } from "lucide-react";
+import { useAppDialog } from "../context/DialogContext";
 
 const TimeNode = ({ type, icon: Icon, value, field, label, isEditing, localData, setLocalData }: any) => (
   <div className="relative pl-6 pb-4 last:pb-0">
@@ -30,6 +31,7 @@ const TimeNode = ({ type, icon: Icon, value, field, label, isEditing, localData,
 );
 
 export const TimelinePanel = ({ timelineData, onUpdate }: any) => {
+  const dialog = useAppDialog();
   const [isEditing, setIsEditing] = useState(false);
   const [localData, setLocalData] = useState({ major: "", medium: "", minor: "" });
 
@@ -39,8 +41,8 @@ export const TimelinePanel = ({ timelineData, onUpdate }: any) => {
     }
   }, [timelineData, isEditing]);
 
-  const handleSave = () => {
-    if (confirm("⚠️ 确定要更新时间锚点吗？")) {
+  const handleSave = async () => {
+    if (await dialog.confirm("⚠️ 确定要更新时间锚点吗？")) {
       onUpdate(localData);
       setIsEditing(false);
     }
