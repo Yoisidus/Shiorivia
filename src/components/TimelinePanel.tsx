@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { Lock, Check, Clock, Calendar, Bookmark, Hash, X } from "lucide-react";
 import { useAppDialog } from "../context/DialogContext";
+import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 
 const TimeNode = ({ type, icon: Icon, value, field, label, isEditing, localData, setLocalData }: any) => (
   <div className="relative pl-6 pb-4 last:pb-0">
@@ -32,6 +34,7 @@ const TimeNode = ({ type, icon: Icon, value, field, label, isEditing, localData,
 
 export const TimelinePanel = ({ timelineData, onUpdate }: any) => {
   const dialog = useAppDialog();
+  const { locale } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [localData, setLocalData] = useState({ era: "", period: "", event: "" });
 
@@ -42,7 +45,7 @@ export const TimelinePanel = ({ timelineData, onUpdate }: any) => {
   }, [timelineData, isEditing]);
 
   const handleSave = async () => {
-    if (await dialog.confirm("⚠️ 确定要更新时间锚点吗？")) {
+    if (await dialog.confirm(deepText(locale, "timeline.confirm"))) {
       onUpdate(localData);
       setIsEditing(false);
     }

@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 
 /**
  * TELA mode transition: a parchment scroll opens from a narrow rolled sheet,
@@ -8,6 +10,7 @@ import { motion } from "framer-motion";
  * edition does not depend on downloaded assets or external imagery.
  */
 export function ParchmentScrollTransition({ compact = false }: { compact?: boolean }) {
+  const { locale } = useLanguage();
   const duration = compact ? 2.35 : 2.8;
   return (
     <motion.div role="presentation" aria-hidden="true"
@@ -27,7 +30,7 @@ export function ParchmentScrollTransition({ compact = false }: { compact?: boole
           <div className="mx-auto mb-5 h-px w-36 bg-gradient-to-r from-transparent via-[#9c7347] to-transparent"/>
           <p className="text-[10px] font-semibold tracking-[.45em] opacity-80">SHIORIVIA · NOVEL STUDIO</p>
           <p className={compact ? "mt-4 text-3xl tracking-[.2em]" : "mt-4 text-5xl tracking-[.25em]"}>TELA</p>
-          <p className="mt-3 text-sm tracking-[.22em]">故事在纸页间展开</p>
+          <p className="mt-3 text-sm tracking-[.22em]">{deepText(locale, "tela.transition.subtitle")}</p>
           <div className="mx-auto mt-5 h-px w-36 bg-gradient-to-r from-transparent via-[#9c7347] to-transparent"/>
         </motion.div>
       </motion.div>
