@@ -7,6 +7,9 @@
 export type NovelState = {
   environment: string;
   event: string;
+  /** New chapter protocol; old Local JSON chapters may lack these. */
+  era?: string;
+  period?: string;
   nextSceneCastIds: string[];
   /** Integrated chapter suggestions. Optional when reading legacy Local archives. */
   choices?: { fun: string; rational: string; radical: string };
@@ -34,6 +37,10 @@ export function parseNovelState(value: unknown): NovelState | null {
   return {
     environment: record.environment.trim(),
     event: record.event.trim(),
+    ...(typeof record.era === "string" && record.era.trim().length <= 100 && record.era.trim()
+      ? { era: record.era.trim() } : {}),
+    ...(typeof record.period === "string" && record.period.trim().length <= 100 && record.period.trim()
+      ? { period: record.period.trim() } : {}),
     nextSceneCastIds: [...new Set(record.nextSceneCastIds)].slice(0, MAX_CAST_IDS),
     ...(validChoices ? { choices: {
       fun: String(choices!.fun).trim(), rational: String(choices!.rational).trim(),
