@@ -139,13 +139,14 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
     const last = activeGroup.messages[activeGroup.messages.length - 1];
     if (!last || last.role !== "assistant") return;
     if (!await dialog.confirm("确定刷新当前最后一条 VIAE 回复吗？会替换原有角色消息，并从本轮生成前的记忆与时间线重新推演。旧存档缺少快照时会拒绝刷新，避免错误覆盖。",
-      { title: "VIAE · 刷新回复", tone: "viae", confirmLabel: "重新生成", destructive: true })) return;
+      { title: "VIAE · 刷新回复", tone: "viae", confirmLabel: "重新生成" })) return;
     if (!isLoading) {
       setEditingBubble(null);
       void send(true);
     }
   };
   const [creating, setCreating] = useState(false);
+  useEffect(() => { setEditingBubble(null); }, [activeGroup?.id]);
   const [kind, setKind] = useState<"direct" | "group">("direct");
   const [selected, setSelected] = useState<string[]>([]);
   const [draftName, setDraftName] = useState("");
@@ -511,6 +512,12 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                           onClick={() => void confirmBubbleEdit()}
                           className="rounded-lg bg-[#637ba5] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">保存修改</button>
                       </div>
+                    </div>
+                  )}
+                  {!isUser && message.needsRegeneration && (
+                    <div role="status" className="ml-0 flex max-w-xl items-center gap-2 rounded-xl border border-[#dfcfb0] bg-[#fffbf2] px-3 py-2 text-[11px] text-[#806943] sm:ml-11">
+                      <AlertTriangle size={14} className="shrink-0"/>
+                      <span>上一条消息已编辑；此回复尚未重新生成。可使用下方刷新按钮。</span>
                     </div>
                   )}
                   {!isUser && message.metadataRepairMissing && index === activeGroup.messages.length - 1 && (
