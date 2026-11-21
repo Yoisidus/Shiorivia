@@ -74,10 +74,9 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
 
     const lastAssistant = isReplace ? previous[previous.length - 1] : null;
     const checkpoint = lastAssistant?.viaeTurnBefore;
-    if (regenerate && isReplace && !checkpoint) {
-      dialog.notify("这条旧回复没有生成前的记忆快照，无法安全刷新。请使用编辑功能修正文本，或新建道路继续。", { type: "warning", tone: "viae" });
-      return;
-    }
+    // A legacy archive cannot rewind the exact prior memory or worldline.
+    // Permit refreshing its visible reply, but preserve these archives as-is.
+    const legacyRefresh = regenerate && isReplace && !checkpoint;
     const requestGroup: ViaeConversation = checkpoint
       ? { ...activeGroup, stm: checkpoint.stm, ltm: checkpoint.ltm,
           turnCount: checkpoint.turnCount, storyWorldline: checkpoint.storyWorldline,
@@ -158,11 +157,11 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
 
       const originalStm = String(requestGroup.stm || "");
       const originalLtm = String(requestGroup.ltm || "");
-      const inlineApplied = inlineMemory?.stm
+      const inlineApplied = !legacyRefresh && inlineMemory?.stm
         ? nextConversationMemory({ stm: originalStm, ltm: originalLtm }, inlineMemory) : null;
       patchGroup(groupId, group => {
         const currentWorldline = viaeWorldline(group);
-        const advanced = applyWorldlineAdvance(currentWorldline, rawOutput);
+        const advanced = legacyRefresh ? null : applyWorldlineAdvance(currentWorldline, rawOutput);
         const nextWorldline = advanced && (advanced.era !== currentWorldline.era || advanced.period !== currentWorldline.period)
           ? advanced : currentWorldline;
         const unchanged = (group.stm || "") === originalStm && (group.ltm || "") === originalLtm;
@@ -192,14 +191,18 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
           }
         } catch { completeChat = false; }
       }
-      const memoryMissing = !inlineMemory?.stm ||
-        (parseLocalMemoryEntries(originalStm).length >= LOCAL_STM_SLOTS && !inlineMemory.ltm);
+      const memoryMissing = !legacyRefresh && (!inlineMemory?.stm ||
+        (parseLocalMemoryEntries(originalStm).length >= LOCAL_STM_SLOTS && !inlineMemory.ltm));
       const needsRepair = memoryMissing || !completeChat;
       if (needsRepair) {
         patchGroup(groupId, group => ({ ...group, messages: group.messages.map(m =>
           m.id === requestId ? { ...m, metadataRepairMissing: true,
             memoryRepairMissing: memoryMissing } : m) }));
         notify?.("本轮 VIAE 状态不完整，可点击「补齐状态」。");
+      }
+      if (legacyRefresh) {
+        dialog.notify("旧存档回复已刷新；原有 STM/LTM 与时间线未自动修改，请按需检查记忆档案。",
+          { tone: "viae", type: "warning" });
       }
     } catch (error) {
       if (isReplace && lastAssistant) {
