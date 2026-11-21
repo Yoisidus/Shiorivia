@@ -349,7 +349,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
     if (!target || !text || text.length > 5000) return false;
     let content = text;
     if (target.role === "assistant" && typeof segmentIndex === "number") {
-      const original = target.content.match(/<(?:viae_chat|lime_chat)>\\s*([\\s\\S]*?)\\s*<\\/(?:viae_chat|lime_chat)>/i);
+      const original = target.content.match(/<(?:viae_chat|lime_chat)>\s*([\s\S]*?)\s*<\/(?:viae_chat|lime_chat)>/i);
       if (original) {
         try {
           const parsed: unknown = JSON.parse(original[1]);
@@ -366,7 +366,6 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
     const messageId = target.id;
     patchGroup(activeGroup.id, group => {
       if (group.messages[index]?.id !== messageId) return group;
-      const lastIndex = group.messages.length - 1;
       return {
         ...group,
         messages: group.messages.map((message, i) => {
