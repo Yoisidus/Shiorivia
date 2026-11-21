@@ -714,7 +714,7 @@ export default function Home() {
                     onProviderCapabilitiesChange={(id, capability) => setProviderCapabilities(prev => ({ ...prev, [id]: { ...capabilityFor(id, prev), ...capability } }))}
                     falConfigured={falConfigured}
                 />
-                {ui.toast && <div role="status" className="fixed bottom-5 left-1/2 z-[300] -translate-x-1/2 rounded-xl bg-slate-900 px-5 py-3 text-sm text-white shadow-lg">{ui.toast}</div>}
+
             </>
         );
     }
@@ -873,19 +873,6 @@ export default function Home() {
             )}
 
             <div className="relative z-10 flex w-full h-full">
-                <AnimatePresence>
-                    {ui.toast && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -20, x: "-50%" }} 
-                            animate={{ opacity: 1, y: 0, x: "-50%" }}
-                            exit={{ opacity: 0 }}
-                            className="fixed left-1/2 z-[9999] bg-zinc-900/90 text-emerald-400 px-6 py-3 rounded-xl text-sm font-bold shadow-2xl flex gap-3 items-center border border-zinc-700/50 backdrop-blur-md"
-                            style={{ top: "80px" }} 
-                        >
-                            <Check size={18} className="animate-bounce" /> {ui.toast}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
 
                 <SidebarLeft
                     isOpen={ui.leftSidebarOpen} onClose={() => ui.setLeftSidebarOpen(false)}
