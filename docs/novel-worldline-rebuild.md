@@ -4,8 +4,8 @@ This change updates **Shiorivia Local**, not Shiorivia_Cloud.
 
 ## 2026 Local chronology additions
 
-- Each newly generated `novel_state` now contains `era` and `period` alongside environment, event, legacy `nextSceneCastIds:[]`, choices and danmaku. Both date strings copy the current canon stage unless the completed chapter genuinely advances to a later valid stage. Only forward canonical jumps can update the saved session; the server sends the ordered stage list and locale-specific short descriptions to the model.
-- The Tela worldline editor has a deliberate **解锁时间线** control on existing novels, while the main world, AU baseline, old secondary worlds and backward chronology remain locked. Old novel archives without era/period in state still load.
+- Each newly generated `novel_state` now contains `era` and `period` alongside environment, event, legacy `nextSceneCastIds:[]`, choices and danmaku. For **canon**, the model repeats the current stage or proposes a later valid stage only when the chapter actually advances time. For **AU**, the model must repeat the user-saved ERA and PERIOD verbatim; no model-generated AU date change is allowed. The server supplies the ordered canon stage list and active-locale descriptions.
+- The Tela worldline editor has a deliberate **解锁时间线** control. In canon, manual edits can only move forward; in AU, the user can freely edit both creative ERA and PERIOD regardless of chronological order. The main world, AU original-canon baseline and saved secondary worlds remain protected. Old novel archives without era/period in state still load.
 - A participant Charta self is an ordinary independently active fictional character. Its lore/color come from its own Charta snapshot, not from the candidate cast roster; its presence does not mandate a central viewpoint or a turn-by-turn player command.
 
 ## Novel worldline and cast
