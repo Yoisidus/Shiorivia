@@ -495,7 +495,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                         <span>{isUser ? "你" : char?.name || (partial ? "正在回复" : "Viae")}</span>
                         <span>{time(message.createdAt)}</span>
                         {/* AI/character-bubble editing intentionally paused:
-                            a future implementation must reconcile subsequent replies and STM/LTM. */}}
+                            a future implementation must reconcile subsequent replies and STM/LTM. */}
                       </div><div className={`prose prose-sm max-w-none break-words rounded-2xl border px-4 py-3 text-[13px] leading-6 shadow-[0_3px_12px_rgba(24,42,63,0.03)] ${isOutgoing ? "prose-invert border-[#1b324f] bg-[#1a314f] text-white" : "border-[#e8ecef] bg-white text-[#2b4058]"}`}>{isUser ? content : <ReactMarkdown>{content || (partial ? "角色正在回复…" : "")}</ReactMarkdown>}</div></div>
                     </div>;
                   })}
