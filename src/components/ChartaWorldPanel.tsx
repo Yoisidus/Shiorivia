@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useAppDialog } from "../context/DialogContext";
 import { Download, Plus, Save, Trash2, Globe2, X } from "lucide-react";
 import { newChartaWorld, parseChartaWorld, type ChartaWorld } from "../lib/chartaWorld";
 import { encodeChartaWorldExport, saveChartaJsonFile } from "../lib/chartaJson";
@@ -8,6 +9,7 @@ import type { useChartaWorlds } from "../hooks/useChartaWorlds";
 export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld, embedded = false, selectedId = null, requestVersion = 0, onDirtyChange, onSaved }: ReturnType<typeof useChartaWorlds> & {
   embedded?: boolean; selectedId?: string | null; requestVersion?: number; onDirtyChange?: (dirty: boolean) => void; onSaved?: (id: string) => void;
 }) {
+  const dialog = useAppDialog();
   const [draft, setDraft] = useState<ChartaWorld | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -21,8 +23,8 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
     setDirty(false); setMessage("");
   }, [embedded, requestVersion, selectedId, worlds]);
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
-  const edit = (world: ChartaWorld | null) => {
-    if (dirty && !window.confirm("放弃未保存的世界观修改吗？")) return;
+  const edit = async (world: ChartaWorld | null) => {
+    if (dirty && !await dialog.confirm("放弃未保存的世界观修改吗？")) return;
     setDraft(world ? { ...world, canonTimeline: world.canonTimeline.map(stage => ({ ...stage })) } : null);
     setDirty(false); setMessage("");
   };
@@ -47,7 +49,7 @@ export function ChartaWorldPanel({ worlds, loaded, error, saveWorld, removeWorld
   };
   const remove = async () => {
     if (!draft || busy || !worlds.some(world => world.id === draft.id)) return;
-    if (!window.confirm("确定删除此世界观？已有故事的世界线快照将保留。")) return;
+    if (!await dialog.confirm("确定删除此世界观？已有故事的世界线快照将保留。")) return;
     setBusy(true);
     try { if (await removeWorld(draft.id)) { setDraft(null); setDirty(false); setMessage("已删除世界观"); } }
     finally { setBusy(false); }
