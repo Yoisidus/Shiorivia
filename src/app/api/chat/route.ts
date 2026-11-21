@@ -23,6 +23,7 @@ import { buildEngineeringCharacterContext } from "../../../lib/engineeringPerson
 import { viaeWorldline } from "../../../lib/viaeWorldline";
 import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, BANG_DREAM_CANON, parseStoryWorldline, worldlinePeriodFor, enabledWorldIds } from "../../../lib/storyWorldline";
 import { MAX_STORY_CAST, selectStoryCastIds, storyCastAllowed, storyCastOrigin } from "../../../lib/storyCast";
+import { decideStoryCast } from "../../../lib/storyCastTool";
 import { CHAR_IMAGE_DB } from "../../../data/image_config";
 import { CHAR_DATA } from "../../../data/char_config"; 
 import { BGM_LIBRARY } from "../../../data/bgm_library";
@@ -221,6 +222,7 @@ export async function POST(req: Request) {
     const colorInstruction = storyColorRenderingInstruction(colorMapObj);
 
     let knowledgeBlock = "";  
+    let resolvedStoryCast: string[] | null = null;
 
     let finalSystemPrompt = "";
     let finalMessages = messages;
@@ -800,7 +802,7 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
           + "\nKeep machine-readable IDs unchanged; respect established names and user nicknames.\n";
       }
     }
-    if ((memoryMode === "sliding" || memoryMode === "novel") && body.novelStateRepair !== true) {
+    if ((memoryMode === "sliding" || memoryMode === "novel") && !independentRepair) {
       const worldline = parseStoryWorldline(body.storyWorldline);
       if (worldline) {
         // A short ID/name index is cheap; ONLY the selected cast receives biographies.
@@ -813,16 +815,32 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
               .map((stage: any) => ({ era: stage.era, period: stage.period })) : [] })) : [];
         const eligible = allChars.filter(char => storyCastAllowed(char, worldline));
         const availableIds = new Set(eligible.map(char => char.id));
-        const chosen = selectStoryCastIds(body.storyNextCastIds, availableIds);
+        // User choices are mandatory only for the first story/chapter response.
+        // From the second turn, the model selects the whole cast independently.
+        const firstTurn = Number(body.titleReviewTurn) === 1
+          || (Array.isArray(messages) && messages.filter((m: any) => m?.role === "user").length === 1);
+        const pinned = firstTurn ? selectStoryCastIds(body.storyNextCastIds, availableIds) : [];
+        const chosen = await decideStoryCast({
+          provider: selectedProvider, model: routedModel,
+          mode: memoryMode as "sliding" | "novel",
+          messages: Array.isArray(messages) ? messages : [],
+          roster: eligible.map(char => ({ id: char.id, name: char.name })),
+          pinnedIds: pinned, worldline: JSON.stringify(worldline),
+          stm: String(stm || ""), ltm: String(ltm || ""),
+          contextWindowTokens: body.contextWindowTokens,
+          debug: body.debugRequestPayload === true,
+        });
+        resolvedStoryCast = [...chosen];
         // Opted-in universal characters always receive complete context, even
         // without explicit next-turn cast selection.
         const universalProfiles = worldline.crossWorld?.enabled && worldline.crossWorld.includeUniversal
           ? eligible.filter(char => storyCastOrigin(char) === null).map(char => char.id) : [];
-        const profileIds = [...new Set([...chosen, ...universalProfiles])];
         if (memoryMode === "sliding" && typeof body.storyPovId === "string" && availableIds.has(body.storyPovId) && !chosen.includes(body.storyPovId)) {
           chosen.unshift(body.storyPovId);
           chosen.splice(MAX_STORY_CAST);
         }
+        resolvedStoryCast = [...chosen];
+        const profileIds = [...new Set([...chosen, ...universalProfiles])];
         const roster = eligible.map(char => `${char.id}: ${char.name}`).join("\n");
         const foreignOrigins = [...new Set(profileIds.flatMap(id => {
           const char = eligible.find(entry => entry.id === id);
@@ -860,7 +878,7 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
             : loreForBangDreamPeriod(LORE_LIBRARY[char.id] || "", origin === BANG_DREAM_WORLD_ID ? originPeriod : null);
           return [`[CAST PROFILE] ID=${char.id}; PUBLIC_ID=${"characterCode" in char ? char.characterCode : char.id}; NAME=${char.name}; WORLD=${source ? ("worldName" in source ? source.worldName : source.name) : worldline.worldName}\n${bio || "(No biography provided; do not invent established facts.)"}\n[END CAST PROFILE]`];
         }).join("\n\n");
-        finalSystemPrompt += `\n\n[STORY CAST — turn-specific context]\nEligible roster (IDs/names only):\n${roster || "(empty)"}\nFULL profiles for THIS ${memoryMode === "novel" ? "CHAPTER" : "response"}: ${JSON.stringify(chosen)}\n${foreignWorldNotes ? `[ORIGINAL WORLDS]\n${foreignWorldNotes}\n[END ORIGINAL WORLDS]\n` : ""}${profiles || (memoryMode === "novel" ? "(No cast selected. Do not invent established biographies or automatically add unselected cast; users can choose cast for later chapters.)" : "(No cast selected. Avoid inventing canonical biographies; suggest plausible next-turn cast IDs from roster.)")}\nUse only supplied profiles as authoritative characterization. Respect the selected timeline or AU baseline: character knowledge, names and relationships cannot include future information even when evergreen editorial notes mention later arcs. For AU, retain the selected baseline as a starting point; later canon events are not automatically destined to recur. Do not invent a foreign-world crossing without explicit permission.\n[END STORY CAST]`;
+        finalSystemPrompt += `\n\n[STORY CAST — turn-specific context]\nEligible roster (IDs/names only):\n${roster || "(empty)"}\nFULL profiles for THIS ${memoryMode === "novel" ? "CHAPTER" : "response"}: ${JSON.stringify(chosen)}\n${foreignWorldNotes ? `[ORIGINAL WORLDS]\n${foreignWorldNotes}\n[END ORIGINAL WORLDS]\n` : ""}${profiles || (memoryMode === "novel" ? "(The cast lookup chose no characters for this chapter. Do not invent canonical biographies.)" : "(The cast lookup chose no characters for this turn. Do not invent canonical biographies.)")}\nThe resolved cast applies to THIS response only, not the next one. The next response will independently run cast lookup again. Any nextSceneCastIds field is historical protocol data, not a cast selection command. Use only supplied profiles as authoritative characterization. Respect the selected timeline or AU baseline: character knowledge, names and relationships cannot include future information even when evergreen editorial notes mention later arcs. For AU, retain the selected baseline as a starting point; later canon events are not automatically destined to recur. Do not invent a foreign-world crossing without explicit permission.\n[END STORY CAST]`;
       }
     }
     // Unselected Charta profiles must not leak into other spaces. Their lore is
@@ -1029,7 +1047,7 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
             },
         });
 
-        return new Response(readable, { headers: { "Content-Type": "text/event-stream" } });
+        return new Response(readable, { headers: { "Content-Type": "text/event-stream", ...(resolvedStoryCast ? { "X-Shiorivia-Cast": JSON.stringify(resolvedStoryCast) } : {}) } });
     }
 
     else {
@@ -1080,7 +1098,7 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
             },
         });
 
-        return new Response(readable, { headers: { "Content-Type": "text/event-stream" } });
+        return new Response(readable, { headers: { "Content-Type": "text/event-stream", ...(resolvedStoryCast ? { "X-Shiorivia-Cast": JSON.stringify(resolvedStoryCast) } : {}) } });
     }
 
   } catch (error: any) {
