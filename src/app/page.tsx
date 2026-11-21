@@ -457,9 +457,9 @@ export default function Home() {
         if (mode === "novel") triggerCurtain();
     };
 
-    const deleteSession = (e: any, id: string) => {
+    const deleteSession = async (e: any, id: string) => {
         e.stopPropagation();
-        if (!confirm("⚠️ Delete this timeline?")) return;
+        if (!await dialog.confirm("删除这个会话？此操作不可撤销。", { destructive: true })) return;
 
         const remainingSessions = cloud.sessions.filter(s => s.id !== id);
 
@@ -891,7 +891,7 @@ export default function Home() {
                     sessions={cloud.sessions} currentSessionId={currentSessionId} setCurrentSessionId={setCurrentSessionId}
                     createFolder={() => cloud.setFolders(prev => [...prev, { id: Date.now().toString(), name: "New Folder", isExpanded: true }])}
                     toggleFolder={(id: string) => cloud.setFolders(prev => prev.map(f => f.id === id ? { ...f, isExpanded: !f.isExpanded } : f))}
-                    deleteFolder={(e: any, id: string) => { e.stopPropagation(); if (confirm("Delete?")) cloud.setFolders(prev => prev.filter(f => f.id !== id)) }}
+                    deleteFolder={async (e: any, id: string) => { e.stopPropagation(); if (await dialog.confirm("删除这个会话文件夹？", { destructive: true })) cloud.setFolders(prev => prev.filter(f => f.id !== id)) }}
                     createNewSession={createNewSession}
                     deleteSession={deleteSession}
 
