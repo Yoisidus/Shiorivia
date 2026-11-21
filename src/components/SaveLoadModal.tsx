@@ -3,8 +3,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Save, Download, Trash2, X, Camera, HardDrive, Loader2, Sparkles, Orbit } from "lucide-react";
 import { toJpeg } from 'html-to-image';
+import { useAppDialog } from '../context/DialogContext';
 
 export const SaveLoadModal = ({ isOpen, onClose, currentSession, onLoadSession }: any) => {
+    const dialog = useAppDialog();
     const [slots, setSlots] = useState<Record<number, any>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [isCapturing, setIsCapturing] = useState(false);
@@ -91,14 +93,14 @@ export const SaveLoadModal = ({ isOpen, onClose, currentSession, onLoadSession }
             if (!res.ok) throw new Error("Save failed");
             await fetchSlots();
         } catch (e) {
-            alert("Save failed");
+            void dialog.alert("存档保存失败");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleLoad = async (index: number) => {
-        if (!confirm(`读取 Slot ${index + 1}？\n当前未保存的进度将丢失。`)) return;
+        if (!await dialog.confirm(`读取 Slot ${index + 1}？\n当前未保存的进度将丢失。`)) return;
         
         setIsLoading(true);
         try {
@@ -114,7 +116,7 @@ export const SaveLoadModal = ({ isOpen, onClose, currentSession, onLoadSession }
                 onClose();
             }
         } catch (e) {
-            alert("Load failed");
+            void dialog.alert("读取存档失败");
         } finally {
             setIsLoading(false);
         }
@@ -122,7 +124,7 @@ export const SaveLoadModal = ({ isOpen, onClose, currentSession, onLoadSession }
 
     const handleDelete = async (e: any, index: number) => {
         e.stopPropagation();
-        if (!confirm("永久删除此存档？")) return;
+        if (!await dialog.confirm("永久删除此存档？")) return;
         setIsLoading(true);
         await fetch("/api/local/slots", {
             method: "DELETE",
