@@ -107,6 +107,9 @@ export default function Home() {
         webSearch: false,
         webToolConfig: DEFAULT_WEB_TOOL_CONFIG,
         imageGen: false,
+        danmakuEnabled: false,
+        danmakuCount: 8,
+        debugDrawTags: false,
         tts: false,
         musicControl: false,
         terminalRequestLog: false,
@@ -155,6 +158,9 @@ export default function Home() {
                     webSearch: typeof saved.webSearch === "boolean" ? saved.webSearch : prev.webSearch,
                     webToolConfig: normalizeWebToolConfig(saved.webToolConfig),
                     imageGen: typeof saved.imageGen === "boolean" ? saved.imageGen : prev.imageGen,
+                    danmakuEnabled: saved.danmakuEnabled === true,
+                    danmakuCount: Number.isFinite(saved.danmakuCount) ? Math.min(24, Math.max(1, Math.round(saved.danmakuCount))) : 8,
+                    debugDrawTags: saved.debugDrawTags === true,
                     imageSettings: saved.imageSettings && typeof saved.imageSettings === "object"
                         ? { ...DEFAULT_IMAGE_SETTINGS, ...Object.fromEntries(Object.entries(saved.imageSettings).filter(([k]) => k in DEFAULT_IMAGE_SETTINGS)) }
                         : prev.imageSettings,
@@ -182,12 +188,12 @@ export default function Home() {
     useEffect(() => {
         if (!settingsHydrated) return;
         try {
-            const { webSearch, webToolConfig, imageGen, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings } = config;
-            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, webToolConfig, imageGen, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels, providerAliases }));
+            const { webSearch, webToolConfig, imageGen, danmakuEnabled, danmakuCount, debugDrawTags, tts, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings } = config;
+            window.localStorage.setItem("shiorivia_local_preferences_v1", JSON.stringify({ webSearch, webToolConfig, imageGen, danmakuEnabled, danmakuCount, debugDrawTags, tts: false, musicControl, terminalRequestLog, terminalLog, engineeringTransition, curtainTransition, geminiNarrativeStyle, engineeringLoreRelationships, engineeringLoreExperiences, contextWindowTokens, storyTheme, imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels, providerAliases }));
         } catch {
             // Local settings are best-effort; chat saves use their own storage.
         }
-    }, [settingsHydrated, config.webSearch, config.webToolConfig, config.imageGen, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.contextWindowTokens, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels, providerAliases]);
+    }, [settingsHydrated, config.webSearch, config.webToolConfig, config.imageGen, config.danmakuEnabled, config.danmakuCount, config.debugDrawTags, config.tts, config.musicControl, config.terminalRequestLog, config.terminalLog, config.engineeringTransition, config.curtainTransition, config.geminiNarrativeStyle, config.engineeringLoreRelationships, config.engineeringLoreExperiences, config.contextWindowTokens, config.storyTheme, config.imageSettings, disabledProviders, apiProvider, providerCapabilities, providerModels, providerAliases]);
 
     const displayProviders = useMemo(() => allProviders.map(p => ({
         ...p, label: p.custom ? providerAliases[p.id] || p.label : p.label,
@@ -598,6 +604,12 @@ export default function Home() {
                     values={config}
                     onToggle={toggleSetting}
                     debugMode={ui.debugMode}
+                danmakuEnabled={config.danmakuEnabled}
+                onToggleDanmaku={() => setConfig(prev => ({ ...prev, danmakuEnabled: !prev.danmakuEnabled }))}
+                danmakuCount={config.danmakuCount}
+                onDanmakuCountChange={(count: number) => setConfig(prev => ({ ...prev, danmakuCount: count }))}
+                debugDrawTagsEnabled={config.debugDrawTags}
+                onToggleDebugDrawTags={() => setConfig(prev => ({ ...prev, debugDrawTags: !prev.debugDrawTags }))}
                     onToggleDebug={() => ui.setDebugMode(prev => !prev)}
                     terminalRequestLogEnabled={config.terminalRequestLog}
                     onToggleTerminalRequestLog={() => setConfig(prev => ({ ...prev, terminalRequestLog: !prev.terminalRequestLog }))}
@@ -674,6 +686,12 @@ export default function Home() {
                     values={config}
                     onToggle={toggleSetting}
                     debugMode={ui.debugMode}
+                danmakuEnabled={config.danmakuEnabled}
+                onToggleDanmaku={() => setConfig(prev => ({ ...prev, danmakuEnabled: !prev.danmakuEnabled }))}
+                danmakuCount={config.danmakuCount}
+                onDanmakuCountChange={(count: number) => setConfig(prev => ({ ...prev, danmakuCount: count }))}
+                debugDrawTagsEnabled={config.debugDrawTags}
+                onToggleDebugDrawTags={() => setConfig(prev => ({ ...prev, debugDrawTags: !prev.debugDrawTags }))}
                     onToggleDebug={() => ui.setDebugMode(prev => !prev)}
                     terminalRequestLogEnabled={config.terminalRequestLog}
                     onToggleTerminalRequestLog={() => setConfig(prev => ({ ...prev, terminalRequestLog: !prev.terminalRequestLog }))}
@@ -756,7 +774,7 @@ export default function Home() {
                 onOpenCharta={() => { setChartaInitialSection("worlds"); setShowCharta(true); }}
                 stopGeneration={engine.stopGeneration}
                 handleRegenerate={engine.handleRegenerate}
-                onGenerateDraw={engine.generateDraw} imageSettings={config.imageSettings} debugMode={ui.debugMode} useImageGen={config.imageGen} showToast={ui.showToast}
+                onGenerateDraw={engine.generateDraw} imageSettings={config.imageSettings} debugMode={ui.debugMode && config.debugDrawTags} useImageGen={config.imageGen} showToast={ui.showToast}
                 setIsGlobalGenerating={setIsGlobalGenerating}
                 onImageGenerated={async (base64: string, meta: any) => {
                     const res = await fetch("/api/upload", {
@@ -787,6 +805,12 @@ export default function Home() {
                 values={config}
                 onToggle={toggleSetting}
                 debugMode={ui.debugMode}
+                danmakuEnabled={config.danmakuEnabled}
+                onToggleDanmaku={() => setConfig(prev => ({ ...prev, danmakuEnabled: !prev.danmakuEnabled }))}
+                danmakuCount={config.danmakuCount}
+                onDanmakuCountChange={(count: number) => setConfig(prev => ({ ...prev, danmakuCount: count }))}
+                debugDrawTagsEnabled={config.debugDrawTags}
+                onToggleDebugDrawTags={() => setConfig(prev => ({ ...prev, debugDrawTags: !prev.debugDrawTags }))}
                 onToggleDebug={() => ui.setDebugMode(prev => !prev)}
                 terminalRequestLogEnabled={config.terminalRequestLog}
                 onToggleTerminalRequestLog={() => setConfig(prev => ({ ...prev, terminalRequestLog: !prev.terminalRequestLog }))}
@@ -958,6 +982,7 @@ export default function Home() {
                     setShowLocalWorld={ui.setShowLocalWorld}
                     onOpenStoryWorldline={() => { ui.setRightSidebarOpen(true); setWorldlineOpenSignal(value => value + 1); }}
                     debugMode={ui.debugMode} setDebugMode={ui.setDebugMode}
+                    showDrawDebugTags={ui.debugMode && config.debugDrawTags}
 
                     currentCharacter={dynamicCharacter} currentSession={currentSession}
                     input={engine.input} setInput={engine.setInput}
@@ -1017,7 +1042,7 @@ export default function Home() {
                     createNewSession={createNewSession}
                 />
 
-                <DanmakuOverlay danmakuList={currentSession?.lastDanmaku} />
+                <DanmakuOverlay danmakuList={config.danmakuEnabled && currentSession?.memoryMode === "sliding" ? currentSession?.lastDanmaku : []} />
                 <AnimatePresence>{(ui.leftSidebarOpen || ui.rightSidebarOpen) && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { ui.setLeftSidebarOpen(false); ui.setRightSidebarOpen(false) }} className="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm" />}</AnimatePresence>
 
                 <SidebarRight
@@ -1116,6 +1141,12 @@ export default function Home() {
                 values={config}
                 onToggle={toggleSetting}
                 debugMode={ui.debugMode}
+                danmakuEnabled={config.danmakuEnabled}
+                onToggleDanmaku={() => setConfig(prev => ({ ...prev, danmakuEnabled: !prev.danmakuEnabled }))}
+                danmakuCount={config.danmakuCount}
+                onDanmakuCountChange={(count: number) => setConfig(prev => ({ ...prev, danmakuCount: count }))}
+                debugDrawTagsEnabled={config.debugDrawTags}
+                onToggleDebugDrawTags={() => setConfig(prev => ({ ...prev, debugDrawTags: !prev.debugDrawTags }))}
                 onToggleDebug={() => ui.setDebugMode(prev => !prev)}
                 terminalRequestLogEnabled={config.terminalRequestLog}
                 onToggleTerminalRequestLog={() => setConfig(prev => ({ ...prev, terminalRequestLog: !prev.terminalRequestLog }))}
