@@ -989,6 +989,43 @@ export const useChatEngine = ({
                         stmBackup: session.stm, turnCount: count + 1, updatedAt: Date.now() };
                 }));
             }
+            // A nonconforming seventh-turn LTM never causes silent memory loss.
+            // Use the older summarizer only as an exceptional fallback, while
+            // preserving all seven captured STM records until consolidation works.
+            if (currentSession.memoryMode === "sliding" && !storyProtocolMissing
+                && inlineStoryMemory?.stm && (currentSession.turnCount || 0) >= 6
+                && !inlineStoryMemory.ltm) {
+                void (async () => {
+                    try {
+                        const records = formatLocalMemoryEntries([
+                            ...parseLocalMemoryEntries(currentSession.stm),
+                            "• " + inlineStoryMemory.stm,
+                        ]);
+                        const response = await fetch("/api/summarize", {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                text: records, previousLtm: currentSession.ltm,
+                                mode: "macro", provider: apiProvider, model: modelToUse, uiLanguage: locale,
+                            }),
+                        });
+                        if (!response.ok) throw new Error("LTM fallback HTTP " + response.status);
+                        const result = await response.json();
+                        const consolidated = typeof result?.summary === "string" ? result.summary.trim() : "";
+                        if (!consolidated) throw new Error("Empty LTM fallback");
+                        setSessions((prev: Session[]) => prev.map(session =>
+                            session.id === currentSessionId && session.memoryMode === "sliding"
+                            && session.messages.some(message => message.storyGenerationId === generationId)
+                            && (session.turnCount || 0) >= 7
+                            && parseLocalMemoryEntries(session.stm).some(entry => entry.includes(inlineStoryMemory.stm))
+                                ? { ...session, stm: "", ltm: consolidated,
+                                    stmBackup: session.stm, turnCount: 0, updatedAt: Date.now() }
+                                : session));
+                    } catch (error) {
+                        console.warn("Seventh-turn LTM fallback failed; retained all STM records:", error);
+                        showToast("本轮长期记忆未能合并，已保留短期记忆，可在记忆档案中查看。");
+                    }
+                })();
+            }
             if ((currentSession.memoryMode === 'sliding' && !storyProtocolMissing && !inlineStoryMemory?.stm) || currentSession.memoryMode === 'novel') {
                 const textToSummarize = currentSession.memoryMode === 'novel' ? stripNovelSuggestions(currentText) : `User: ${txt}\nAI: ${currentText}\n`;
                 const summarizeMode = currentSession.memoryMode === 'novel' ? 'novel_chapter' : 'micro';
