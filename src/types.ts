@@ -68,9 +68,13 @@ export type PlotSuggestions = {
 };
 
 export type TimelineStructure = {
-  major: string;  
-  medium: string; 
-  minor: string;  
+  era: string;
+  period: string;
+  event: string;
+  /** Legacy Local archive names; accepted but no longer generated. */
+  major?: string;
+  medium?: string;
+  minor?: string;
 };
 
 export type SaveData = {
