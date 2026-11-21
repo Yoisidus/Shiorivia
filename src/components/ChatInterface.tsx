@@ -7,7 +7,7 @@ import {
     RotateCcw, Check, Square, Pencil, Trash2, RefreshCw, Copy, Cpu, FileText,
     Volume2, Loader2, Sparkles, Moon, Brain,
     Save, Terminal, ClipboardList, Guitar, Image as ImageIcon, Shirt,
-    Disc, ChevronUp, MoreHorizontal, Settings, Route, Hammer, TreeDeciduous,
+    Disc, ChevronUp, MoreHorizontal, Settings, Route, Hammer, TreeDeciduous, FileCheck2,
     ToggleLeft, ToggleRight, Skull, Binary, CloudRain, AlertTriangle
 } from "lucide-react";
 import { ThinkingBlock } from "./Common";
@@ -22,6 +22,7 @@ import { MusicPlayerModal } from "./MusicPlayerModalV2";
 import { useMusic } from "../context/MusicContext"; 
 import ReactMarkdown from "react-markdown";
 import { smartColorize } from "../lib/textFormatter";
+import { normalizeOfficinaDisplay } from "../lib/engineeringDisplay";
 import { cleanDrawTag } from "../lib/parseDraw";
 import { IllustratedImage, ImageLightbox } from "./IllustrationImage";
 
@@ -596,7 +597,7 @@ export const ChatInterface = ({
                     const isSecondLast = i === currentSession.messages.length - 2;
                     const isLastUserMsg = msg.role === 'user' && (isLast || isSecondLast);
 
-                    if (msg.role === 'assistant' && !answer && !thought && !files.length) return null;
+                    if (msg.role === 'assistant' && !answer && !thought && !files.length && !msg.ideEditedFiles?.length) return null;
 
                     return (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} key={i} className={`group flex gap-4 max-w-3xl md:max-w-4xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -619,9 +620,45 @@ export const ChatInterface = ({
 
                                 {answer && (msg.role !== 'assistant' || Boolean(cleanDrawTag(answer).trim())) && (
                                     <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm w-fit ${msg.role === 'user' ? 'bg-slate-800 text-white rounded-br-none ml-auto' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'}`}>
-                                        {msg.role === 'assistant' ? renderContent(answer, setPreviewImage, selfColors) : <div className="whitespace-pre-wrap">{answer}</div>}
+                                        {msg.role === 'assistant'
+                                            ? currentSession.memoryMode === "infinite"
+                                                ? <div className="officina-response whitespace-pre-wrap break-words">
+                                                    <ReactMarkdown components={{
+                                                        strong: ({ children }) => <strong className="font-extrabold text-[#183f70]">{children}</strong>,
+                                                        p: ({ children }) => <p className="my-1.5 whitespace-pre-wrap">{children}</p>,
+                                                        pre: ({ children }) => <pre className="my-3 max-w-full overflow-x-auto rounded-xl border border-[#ceddf0] bg-[#f0f6fd] px-3 py-3 text-[12px] leading-5 text-[#254060] whitespace-pre">{children}</pre>,
+                                                        code: ({ className, children }) => <code className={className ? `font-mono ${className}` : "rounded bg-[#eaf2fb] px-1 py-0.5 font-mono text-[12px] text-[#28518a]"}>{children}</code>,
+                                                        img: ({ src, alt }) => src ? <IllustratedImage src={src} alt={alt || "图片"} onOpen={setPreviewImage} className="my-2" /> : null,
+                                                    }}>{normalizeOfficinaDisplay(cleanDrawTag(answer))}</ReactMarkdown>
+                                                </div>
+                                                : renderContent(answer, setPreviewImage, selfColors)
+                                            : <div className="whitespace-pre-wrap">{answer}</div>}
                                         {msg.role === 'assistant' && msg.modelName && msg.modelName !== "System" && <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-1.5 text-[9px] font-bold tracking-wider opacity-40 uppercase"><Cpu size={10} /> {msg.modelName.split('/').pop()}</div>}
                                     </div>
+                                )}
+                                {currentSession.memoryMode === "infinite" && msg.role === "assistant" && Array.isArray(msg.ideEditedFiles) && msg.ideEditedFiles.length > 0 && (
+                                    <section aria-label="IDE 文件修改结果" className="mt-2 w-full min-w-0 overflow-hidden rounded-xl border border-[#bad5ef] bg-[#f5faff] shadow-[0_4px_16px_rgba(33,92,148,.07)]">
+                                        <header className="flex items-center gap-2 border-b border-[#d7e6f4] bg-[#e8f3ff] px-3 py-2.5 text-[#285d8d]">
+                                            <FileCheck2 size={16} className="shrink-0" />
+                                            <span className="flex-1 text-xs font-bold">IDE 局部修改完成</span>
+                                            <span className="rounded-full bg-[#d8eaff] px-2 py-0.5 text-[10px] font-semibold">{msg.ideEditedFiles.length} 个文件</span>
+                                        </header>
+                                        <div className="divide-y divide-[#e2edf8]">
+                                            {msg.ideEditedFiles.map((file: { path: string; operations: number; added: number; removed: number }, index: number) => (
+                                                <div key={`${file.path}-${index}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
+                                                    <div className="flex min-w-0 items-center gap-2">
+                                                        <FileText size={14} className="shrink-0 text-[#6090bc]" />
+                                                        <span className="break-all font-mono text-[11px] font-semibold text-[#294a70]">{file.path}</span>
+                                                    </div>
+                                                    <div className="flex shrink-0 items-center gap-2 text-[10px] font-mono">
+                                                        <span className="text-[#3d698d]">{file.operations} 处修改</span>
+                                                        <span className="font-bold text-[#258051]">+{file.added}</span>
+                                                        <span className="font-bold text-[#b64c5c]">-{file.removed}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
                                 )}
                                 {currentSession.memoryMode === "infinite" && msg.role === "assistant" && msg.engineeringOutputIncomplete && (
                                     <div role="status" className="mt-2 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
