@@ -644,7 +644,7 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
         : "\n\n[USER IDENTITY] The collaborator is simply the user; no authored Charta self is active. Do not invent a persona.";
 
       if (imageToolSelected) {
-        engineerPersona += `\n[SYSTEM NOTICE]: Visualizer ENABLED. Fill "imageGen" in JSON.\n[Available Outfits]:\n${outfitList}\n`;
+        engineerPersona += `\n[IMAGE TOOL SELECTED] If a useful illustration is warranted, provide a valid <draw> JSON tag following the visualizer protocol. Do NOT add an imageGen property to game_state or any unrelated JSON.\n[Available Outfits]:\n${outfitList}\n`;
       }
 
       engineerPersona += `\n[SYSTEM WARNING]: Do NOT copy/paste previous [GALLERY] tags.`;
@@ -730,7 +730,7 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
 
 
       if (imageToolSelected) {
-        finalSystemPrompt += `\n[SYSTEM NOTICE]: Visualizer ENABLED. Fill "imageGen" in JSON.\n[Available Outfits]:\n${outfitList}\n`;
+        finalSystemPrompt += `\n[IMAGE TOOL SELECTED] If a useful illustration is warranted, provide a valid <draw> JSON tag following the visualizer protocol. Do NOT add an imageGen property to game_state or any unrelated JSON.\n[Available Outfits]:\n${outfitList}\n`;
       }
 
       finalSystemPrompt += `\n${PERSPECTIVE_RULES}\n`;
