@@ -742,6 +742,10 @@ export const useChatEngine = ({
 
             const inlineStoryMemory = currentSession.memoryMode === "sliding"
                 ? parseStoryTurnMemory(currentText) : null;
+            if (storyProtocolMissing && currentSession.memoryMode === "sliding") {
+                // The user sees fiction, not a broken trailing JSON block.
+                currentText = storyProseWithoutState(currentText);
+            }
             if (currentSession.memoryMode === "sliding") currentText = stripStoryTurnMemory(currentText);
 
             // Keep IDE result metadata separate from the model's prose.
