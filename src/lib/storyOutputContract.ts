@@ -31,17 +31,17 @@ Required JSON shape (placeholder values show types only, NOT actual story facts;
   "character": [],
   "suggestions": {"fun": "有趣且可信的后续行动", "rational": "合乎情理的后续行动", "radical": "大胆但不违背角色的后续行动"},
   "danmaku": ${danmakuExample},
-  "timeline": {"major": "", "medium": "", "minor": ""},
+  "timeline": {"era": "", "period": "", "event": ""},
   "music": null
 }
 </game_state>
 
 - All eight keys are mandatory; maintain exactly these object/array shapes. Use valid JSON, never markdown fences, commentary or an array of {tag,text} suggestions.
-- protagonist: in observer mode without a selected POV use null; in participant or chosen-POV mode use an object with exactly SEVEN strings: name, timeDesc, environment, temperature, clothing, sensation, innerState. Use "" for genuinely unknown details. Protagonist.environment describes the protagonist's present location.
+- protagonist: this field denotes the session’s status-view owner only; it does NOT force the novelist or narrator to keep their perspective as the center of every scene. In observer mode without a selected POV use null; in participant or chosen-POV mode use an object with exactly SEVEN strings: name, timeDesc, environment, temperature, clothing, sensation, innerState. Use "" for genuinely unknown details. Protagonist.environment describes the protagonist's present location.
 - character: other in-world characters ONLY, NEVER the active self or selected POV. Each entry identifies a known id and name and may include clothing, shoes, bodyState, legState, innerState and numeric affection, Possessiveness, Obsession, Lust. Relationship numbers describe the TARGET character's feeling TOWARD the active self/POV, never the reverse or self-to-self. Do not invent absent status or impossible knowledge. No age or gender in live status objects.
 - sceneCastIds: IDs of characters actually on stage in the current scene. nextSceneCastIds is a legacy archive compatibility field: always emit [] because the NEXT response has its own independent cast-lookup round. Use known eligible IDs only for sceneCastIds; never invent IDs or include the participant self. Empty arrays are valid.
 - suggestions: three distinct, specific NEXT-SCENE developments that respect the active canon/AU period, personality, knowledge and causality; fun is playful and surprising, rational is grounded and tactful, radical is consequential but believable. For observers, use third-person director commands making characters DO something, not commands to the human observer to watch or wait; for participants, use actions the chosen self can plausibly take. No forced OOC acts, future spoilers or repeated vague suggestions.
-- timeline: descriptive major/medium/minor continuity notes. NEVER overwrite, rename or infer a replacement WORLD / ERA / PERIOD or AU baseline from this field.
+- timeline: era and period MUST use the exact current world's canonical stage labels. Copy the current labels when time does not advance. When real story events justify a time jump, the model MAY propose a LATER valid canonical ERA/PERIOD from the current ordered stage list, but NEVER an earlier stage, an unlisted period, a changed world, or a changed AU baseline. event is a concise summary of what is happening at this scene's endpoint. Only validated forward progression is applied by the app; AU chronology has no implicit sortable order and retains its existing ERA/PERIOD.
 - music: use only the separate Auto DJ instructions if enabled; otherwise null.
 - Never add top-level environment, age, gender, live2d or effect fields. Background, Live2D and cinematic effects are not generated game-state commands.
 - Relationship metrics (0–100) describe the TARGET character's state toward the active self/POV, based on demonstrated events, not a moral judgment or a generic romance score:
