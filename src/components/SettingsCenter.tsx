@@ -46,7 +46,7 @@ type Props = {
   engineeringLoreExperiencesEnabled: boolean;
   onToggleEngineeringLoreRelationships: () => void;
   onToggleEngineeringLoreExperiences: () => void;
-  onTestEffect: (name: "rain" | "curtain" | "math" | "glitch") => void;
+  onTestEffect: (name: "rain" | "curtain" | "parchment" | "math" | "glitch") => void;
   isStory: boolean;
   activeMode: "infinite" | "sliding" | "novel" | "chat" | "lime" | "hub";
   contextWindowTokens: ContextWindowTokens;
@@ -325,7 +325,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   {imageSettings.provider !== "comfyui" && <div className="space-y-3">
                   <label className="block text-xs text-slate-600">正面风格提示词<textarea rows={2} value={imageSettings.positive} onChange={e => onImageSettingsChange({positive:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>
                   <label className="block text-xs text-slate-600">负面提示词<textarea rows={2} value={imageSettings.negative} onChange={e => onImageSettingsChange({negative:e.target.value})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                     {([['width','宽度'],['height','高度'],['steps','步数'],['cfg','CFG']] as const).map(([key,label]) => <label key={key} className="text-xs text-slate-600">{label}<input type="number" min={1} max={2048} value={imageSettings[key]} onChange={e => onImageSettingsChange({[key]:Number(e.target.value)})} className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50/40 p-2 text-sm text-slate-700 outline-none focus:border-slate-400"/></label>)}
                   </div>
                   </div>}
@@ -367,12 +367,13 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 <SwitchRow title="终端输出 AI 完整原文" description="默认关闭；开启后在运行 Shiorivia 的终端打印模型的完整流式原文（包括隐藏标签与状态 JSON）。可能包含私人对话，请勿分享终端日志。" checked={terminalLogEnabled} onClick={onToggleTerminalLog} icon={Bug} />
                 </>}
                 <SwitchRow title={t("settings.transition")} description={t("settings.transition.description")} checked={engineeringTransitionEnabled} onClick={onToggleEngineeringTransition} icon={Sparkles} />
-                <SwitchRow title="Tela 幕布转场" description="进入或退出小说模式时播放幕布动画。默认开启，关闭后直接切换界面。" checked={curtainTransitionEnabled} onClick={onToggleCurtainTransition} icon={Sparkles} />
+                <SwitchRow title="Tela 羊皮纸卷轴转场" description="进入或退出小说模式时展开羊皮纸卷轴。原幕布动画仍可在下方预览；关闭后直接切换界面。" checked={curtainTransitionEnabled} onClick={onToggleCurtainTransition} icon={Sparkles} />
                 <SectionTitle>{t("settings.preview")}</SectionTitle>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {([
                     { id: "rain", label: "Rain" },
                     { id: "curtain", label: "Curtain" },
+                    { id: "parchment", label: "Parchment" },
                     { id: "math", label: "Math" },
                     { id: "glitch", label: "Glitch" },
                   ] as const).map((effect) => (
