@@ -9,6 +9,7 @@ import type { PublicLocalProvider } from "../lib/localProviders";
 import type { ImageSettings, ProviderCapability } from "../lib/imageSettings";
 import { capabilityFor } from "../lib/imageSettings";
 import { useLanguage } from "../context/LanguageContext";
+import { useAppDialog } from "../context/DialogContext";
 import { LANGUAGE_OPTIONS, type Locale } from "../lib/locale";
 import { CONTEXT_WINDOW_OPTIONS, type ContextWindowTokens } from "../lib/contextWindow";
 
@@ -101,12 +102,13 @@ function SwitchRow({ title, description, checked, onClick, icon: Icon }: {
 }
 
 export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, contextWindowTokens, onContextWindowChange, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
+  const dialog = useAppDialog();
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const { refreshLibrary, allTracks } = useMusic();
   const [scanningMusic, setScanningMusic] = useState(false);
   const [scanNotice, setScanNotice] = useState("");
   const scanMusic = async () => {
-    if (scanningMusic || !window.confirm("扫描 Shiorivia/music/ 中的音乐与同名 .lrc？\n这会更新本地曲库索引，不会移动或修改音乐文件。")) return;
+    if (scanningMusic || !await dialog.confirm("扫描 Shiorivia/music/ 中的音乐与同名 .lrc？\n这会更新本地曲库索引，不会移动或修改音乐文件。")) return;
     setScanningMusic(true); setScanNotice("");
     try {
       const response = await fetch("/api/local/music", { method: "POST" });
