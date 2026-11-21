@@ -17,6 +17,8 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
 
     const lastSavedMsgCount = useRef(0);
     const hasUnsavedChanges = useRef(false);
+    // Hold the manual-save lock across confirmation and disk I/O.
+    const manualSyncInFlight = useRef(false);
 
     const [conflictModal, setConflictModal] = useState<{
         isOpen: boolean; cloudData: any; localData: any; reason: 'conflict'|'mass_loss';
@@ -30,6 +32,11 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
 
     const performSync = useCallback(async (mode: 'auto' | 'manual' | 'force_push' | 'force_pull') => {
         console.log(`[Sync] Triggered. Mode: ${mode}`); 
+        if (mode === "manual") {
+            if (manualSyncInFlight.current) return;
+            manualSyncInFlight.current = true;
+        }
+        try {
 
         if (mode === 'auto' && (isGlobalGenerating || !preferences.autoSync)) return;
 
@@ -164,6 +171,9 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
             console.error("[Sync] CRITICAL ERROR:", e);
             setStatus('error');
             if (mode === "manual") void dialog.alert("保存失败，请检查本地服务和磁盘状态。");
+        }
+        } finally {
+            if (mode === "manual") manualSyncInFlight.current = false;
         }
     }, [sessions, folders, globalWorldInfo, bgImage, initLoaded, lastServerTime, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating, dialog]);
 
