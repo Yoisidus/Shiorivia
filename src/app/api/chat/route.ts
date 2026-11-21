@@ -7,6 +7,7 @@ import { storyOutputContract } from "../../../lib/storyOutputContract";
 import { storyColorRenderingInstruction } from "../../../lib/storyColorRendering";
 import { storyTurnMemoryInstruction } from "../../../lib/storyTurnMemory";
 import { novelOutputContract } from "../../../lib/novelOutputContract";
+import { worldlineAdvanceInstruction } from "../../../lib/worldlineAdvanceProtocol";
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
 import { inspectIdeProject } from "../../../lib/ideInspection";
@@ -911,6 +912,20 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
         previousStm: String(stm || ""), previousLtm: String(ltm || ""),
         memoryTurnCount: Number(body.storyMemoryTurnCount) || 0,
       });
+    }
+
+    // Umbra and VIAE have no story/novel_state schema. This optional hidden
+    // marker lets them advance an established canonical scene chronologically
+    // without changing their existing conversational output protocols.
+    if (!independentRepair && (memoryMode === "chat" || memoryMode === "lime")) {
+      const chronologyWorldline = memoryMode === "chat"
+        ? parseStoryWorldline(body.storyWorldline)
+        : parseStoryWorldline(body.viaeGroup?.storyWorldline || body.limeGroup?.storyWorldline);
+      if (chronologyWorldline) {
+        finalSystemPrompt += "\n\n" + worldlineAdvanceInstruction(
+          chronologyWorldline, normalizeLocale(body.uiLanguage),
+        );
+      }
     }
 
     if (memoryMode === "infinite" && typeof body.engineeringProjectRoot === "string"
