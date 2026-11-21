@@ -50,6 +50,13 @@ The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint 
 - Tela's outline is labeled **SESSION SETTING** because it is stored on the current novel session, not globally.
 - Editing a session note uses a local draft. Pressing **保存设定** commits it to session state and shows an in-app themed **保存成功** dialog; closing without saving discards the draft. **Save To Disk** remains a separate manual full-snapshot action, with themed confirmation and outcome dialogs. Previously archived global data is not deleted or silently migrated to a particular session.
 
+### Mode-specific media controls and interruption dialogs / 模式媒体与暂停确认
+
+- Image generation settings and the Image Studio panel are displayed only in **Via Lata (sliding), Tela (novel), Officina (infinite), and Umbra (chat)**. VIAE and the hub hide these controls. The server-side tool planner also accepts `generate_image` in Umbra, so its setting is actionable.
+- Pending `<draw>` cards have distinct mode styles: Officina light blue, Via Lata rose, Umbra sage green, and Tela parchment. Image rendering still requires user approval after clicking the card.
+- The stop-generation button in ChatInterface, Tela and VIAE now requests confirmation through the shared modal system. Cancelling keeps the model response running; confirming invokes the same abort action as before.
+- **Auto DJ is not an AI tool.** Its switch appears only in Via Lata and Tela. When enabled, the current locally indexed playlist is supplied directly to those two modes; a model must choose an exact song name and artist only if appropriate, otherwise set story music to null / omit novel audio tags. Empty playlists must never trigger invented songs. Neither additional tool-planner rounds nor Auto DJ prompts are used in Officina, Umbra, VIAE or the hub.
+
 ### AI-selected optional tools / 按需工具调度
 
 - When image generation is enabled in a conversation mode that supports `<draw>`, the text model first receives a **small tool-selection request** listing `generate_image`; the large visualizer instruction block and outfit choices are added to the final prompt only if the model selects that tool. Actual image rendering remains gated behind the user-facing confirmation and the existing `/api/draw` route.
