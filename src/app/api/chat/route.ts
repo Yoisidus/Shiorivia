@@ -831,16 +831,14 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
           debug: body.debugRequestPayload === true,
         });
         resolvedStoryCast = [...chosen];
-        // Opted-in universal characters always receive complete context, even
-        // without explicit next-turn cast selection.
-        const universalProfiles = worldline.crossWorld?.enabled && worldline.crossWorld.includeUniversal
-          ? eligible.filter(char => storyCastOrigin(char) === null).map(char => char.id) : [];
+        // World-neutral characters are eligible only when explicitly enabled,
+        // but receive full biographies only if this turn's cast tool selected them.
         if (memoryMode === "sliding" && typeof body.storyPovId === "string" && availableIds.has(body.storyPovId) && !chosen.includes(body.storyPovId)) {
           chosen.unshift(body.storyPovId);
           chosen.splice(MAX_STORY_CAST);
         }
         resolvedStoryCast = [...chosen];
-        const profileIds = [...new Set([...chosen, ...universalProfiles])];
+        const profileIds = [...new Set(chosen)];
         const roster = eligible.map(char => `${char.id}: ${char.name}`).join("\n");
         const foreignOrigins = [...new Set(profileIds.flatMap(id => {
           const char = eligible.find(entry => entry.id === id);
