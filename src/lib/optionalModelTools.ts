@@ -117,7 +117,7 @@ export async function searchWithProvider(query: string, providerId: string, mode
           "X-Title": "Shiorivia Local",
         },
         body: JSON.stringify({
-          model, stream: false, plugins: [{ id: "web" }],
+          model, stream: false, plugins: [{ id: "web", engine: "native" }],
           messages: [{ role: "user", content: "Use web search to research this query; return factual findings with source links:\n" + query }],
         }),
         signal: AbortSignal.timeout(45000), cache: "no-store",
