@@ -192,7 +192,7 @@ const SidebarRightComponent = ({
                                     <span aria-hidden className="pointer-events-none absolute -right-7 -top-8 h-28 w-28 rounded-full border border-[#e2c996]/40" />
                                     <span aria-hidden className="pointer-events-none absolute right-0 top-1 h-16 w-16 rounded-full border border-[#e2c996]/20" />
                                     <div className="relative flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-[11px] font-semibold tracking-[.15em] text-[#ffd1e3]" style={{fontFamily:'Bahnschrift,"Arial Narrow",sans-serif'}}>✧ WORLDLINE / 世界线</span><span className="text-[10px] text-[#f1b9d2] group-hover:text-white">展开航图 ↗</span></div>
-                                    <p className="relative mt-2 text-[11px] leading-5 text-[#ffe4ed]">{currentSession?.storyWorldline ? describeStoryWorldline(currentSession.storyWorldline) : currentSession?.timeline?.major ? `旧时间线：${currentSession.timeline.major} / ${currentSession.timeline.medium || "未设定"}` : "尚未铭刻命运 · 请先选择世界线"}</p>
+                                    <p className="relative mt-2 text-[11px] leading-5 text-[#ffe4ed]">{currentSession?.storyWorldline ? describeStoryWorldline(currentSession.storyWorldline, locale) : currentSession?.timeline?.major ? `旧时间线：${currentSession.timeline.major} / ${currentSession.timeline.medium || "未设定"}` : "尚未铭刻命运 · 请先选择世界线"}</p>
                                 </button>
                                 {currentSession && <StoryCastPicker key={currentSession.id} session={currentSession}
                                     worlds={worlds} customCharacters={customCharacters} busy={isGenerating}
