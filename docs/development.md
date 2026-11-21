@@ -85,6 +85,12 @@ The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint 
 - A full `<file name="...">...</file>` source response now renders as a dedicated fenced code block **even before the closing `</file>` arrives**, instead of exposing its machine tag and allowing fragments of code to be styled as ordinary Markdown blue inline snippets. The presentation-only formatter chooses a fence longer than any tilde run inside the code; it does not change the raw model response, IDE file extraction or disk writes. Existing `<ide_edit>` previews remain separate.
 - The Officina persona prompt injects the ordered canonical timeline with `era`, `period` and at most **one** `description` for the active UI locale (`zh-CN`, `zh-TW`, `en`, `ja`, `ko`). Missing translations are omitted rather than replaced by other languages. No five-language `descriptions` objects are sent to the engineering model.
 
+### Local context window presets / 上下文预算档位
+
+- The shared context selector now provides **64K / 128K / 256K / 512K / 1024K**, with **256K (262,144 tokens) as the default** for new sessions and unconfigured values.
+- Stored legacy **32K default** values migrate to 256K, avoiding old Local settings silently keeping the former restrictive default. Other removed legacy presets migrate upward to the next supported size. Existing 64K and 128K choices remain unchanged.
+- The selection is a **user-controlled budget**, not a claim that every model supports that context size. The model/provider may reject unsupported lengths; the application continues reserving output tokens and trimming older messages to fit its configured budget.
+
 ### Session-specific notes / 会话设定
 
 - Via Lata's **故事手记** and Umbra's **聊天笔记** each edit their own session worldbook. The legacy global worldbook is no longer shown or injected into AI prompts for either mode.
