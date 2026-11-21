@@ -312,6 +312,8 @@ export const useChatEngine = ({
                 const originalMemory = currentSession.chatCharacterMemories?.[activeCharacterId] || { stm: "", ltm: "" };
                 const inlineApplied = !isRegen && inlineMemory?.stm
                     ? nextConversationMemory(originalMemory, inlineMemory) : null;
+                const needsFallback = !isRegen && Boolean(fullText.trim()) &&
+                    (!inlineMemory?.stm || (parseLocalMemoryEntries(originalMemory.stm).length >= 6 && !inlineMemory.ltm));
                 setSessions((prev: Session[]) => prev.map(s => {
                     if (s.id !== currentSessionId || s.memoryMode !== "chat") return s;
                     const memory = s.chatCharacterMemories?.[activeCharacterId] || { stm: "", ltm: "" };
@@ -320,7 +322,8 @@ export const useChatEngine = ({
                     return {
                         ...s,
                         messages: [...msgs, { role: "assistant", content: fullText, modelName: modelToUse,
-                            characterId: activeCharacterId, ...assistantMeta }],
+                            characterId: activeCharacterId, ...assistantMeta,
+                            metadataRepairMissing: Boolean(needsFallback) }],
                         ...(canApply ? { chatCharacterMemories: {
                             ...(s.chatCharacterMemories || {}),
                             [activeCharacterId]: { stm: inlineApplied.stm, ltm: inlineApplied.ltm },
@@ -329,18 +332,7 @@ export const useChatEngine = ({
                     };
                 }));
 
-                // Regenerations must not create a second STM slot.
-                // Only a missing inline STM or a seventh-turn missing LTM
-                // requires a compatibility summary request.
-                const needsFallback = !isRegen && fullText.trim() &&
-                    (!inlineMemory?.stm || (parseLocalMemoryEntries(originalMemory.stm).length >= 6 && !inlineMemory.ltm));
-                if (needsFallback) {
-                    setSessions((prev: Session[]) => prev.map(session => session.id === currentSessionId
-                        ? { ...session, messages: session.messages.map(message => message.storyGenerationId === generationId
-                            ? { ...message, metadataRepairMissing: true } : message) }
-                        : session));
-                    showToast("本轮聊天记忆不完整，可点击「补齐状态」手动恢复。");
-                }
+                if (needsFallback) showToast("本轮聊天记忆不完整，可点击「补齐状态」手动恢复。");
                 return;
             }
 
@@ -683,11 +675,6 @@ export const useChatEngine = ({
             }
             const incompleteMemory = ["sliding", "novel"].includes(currentSession.memoryMode)
                 && (!inlineStoryMemory?.stm || ((currentSession.turnCount || 0) >= 6 && !inlineStoryMemory.ltm));
-            if (incompleteMemory && !storyProtocolMissing) {
-                setSessions((prev: Session[]) => prev.map(session => session.id === currentSessionId
-                    ? { ...session, messages: session.messages.map(message => message.storyGenerationId === generationId
-                        ? { ...message, metadataRepairMissing: true } : message) } : session));
-            }
             if (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel")
                 currentText = stripStoryTurnMemory(currentText);
 
@@ -833,6 +820,7 @@ export const useChatEngine = ({
                         ...(s.memoryMode === "infinite" && outputProject
                             ? { engineeringProjectRoot: outputProject } : {}),
                         messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing,
+                            metadataRepairMissing: (s.memoryMode === "novel" && (!novelState || !novelState.choices)) || incompleteMemory,
                             ...(storyProtocolMissing && inlineStoryMemory ? { storyPendingMemory: inlineStoryMemory } : {}),
                             ...(s.memoryMode === "novel" && novelState?.choices ? { novelChoices: novelState.choices } : {}),
                             ...(s.memoryMode === "novel" ? { novelDanmaku } : {}),
