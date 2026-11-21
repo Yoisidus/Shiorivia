@@ -25,13 +25,55 @@ type DialogApi = {
 
 const DialogContext = createContext<DialogApi | null>(null);
 
-const palette: Record<DialogTone, { title: string; kicker: string; frame: string; header: string; ink: string; button: string; accent: string }> = {
-  officina: { title: "OFFICINA", kicker: "ENGINEERING WORKSPACE", frame: "border-[#526b9a] bg-[#101b32] text-slate-100", header: "bg-[#172946] border-[#435b86]", ink: "text-[#b6c9f4]", button: "bg-[#667fca] hover:bg-[#8298da] text-white", accent: "border-[#536fa7] bg-[#152541]" },
-  story: { title: "VIA LATA", kicker: "STORY NOTES", frame: "border-[#e7b7d0] bg-[#fff9fc] text-[#68445d]", header: "bg-[#fff0f7] border-[#e9cada]", ink: "text-[#a04d7d]", button: "bg-[#b56a99] hover:bg-[#a65c8a] text-white", accent: "border-[#eacbdc] bg-[#fff2f8]" },
-  umbra: { title: "UMBRA", kicker: "CONVERSATION", frame: "border-[#b6d5c5] bg-[#fafffc] text-[#35594b]", header: "bg-[#eaf6ef] border-[#cde3d7]", ink: "text-[#44816a]", button: "bg-[#508e70] hover:bg-[#417c60] text-white", accent: "border-[#cce3d7] bg-[#edf8f1]" },
-  tela: { title: "TELA", kicker: "NOVEL STUDIO", frame: "border-[#d9c7a6] bg-[#fdf9ee] text-[#63553e]", header: "bg-[#f7eedb] border-[#e6d7b7]", ink: "text-[#967447]", button: "bg-[#987952] hover:bg-[#886a44] text-white", accent: "border-[#e9daba] bg-[#faf1de]" },
-  viae: { title: "VIAE", kicker: "ROUTES & WORLDS", frame: "border-[#bfc8df] bg-[#fbfcff] text-[#465373]", header: "bg-[#eff2fa] border-[#d4dcef]", ink: "text-[#6379ae]", button: "bg-[#6479a6] hover:bg-[#526996] text-white", accent: "border-[#d1dbeb] bg-[#f0f3fb]" },
-  charta: { title: "CHARTA", kicker: "CHARACTER ARCHIVE", frame: "border-[#cfddca] bg-[#fbfdf8] text-[#516a4b]", header: "bg-[#eff5eb] border-[#dae7d4]", ink: "text-[#63875b]", button: "bg-[#6b8b5d] hover:bg-[#58764b] text-white", accent: "border-[#d9e8d2] bg-[#f1f7ee]" },
+const palette: Record<DialogTone, { title: string; kicker: string; frame: string; header: string; ink: string; button: string; cancel: string; accent: string }> = {
+  officina: {
+    title: "OFFICINA", kicker: "ENGINEERING WORKSPACE",
+    frame: "border-[#b6cfe8] bg-[#f4f9ff] text-[#243e5d]",
+    header: "bg-[#e5f1fe] border-[#c3d8ee]", ink: "text-[#37688f]",
+    button: "bg-[#3475bc] hover:bg-[#265f9e] text-white",
+    cancel: "border-[#c2d0e1] bg-white text-[#52667e] hover:bg-[#eaf0f7]",
+    accent: "border-[#c5d9ee] bg-[#d8eaff]",
+  },
+  story: {
+    title: "VIA LATA", kicker: "STORY NOTES",
+    frame: "border-[#deb7cc] bg-[#fff9fc] text-[#68445d]",
+    header: "bg-[#ffedf5] border-[#e9cada]", ink: "text-[#a04d7d]",
+    button: "bg-[#b65388] hover:bg-[#9e3f74] text-white",
+    cancel: "border-[#dfc9d7] bg-white text-[#745b6c] hover:bg-[#f7eaf1]",
+    accent: "border-[#eacbdc] bg-[#ffe4f1]",
+  },
+  umbra: {
+    title: "UMBRA", kicker: "CONVERSATION",
+    frame: "border-[#b4d7c5] bg-[#f8fffb] text-[#35594b]",
+    header: "bg-[#e6f5ec] border-[#c6e0d1]", ink: "text-[#44816a]",
+    button: "bg-[#368565] hover:bg-[#277253] text-white",
+    cancel: "border-[#c6d9ce] bg-white text-[#566e60] hover:bg-[#edf5f0]",
+    accent: "border-[#cce3d7] bg-[#dff2e6]",
+  },
+  tela: {
+    title: "TELA", kicker: "NOVEL STUDIO",
+    frame: "border-[#dcc9a9] bg-[#fffcf6] text-[#594b39]",
+    header: "bg-[#f2e5cf] border-[#e0cba9]", ink: "text-[#8c683c]",
+    button: "bg-[#765034] hover:bg-[#5c3c28] text-white",
+    cancel: "border-[#cbb89e] bg-[#ffffff] text-[#695c4d] hover:bg-[#efe8dc]",
+    accent: "border-[#dfc9a5] bg-[#fff4dd]",
+  },
+  viae: {
+    title: "VIAE", kicker: "ROUTES & WORLDS",
+    frame: "border-[#bfc8df] bg-[#fbfcff] text-[#465373]",
+    header: "bg-[#eff2fa] border-[#d4dcef]", ink: "text-[#6379ae]",
+    button: "bg-[#6479a6] hover:bg-[#526996] text-white",
+    cancel: "border-[#cbd2e3] bg-white text-[#65718b] hover:bg-[#f0f2f8]",
+    accent: "border-[#d1dbeb] bg-[#e8effc]",
+  },
+  charta: {
+    title: "CHARTA", kicker: "CHARACTER ARCHIVE",
+    frame: "border-[#cfddca] bg-[#fbfdf8] text-[#516a4b]",
+    header: "bg-[#eff5eb] border-[#dae7d4]", ink: "text-[#63875b]",
+    button: "bg-[#6b8b5d] hover:bg-[#58764b] text-white",
+    cancel: "border-[#cdd9c8] bg-white text-[#65725f] hover:bg-[#f0f5ed]",
+    accent: "border-[#d9e8d2] bg-[#e8f3e4]",
+  },
 };
 
 export function useAppDialog(): DialogApi {
@@ -128,7 +170,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               {active.kind === "prompt" && (
                 <input autoFocus aria-label={active.options.title || "输入内容"} value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); finish(true, input); } }}
-                  className="mt-3 w-full rounded-xl border border-current/20 bg-white/90 px-3 py-3 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-300"/>
+                  className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-300"/>
               )}
               {active.kind === "review" && (
                 <div className="space-y-4">
@@ -159,7 +201,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
             </div>
             <footer className={`flex shrink-0 justify-end gap-2 border-t px-5 py-4 ${theme.header}`}>
               {active.kind !== "alert" && <button type="button" onClick={() => finish(false)}
-                className="rounded-xl border border-current/20 px-4 py-2 text-xs font-semibold transition hover:bg-black/10">{active.options.cancelLabel || "取消"}</button>}
+                className={`rounded-xl border px-4 py-2 text-xs font-semibold transition ${theme.cancel}`}>{active.options.cancelLabel || "取消"}</button>}
               <button type="button" autoFocus={active.kind !== "prompt"} onClick={() => finish(true, input)}
                 className={`rounded-xl px-5 py-2 text-xs font-semibold shadow-sm transition ${active.options.destructive ? "bg-rose-700 text-white hover:bg-rose-600" : theme.button}`}>
                 {active.options.confirmLabel || (active.kind === "alert" ? "知道了" : active.kind === "prompt" ? "确定" : "确认")}
