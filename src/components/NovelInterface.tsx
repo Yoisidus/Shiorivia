@@ -5,7 +5,7 @@ import {
     Book, Sparkles, Settings2, PanelRight, AlignLeft,
     LogOut, RefreshCw, X, Edit2, Trash2, Check, 
     Save, ArrowUp, FileText, Square,
-    AlertTriangle, HardDrive,
+    AlertTriangle, HardDrive, Brain,
 } from "lucide-react";
 import { CHARACTERS, type NovelDraft } from "../types";
 import { fallbackModelGroups, type LocalModelGroup, type PublicLocalProvider } from "../lib/localProviders";
@@ -24,7 +24,8 @@ import { selfName } from "../lib/chartaSelf";
 import { parseDrawTag } from "../lib/parseDraw";
 import { buildDrawRequest } from "../lib/drawRequest";
 import { cleanDrawTag } from "../lib/parseDraw"; 
-import { MemoryPreviewButton, MemoryVaultModal } from "./MemoryVaultModal";
+import { MemoryVaultModal } from "./MemoryVaultModal";
+import { parseLocalMemoryEntries } from "../lib/localMemory";
 import { useLanguage } from "../context/LanguageContext";
 import { characterDisplayName } from "../lib/characterNames";
 import { localText } from "../lib/i18nLocal";
@@ -604,6 +605,12 @@ export const NovelInterface = ({
                     </div>
                     <h1 className={`whitespace-nowrap text-sm font-semibold tracking-[0.24em] sm:text-base ${theme.title}`}>TELA</h1>
                     <div className="flex items-center justify-self-end gap-0.5 sm:gap-1">
+                        <button type="button" onClick={() => setShowMemoryVault(true)}
+                            title="TELA · 记忆档案" aria-label="打开小说记忆档案"
+                            className="flex items-center gap-1.5 rounded-lg border border-[#d8c29c] bg-[#fff8e7] px-2 py-1.5 text-[#865e35] shadow-sm transition hover:bg-[#f3e4c8]">
+                            <Brain size={17}/><span className="hidden text-[10px] font-semibold sm:inline">记忆</span>
+                            <span className="rounded bg-[#f1e2c7] px-1.5 text-[10px] font-mono">{parseLocalMemoryEntries(currentSession.stm).length}/{parseLocalMemoryEntries(currentSession.ltm).length}</span>
+                        </button>
                         <button type="button" onClick={onOpenSettings} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title="打开 Shiorivia 设置中心" aria-label="打开设置中心"><Settings2 size={19} /></button>
                         <button type="button" onClick={() => setRightOpen(!rightOpen)} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title="切换小说设定面板" aria-label="切换小说设定面板"><PanelRight size={19} /></button>
                     </div>
@@ -713,7 +720,6 @@ export const NovelInterface = ({
                                 <div><div className={`text-[10px] font-bold ${theme.text} opacity-50 uppercase tracking-widest mb-1`}>TELA · CREATION</div><h2 className={`text-xl font-serif ${theme.title}`}>{deepText(locale, "novel.controls")}</h2></div>{isMobile && <button onClick={() => setRightOpen(false)} className={`${theme.text} hover:${theme.accent}`}><X /></button>}</div>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
-                                <MemoryPreviewButton stm={currentSession.stm} ltm={currentSession.ltm} onOpen={() => setShowMemoryVault(true)} tone="novel-paper" />
 
                                 <div>
                                     <label className={`text-xs ${theme.accent} font-bold mb-2 block flex items-center gap-2`}><FileText size={14} /> SESSION SETTING · {deepText(locale, "novel.outline")}</label>
