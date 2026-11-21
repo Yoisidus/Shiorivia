@@ -1,11 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, BookOpen, Code2, GitCompareArrows, MessageCircle, PenLine, Route, X } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle2, Code2, GitCompareArrows, Info, MessageCircle, PenLine, Route, X, XCircle } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 
 export type DialogTone = "officina" | "story" | "umbra" | "tela" | "viae" | "charta";
 export type DialogOptions = { title?: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; tone?: DialogTone };
+export type FeedbackOptions = { tone?: DialogTone; type?: "success" | "info" | "warning" | "error"; duration?: number };
+type FeedbackMessage = { id: number; message: string; type: NonNullable<FeedbackOptions["type"]>; tone: DialogTone; createdAt: number };
 export type IdeDiffOperation = { op: "insert_before" | "insert_after" | "replace" | "delete"; startLine: number; endLine?: number; expected: string; text?: string };
 export type IdeDiffFile = { path: string; edits: IdeDiffOperation[] };
 type DialogKind = "alert" | "confirm" | "prompt" | "review";
@@ -19,6 +22,7 @@ type DialogApi = {
   confirm: (message: string, options?: DialogOptions) => Promise<boolean>;
   prompt: (message: string, initial?: string, options?: DialogOptions) => Promise<string | null>;
   reviewEdits: (files: IdeDiffFile[]) => Promise<boolean>;
+  notify: (message: string, options?: FeedbackOptions) => void;
   setTone: (tone: DialogTone) => void;
   tone: DialogTone;
 };
@@ -76,6 +80,16 @@ const palette: Record<DialogTone, { title: string; kicker: string; frame: string
   },
 };
 
+/** Lightweight, solid surfaces distinct from decision dialogs. */
+const feedbackPalette: Record<DialogTone, { frame: string; icon: string; line: string; label: string }> = {
+  officina: { frame: "border-[#bad5ec] bg-[#f3f9ff] text-[#355b80]", icon: "bg-[#dfefff] text-[#367bb1]", line: "bg-[#72a9d2]", label: "OFFICINA" },
+  story: { frame: "border-[#ecc7d8] bg-[#fff6fb] text-[#86506f]", icon: "bg-[#fee4f1] text-[#b9588c]", line: "bg-[#dba0c1]", label: "VIA LATA" },
+  umbra: { frame: "border-[#c5dfd0] bg-[#f4fcf7] text-[#426b55]", icon: "bg-[#e1f4e8] text-[#46836a]", line: "bg-[#94c4aa]", label: "UMBRA" },
+  tela: { frame: "border-[#e4d2ae] bg-[#fffbf1] text-[#765b3e]", icon: "bg-[#f7ead0] text-[#987247]", line: "bg-[#d2b185]", label: "TELA" },
+  viae: { frame: "border-[#cdd7e8] bg-[#f6f8fe] text-[#526686]", icon: "bg-[#e8eef9] text-[#637eaf]", line: "bg-[#9aadd0]", label: "VIAE" },
+  charta: { frame: "border-[#d7e2ce] bg-[#f8fcf5] text-[#617953]", icon: "bg-[#e9f2e3] text-[#6d9062]", line: "bg-[#a7c59c]", label: "CHARTA" },
+};
+
 export function useAppDialog(): DialogApi {
   const dialog = useContext(DialogContext);
   if (!dialog) throw new Error("Dialogs require DialogProvider");
@@ -90,6 +104,43 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const [input, setInput] = useState("");
   const activeRef = useRef<DialogRequest | null>(null);
   const nextId = useRef(0);
+  const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
+  const feedbackRef = useRef<FeedbackMessage | null>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nextFeedbackId = useRef(0);
+  const currentToneRef = useRef(tone);
+  currentToneRef.current = tone;
+
+  const notify = useCallback((message: string, options: FeedbackOptions = {}) => {
+    const text = String(message ?? "").trim();
+    if (!text) return;
+    const now = Date.now();
+    if (feedbackRef.current?.message === text && now - feedbackRef.current.createdAt < 600) return;
+    // Never queue feedback: the newest event supersedes the earlier one.
+    const type = options.type || (/失败|错误|无法|中止|不支持|异常|error|failed|denied|❌/i.test(text)
+      ? "error" : /警告|注意|未完成|⚠|warning/i.test(text) ? "warning"
+      : /成功|完成|已保存|已删除|已写入|已复制|已导入|saved|deleted|complete|✅|🗑/i.test(text)
+        ? "success" : "info");
+    const next: FeedbackMessage = {
+      id: ++nextFeedbackId.current, message: text, type,
+      tone: options.tone || currentToneRef.current, createdAt: now,
+    };
+    feedbackRef.current = next;
+    setFeedback(next);
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    const delay = Math.max(1500, Math.min(6000, options.duration ?? (type === "error" ? 4000 : 2900)));
+    feedbackTimerRef.current = setTimeout(() => {
+      if (feedbackRef.current?.id === next.id) {
+        feedbackRef.current = null;
+        setFeedback(null);
+      }
+      feedbackTimerRef.current = null;
+    }, delay);
+  }, []);
+  useEffect(() => () => {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+  }, []);
+
 
   // A native confirm blocks additional clicks. Our managed dialogs must provide
   // the same single-flight behavior: NEVER queue requests behind an open dialog.
@@ -126,9 +177,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       return typeof result === "string" ? result : null;
     },
     reviewEdits: async files => (await enqueue("review", "", { title: "审阅 IDE 代码修改", confirmLabel: "应用全部修改", cancelLabel: "取消修改", tone: "officina" }, undefined, files)) === true,
+    notify,
     setTone,
     tone,
-  }), [enqueue, tone]);
+  }), [enqueue, tone, notify]);
 
   useEffect(() => { setInput(active?.initial || ""); }, [active?.id]);
   useEffect(() => {
@@ -142,6 +194,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
   const currentTone = active?.options.tone || tone;
   const theme = palette[currentTone];
+  const feedbackTheme = feedback ? feedbackPalette[feedback.tone] : null;
+  const FeedbackIcon = feedback?.type === "success" ? CheckCircle2
+    : feedback?.type === "error" ? XCircle
+    : feedback?.type === "warning" ? AlertTriangle : Info;
+  const feedbackTitle = feedback?.type === "success" ? "已完成"
+    : feedback?.type === "error" ? "操作未完成"
+    : feedback?.type === "warning" ? "请注意" : "提示";
   const Icon = currentTone === "officina" ? Code2 : currentTone === "story" ? BookOpen
     : currentTone === "umbra" ? MessageCircle : currentTone === "tela" ? PenLine
       : currentTone === "viae" ? Route : BookOpen;
@@ -149,6 +208,34 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   return (
     <DialogContext.Provider value={api}>
       {children}
+      {mounted && createPortal(
+        <div className="pointer-events-none fixed inset-x-3 top-[calc(1rem+env(safe-area-inset-top))] flex justify-center sm:inset-x-auto sm:right-6 sm:top-6 sm:justify-end"
+          style={{ zIndex: 1000000 }}>
+          <AnimatePresence mode="wait">
+            {feedback && feedbackTheme && (
+              <motion.div key={feedback.id} role="status" aria-live={feedback.type === "error" ? "assertive" : "polite"}
+                initial={{ opacity: 0, y: -12, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className={`relative flex w-full max-w-[410px] items-start gap-3 overflow-hidden rounded-2xl border px-4 py-3 shadow-[0_9px_30px_rgba(35,54,76,.11)] sm:w-[380px] ${feedbackTheme.frame}`}>
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${feedbackTheme.icon}`}>
+                  <FeedbackIcon size={17}/>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] font-bold tracking-[0.14em] opacity-65">{feedbackTheme.label}</span>
+                    <span className="text-[11px] font-semibold">{feedbackTitle}</span>
+                  </div>
+                  <p className="mt-0.5 whitespace-pre-wrap break-words text-xs leading-5">{feedback.message}</p>
+                </div>
+                <div className={`absolute bottom-0 left-0 h-[2px] w-full opacity-80 ${feedbackTheme.line}`}/>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>,
+        document.body
+      )}
       {mounted && active && createPortal(
         <div className="fixed inset-0 flex items-center justify-center bg-[#070c19]/75 p-3 backdrop-blur-[6px] sm:p-6"
           style={{ zIndex: 2147483647, pointerEvents: "auto" }}
