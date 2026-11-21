@@ -323,7 +323,7 @@ export const useChatEngine = ({
                         ...s,
                         messages: [...msgs, { role: "assistant", content: fullText, modelName: modelToUse,
                             characterId: activeCharacterId, ...assistantMeta,
-                            metadataRepairMissing: Boolean(needsFallback) }],
+                            metadataRepairMissing: Boolean(needsFallback), memoryRepairMissing: Boolean(needsFallback) }],
                         ...(canApply ? { chatCharacterMemories: {
                             ...(s.chatCharacterMemories || {}),
                             [activeCharacterId]: { stm: inlineApplied.stm, ltm: inlineApplied.ltm },
@@ -821,6 +821,8 @@ export const useChatEngine = ({
                             ? { engineeringProjectRoot: outputProject } : {}),
                         messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing,
                             metadataRepairMissing: (s.memoryMode === "novel" && (!novelState || !novelState.choices)) || incompleteMemory,
+                            memoryRepairMissing: incompleteMemory,
+                            novelStateRepairMissing: s.memoryMode === "novel" && (!novelState || !novelState.choices),
                             ...(storyProtocolMissing && inlineStoryMemory ? { storyPendingMemory: inlineStoryMemory } : {}),
                             ...(s.memoryMode === "novel" && novelState?.choices ? { novelChoices: novelState.choices } : {}),
                             ...(s.memoryMode === "novel" ? { novelDanmaku } : {}),
@@ -1239,11 +1241,10 @@ export const useChatEngine = ({
         const previous = mode === "chat"
             ? currentSession.chatCharacterMemories?.[speakerId] || { stm: "", ltm: "" }
             : { stm: currentSession.stm || "", ltm: currentSession.ltm || "" };
-        const needMemory = mode === "chat" || !parseStoryTurnMemory(String(target.content || ""));
+        const needMemory = target.memoryRepairMissing === true;
         // Original visible prose has memory tags stripped, so prefer pending
         // metadata and infer a repair request from the stored missing flag.
-        const needState = mode === "novel" && (!currentSession.novelState?.choices
-            || !currentSession.novelState?.environment);
+        const needState = mode === "novel" && target.novelStateRepairMissing === true;
         const controller = new AbortController();
         abortControllerRef.current = controller;
         setStoryStateRepairing(true);
@@ -1322,7 +1323,7 @@ export const useChatEngine = ({
                         } : {}),
                     } : {}),
                     messages: session.messages.map((message, i) => i === index
-                        ? { ...message, metadataRepairMissing: false,
+                        ? { ...message, metadataRepairMissing: false, memoryRepairMissing: false, novelStateRepairMissing: false,
                             ...(restoredState?.choices ? { novelChoices: restoredState.choices } : {}) }
                         : message),
                     updatedAt: Date.now(),
