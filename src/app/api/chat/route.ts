@@ -273,7 +273,7 @@ World setting: ${novelWorldline.worldDescription}
 Mode: ${novelWorldline.kind === "au" ? "AU" : "Original timeline"}
 Current ERA / PERIOD: ${novelWorldline.era} / ${novelWorldline.period}
 ${novelWorldline.kind === "au" ? `Canonical baseline (character knowledge cutoff): ${novelWorldline.baseEra} / ${novelWorldline.basePeriod}. Later canon events are not automatic AU facts.` : ""}
-Use this worldline as the novel's established background. Do not replace it with another era or invent knowledge from future events.
+Use this worldline as the novel's established background. The chapter begins at the specified ERA/PERIOD, and may progress only to a later listed canonical stage if the narrated events establish the passage of time. Do not substitute a different world, jump ahead to future canon knowledge prematurely, or move an AU baseline.
 Current period description (only if available in the UI locale): ${timelineStageDescription(novelWorldline.canonTimeline.find(stage => stage.era === novelWorldline.era && stage.period === novelWorldline.period), normalizeLocale(body.uiLanguage)) || "(none)"}
 Ordered canonical stages, earliest to latest: ${JSON.stringify(novelWorldline.canonTimeline.map((stage,index) => ({index,era:stage.era,period:stage.period,description:timelineStageDescription(stage, normalizeLocale(body.uiLanguage)) || undefined})))}
 Time can only move forward through stages. AU chronology and baseline cannot be guessed or changed automatically.
