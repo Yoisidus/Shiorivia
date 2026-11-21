@@ -249,7 +249,6 @@ export const ChatInterface = ({
     handlePlayAudio, playingIndex,
 
     toggleMemoryMode, setSessions,
-    useWebSearch, toggleWebSearch,
     toggleSaveModal,
     toggleCodeRepo,
     dbChars,
