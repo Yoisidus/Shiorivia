@@ -47,7 +47,7 @@ const PERSPECTIVE_RULES = `
 【叙事视角规则】:
 故事身份由 [STORY PARTICIPATION CONTRACT] 决定。旁观者不是故事内人物，不能默认拥有姓名或角色状态。
 视角未选定时采用第三人称；视角选定后，以所选角色的观察、感受与关系为叙事中心。
-禁止将用户默认称为“月”或给旁观者凭空创建角色身份。
+不得为旁观者凭空创建角色身份、名字或角色状态。
 `;
 
 const STORY_POST_PROMPT = `
@@ -90,7 +90,7 @@ The following is a JSON SHAPE example (replace placeholder strings with scene da
     { "id": "known-character-id", "name": "...", "clothing": "...", "shoes": "...", "bodyState": "...", "legState": "...", "affection": 0, "Possessiveness": 0, "Obsession": 0, "Intimacy": 0, "innerState": "..." }
   ],
   "suggestions": { "fun": "...", "rational": "...", "radical": "..." },
-  "danmaku": [],
+  "danmaku": [], // overwritten dynamically in the live prompt when bullet comments are enabled
   "timeline": { "major": "...", "medium": "...", "minor": "..." },
   "music": null
 }
@@ -201,6 +201,8 @@ export async function POST(req: Request) {
     const webEnabled = memoryMode === "infinite" && useWebSearch === true && !independentRepair;
     const imageEnabled = useImageGen === true && ["infinite", "novel", "sliding", "chat"].includes(memoryMode) && !independentRepair;
     const autoDjEnabled = useMusicControl === true && ["sliding", "novel"].includes(memoryMode) && !independentRepair;
+    const danmakuEnabled = body.danmakuEnabled === true && ["sliding", "novel"].includes(memoryMode) && !independentRepair;
+    const danmakuCount = Math.min(24, Math.max(1, Number.isFinite(body.danmakuCount) ? Math.round(body.danmakuCount) : 8));
     const toolPlan = await planOptionalTools({
       provider: selectedProvider, model: routedModel,
       messages: Array.isArray(messages) ? messages : [],
@@ -736,6 +738,11 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
       }
 
       finalSystemPrompt += `\n${STORY_POST_PROMPT}`;
+      finalSystemPrompt += danmakuEnabled
+        ? `\n[DANMAKU EXTENSION — ENABLED]
+The "danmaku" game_state field must contain exactly ${danmakuCount} short and witty viewer comments, written in the current UI language. These are fictional audience reactions to THIS scene, not actual characters speaking in-world. Make them funny, surprising, observant, varied and specific: playful teasing, amusing misunderstandings, relatable reactions or sharp but affectionate observations. Do not repeat a template, invent canon facts, reveal future events, mock sensitive traits or drown out the narrative. Each comment should stand on its own, about 5–28 Chinese characters when writing Chinese. Produce a JSON array of strings; never copy the schema example's empty array.
+[END DANMAKU EXTENSION]\n`
+        : '\n[DANMAKU EXTENSION — DISABLED] Set game_state.danmaku to [] exactly; do not generate bullet comments.\n';
       // Never treat the human director as a named character without an explicit self profile.
       const registeredIds = Array.isArray(body.storyCastWorlds) ? body.storyCastWorlds
         .filter((world: any) => world && typeof world.id === "string" && /^world-[a-zA-Z0-9-]{8,90}$/.test(world.id)
@@ -803,7 +810,7 @@ Use concrete characters, actions, dialogue, decisions, and new complications; gr
 Observer mode: phrase every suggestion as a THIRD-PERSON DIRECTOR COMMAND that causes characters to DO something (e.g. “让祥子主动约睦到排练室，揭开上次争执的真正原因。”). NEVER tell the human observer to observe, watch, follow, notice, wait, inspect, or simply look at characters. The human observer is not a person inside the scene, whether a character POV has been selected or not.
 Participant mode: make each suggestion an action or decision the selected self can actually take to change the scene, written in natural participant perspective, preserving their identity and characterization.
 Do not repeat the same event across all three styles. Avoid vague suggestions such as “看看接下来会发生什么” or “观察她的行动”.
-Keep timeline and scene environment. Never substitute the name 月/Yue unless explicitly present in a saved user self profile or established story dialogue.
+Keep timeline and scene environment. Never invent an identity or name for the out-of-world observer. Use only identities explicitly supplied by the active story role and character profiles.
 [END STORY PARTICIPATION CONTRACT]
 `;
       if (selectedWorldline) {
