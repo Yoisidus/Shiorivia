@@ -5,9 +5,14 @@ import { useEffect, useState } from "react";
 export const DanmakuOverlay = ({ danmakuList }: { danmakuList: string[] | undefined }) => {
   const [items, setItems] = useState<{ id: number, text: string, top: number, color: string, duration: number }[]>([]);
 
+  // A stable semantic signature avoids replaying the same danmaku whenever
+  // a parent produces a new array instance during unrelated UI updates.
+  const signature = JSON.stringify(danmakuList || []);
   useEffect(() => {
-    if (danmakuList && danmakuList.length > 0) {
-      const newItems = danmakuList.map((text, i) => ({
+    const comments: string[] = JSON.parse(signature);
+    if (!comments.length) { setItems([]); return; }
+    if (comments.length > 0) {
+      const newItems = comments.map((text, i) => ({
         id: Date.now() + i,
         text,
         top: 10 + Math.random() * 60, 
@@ -16,7 +21,7 @@ export const DanmakuOverlay = ({ danmakuList }: { danmakuList: string[] | undefi
       }));
       setItems(prev => [...prev, ...newItems]);
     }
-  }, [danmakuList]);
+  }, [signature]);
 
   return (
     <div className="fixed inset-0 z-[50] pointer-events-none overflow-hidden">
