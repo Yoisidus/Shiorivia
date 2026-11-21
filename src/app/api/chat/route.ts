@@ -820,12 +820,18 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
         const firstTurn = Number(body.titleReviewTurn) === 1
           || (Array.isArray(messages) && messages.filter((m: any) => m?.role === "user").length === 1);
         const pinned = firstTurn ? selectStoryCastIds(body.storyNextCastIds, availableIds) : [];
-        const chosen = await decideStoryCast({
+        let chosen: string[];
+        try {
+          chosen = await decideStoryCast({
           provider: selectedProvider, model: routedModel,
           mode: memoryMode as "sliding" | "novel",
           messages: Array.isArray(messages) ? messages : [],
           roster: eligible.map(char => ({ id: char.id, name: char.name })),
-          pinnedIds: pinned, worldline: JSON.stringify(worldline),
+          pinnedIds: pinned,
+          previousCastIds: selectStoryCastIds(body.storyNextCastIds, availableIds),
+          povId: memoryMode === "sliding" && body.storyRole !== "participant"
+            ? (typeof body.storyPovId === "string" ? body.storyPovId : null) : null,
+          worldline: JSON.stringify(worldline),
           sceneContext: JSON.stringify(memoryMode === "novel"
             ? { environment: novelConfig?.environment ?? novelConfig?.scenario,
                 event: novelConfig?.event ?? novelConfig?.action,
@@ -835,7 +841,19 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
           stm: String(stm || ""), ltm: String(ltm || ""),
           contextWindowTokens: body.contextWindowTokens,
           debug: body.debugRequestPayload === true,
-        });
+          });
+        } catch (error) {
+          // Selection uses a separate provider request. If the gateway times
+          // out or rejects a small planning call, preserve a valid narrative
+          // turn by supplying only safe, eligible, known character profiles.
+          console.warn("[CAST TOOL] Provider planning unavailable; using continuity cast:", error);
+          chosen = selectStoryCastIds([
+            ...pinned,
+            ...(memoryMode === "sliding" && body.storyRole !== "participant"
+              && typeof body.storyPovId === "string" ? [body.storyPovId] : []),
+            ...selectStoryCastIds(body.storyNextCastIds, availableIds),
+          ], availableIds);
+        }
         resolvedStoryCast = [...chosen];
         // World-neutral characters are eligible only when explicitly enabled,
         // but receive full biographies only if this turn's cast tool selected them.
