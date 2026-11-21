@@ -1,5 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { useAppDialog } from "../context/DialogContext";
 import { BookOpen, X, Edit2, Save } from "lucide-react";
@@ -101,8 +102,8 @@ export const SuggestionModal = ({ isOpen, onClose, content, onConfirm, mode = "s
    const style = modalTheme(tone);
    return (
       <AnimatePresence>
-         {isOpen && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+         {isOpen && createPortal(
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
                <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} role="dialog" aria-modal="true" aria-label="采纳剧情建议"
                   className={`w-full max-w-[540px] overflow-hidden rounded-2xl border shadow-2xl ${style.frame}`}>
                   <header className={`flex items-center gap-2 border-b p-4 ${style.header}`}>
@@ -118,7 +119,7 @@ export const SuggestionModal = ({ isOpen, onClose, content, onConfirm, mode = "s
                      <button type="button" onClick={onConfirm} className={`rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm ${style.button}`}>{mode === "insert" ? "确认填入" : "确认发送"}</button>
                   </footer>
                </motion.div>
-            </motion.div>
+            </motion.div>, document.body
          )}
       </AnimatePresence>
    );
