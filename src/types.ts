@@ -18,6 +18,8 @@ export type Message = {
   storyProtocolMissing?: boolean;
   /** Officina: the assistant forgot to include the expected code artifact. */
   engineeringOutputIncomplete?: boolean;
+  /** Applied IDE line edits: persisted result cards, not part of message prose. */
+  ideEditedFiles?: { path: string; operations: number; added: number; removed: number }[];
 };
 
 export type CodeFile = {
