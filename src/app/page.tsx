@@ -1005,6 +1005,8 @@ export default function Home() {
                     handleSend={engine.handleSend} stopGeneration={engine.stopGeneration}
                     handleRegenerate={engine.handleRegenerate} handleDeleteMessage={engine.handleDeleteMessage}
                     onCompleteEngineeringOutput={engine.completeEngineeringOutput}
+                    onCompleteStoryState={engine.completeStoryState}
+                    storyStateRepairing={engine.storyStateRepairing}
                     onGenerateDraw={engine.generateDraw} imageSettings={config.imageSettings} useImageGen={config.imageGen}
                     handleCopy={(t: string, i: number) => {
                         navigator.clipboard.writeText(t);
