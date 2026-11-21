@@ -928,8 +928,7 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
     // supplied by the story/novel cast selector, or by VIAE's fixed members.
     // Via Lata already has its complete thinking/title/prose/state order
     // in STORY RESPONSE ORDER and the inline title contract above.
-    if (body.stateRepair !== true && body.novelStateRepair !== true
-        && ["infinite", "chat"].includes(memoryMode)) {
+    if (!independentRepair && ["infinite", "chat"].includes(memoryMode)) {
       const review = body.titleManuallyEdited !== true && shouldReviewInlineTitle(body.titleReviewTurn);
       finalSystemPrompt += "\n\n[FINAL OUTPUT METADATA CHECK]\n"
         + (review
