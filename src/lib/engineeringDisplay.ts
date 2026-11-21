@@ -25,6 +25,27 @@ export function normalizeOfficinaDisplay(text: string): string {
 }
 
 /**
+ * File-code blocks are display-only: never modify the raw model payload or
+ * on-disk source. Dynamic fence length also handles embedded Markdown fences.
+ */
+export function formatOfficinaFullFiles(text: string): string {
+  const fileBlock = /<file\s+name=(["'])([^"'<>]{1,240})\1\s*>([\s\S]*?)(<\/file\s*>|$)/gi;
+  const formatted = text.replace(fileBlock, (_whole, _quote: string, path: string, source: string, closing: string) => {
+    const code = source.replace(/\r\n/g, "\n");
+    const longest = [...code.matchAll(/~+/g)].reduce((max, match) => Math.max(max, match[0].length), 2);
+    const fence = "~".repeat(Math.max(3, longest + 1));
+    const extension = path.split(".").pop()?.toLowerCase() || "";
+    const language = /^[a-z0-9+#-]{1,24}$/.test(extension) ? extension : "";
+    const safePath = path.replace(/[^\p{L}\p{N}._/ -]/gu, "_");
+    return "\n\n文件 · " + safePath + (closing ? "" : " · 正在生成…")
+      + "\n\n" + fence + language + "\n" + code
+      + (code.endsWith("\n") ? "" : "\n") + fence + "\n\n";
+  });
+  // A stream can also terminate partway through the opening HTML-like tag.
+  return formatted.replace(/<file\b[^>\r\n]*$/i, "\n\n正在准备完整代码文件…");
+}
+
+/**
  * The streaming response contains machine-readable <ide_edit> JSON while the
  * edit is still in flight. Present decoded line changes, never raw JSON with
  * escaped "\\n" strings. Raw model text remains unchanged for processing.
@@ -60,5 +81,5 @@ export function formatOfficinaStreamingDisplay(raw: string): string {
     });
   // Partial model chunks may end in the middle of JSON. Never print broken
   // editing instructions into the chat bubble while streaming.
-  return formatted.replace(/<ide_edit\b[\s\S]*$/i, "\n\n正在准备 IDE 局部修改…");
+  return formatOfficinaFullFiles(formatted.replace(/<ide_edit\b[\s\S]*$/i, "\n\n正在准备 IDE 局部修改…"));
 }
