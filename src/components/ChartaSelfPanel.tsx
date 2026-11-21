@@ -4,6 +4,7 @@ import { useAppDialog } from "../context/DialogContext";
 import { Check, Download, Plus, Save, Trash2 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { deepText } from "../lib/i18nDeep";
+import { localizeChartaError } from "../lib/chartaErrorText";
 import { type ChartaGender } from "../lib/charta";
 import { newChartaSelf, parseChartaSelf, selfName, SELF_LANGUAGES, type ChartaSelf } from "../lib/chartaSelf";
 import { encodeChartaSelfExport, saveChartaJsonFile } from "../lib/chartaJson";
@@ -62,12 +63,12 @@ export function ChartaSelfPanel({ selves, activeId, loaded, error, saveSelf, rem
     }
     const warning = validateChartaTimelineLinks(profileFor(draft), timelineFor(draft.worldId))
       || validateChartaRelationshipTargets(profileFor(draft), draft.worldId, [...characters, ...selves]);
-    if (warning) { setMessage(warning); return; }
+    if (warning) { setMessage(localizeChartaError(locale, warning)); return; }
     setBusy(true);
     try {
       const parsed = parseChartaSelf(draft);
       if (await saveSelf(parsed)) { setDraft(parsed); setDirty(false); setMessage(deepText(locale, "charta.self.saved")); onSaved?.(parsed.id); }
-    } catch (e) { setMessage(e instanceof Error ? e.message : deepText(locale, "charta.saveFailedShort")); }
+    } catch (e) { setMessage(e instanceof Error ? localizeChartaError(locale, e.message) : deepText(locale, "charta.saveFailedShort")); }
     finally { setBusy(false); }
   };
   const exportSelf = () => {
@@ -76,7 +77,7 @@ export function ChartaSelfPanel({ selves, activeId, loaded, error, saveSelf, rem
       const parsed = parseChartaSelf(draft);
       saveChartaJsonFile(`charta-self-${parsed.id}.json`, encodeChartaSelfExport(parsed));
       setMessage(deepText(locale, "charta.self.exported"));
-    } catch (e) { setMessage(e instanceof Error ? e.message : deepText(locale, "charta.exportError")); }
+    } catch (e) { setMessage(e instanceof Error ? localizeChartaError(locale, e.message) : deepText(locale, "charta.exportError")); }
   };
   const remove = async () => {
     if (!draft || busy || !selves.some(s => s.id === draft.id)) return;
@@ -146,7 +147,7 @@ export function ChartaSelfPanel({ selves, activeId, loaded, error, saveSelf, rem
           selves={selves} characters={characters}/>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-5"><button type="button" disabled={busy || !selves.some(s => s.id === draft.id)} onClick={remove} className="flex items-center gap-2 text-xs text-[#bd7777] disabled:opacity-30"><Trash2 size={14}/>{deepText(locale, "charta.self.delete")}</button><div className="flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={exportSelf} className="inline-flex items-center gap-2 rounded-xl border border-[#cbdacc] px-4 py-2 text-xs text-[#456b57]"><Download size={14}/>{deepText(locale, "charta.exportJson")}</button><button type="button" disabled={busy || dirty || !selves.some(s => s.id === draft.id)} onClick={async () => {setBusy(true); if(await selectSelf(draft.id)) setMessage(deepText(locale, "charta.self.activated"));setBusy(false);}} className="rounded-xl border border-[#9fbaa3] px-4 py-2 text-xs text-[#41694d] disabled:opacity-40">{activeId===draft.id ? deepText(locale, "charta.self.active") : deepText(locale, "charta.self.activate")}</button><button type="button" disabled={busy} onClick={save} className="flex items-center gap-2 rounded-xl bg-[#456b57] px-4 py-2 text-xs text-white disabled:opacity-40"><Save size={14}/>{deepText(locale, "charta.self.save")}</button></div></div>
       </div>}
-      {(message || error) && <p role="status" className="mt-4 text-xs text-[#9a6e54]">{message || error}</p>}
+      {(message || error) && <p role="status" className="mt-4 text-xs text-[#9a6e54]">{message || localizeChartaError(locale, error)}</p>}
     </section>
   </div>;
 }
