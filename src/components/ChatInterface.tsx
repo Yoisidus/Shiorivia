@@ -26,16 +26,41 @@ import { formatOfficinaStreamingDisplay } from "../lib/engineeringDisplay";
 import { cleanDrawTag } from "../lib/parseDraw";
 import { IllustratedImage, ImageLightbox } from "./IllustrationImage";
 
-const DrawPlaceholder = ({ onGenerate, busy, disabled }: {
-    onGenerate: () => void; busy: boolean; disabled: boolean;
-}) => (
-    <button type="button" disabled={disabled} onClick={onGenerate}
-        className="group/draw my-2 flex items-center gap-3 rounded-xl border border-[#e2d9c6] bg-[#fffdf8] px-4 py-3 text-left shadow-[0_2px_10px_rgba(83,67,43,0.04)] transition-colors hover:border-[#bda77c] hover:bg-[#fcf8ed] disabled:cursor-wait disabled:opacity-60">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f1eadc] text-[#967b4d]"><ImageIcon size={16}/></span>
-        <span className="text-xs font-medium text-[#6d604c]">插图待生成</span>
-        <span className="ml-auto text-[11px] text-[#9f8b6b]">{busy ? '生成中…' : '点击生成'}</span>
-    </button>
-);
+const DrawPlaceholder = ({ onGenerate, busy, disabled, mode }: {
+    onGenerate: () => void; busy: boolean; disabled: boolean; mode: "infinite" | "sliding" | "chat";
+}) => {
+    const styles = {
+        infinite: {
+            frame: "border-[#b9d5ed] bg-[#f0f7ff] hover:border-[#76acd5] hover:bg-[#e5f2ff]",
+            icon: "bg-[#dcecff] text-[#3971a3]",
+            title: "text-[#355f8a]", helper: "text-[#6f94b7]",
+            label: "OFFICINA · VISUAL WORKSPACE", text: "图像任务已就绪",
+        },
+        sliding: {
+            frame: "border-[#e9c3d5] bg-[#fff4fa] hover:border-[#ce8eaf] hover:bg-[#ffedf5]",
+            icon: "bg-[#fce0ef] text-[#b15f89]",
+            title: "text-[#905375]", helper: "text-[#b87f9b]",
+            label: "VIA LATA · SCENE ILLUSTRATION", text: "故事画面待绘制",
+        },
+        chat: {
+            frame: "border-[#c0e0cd] bg-[#f1fbf6] hover:border-[#8bbfa2] hover:bg-[#e7f7ee]",
+            icon: "bg-[#d9f0e2] text-[#4c936f]",
+            title: "text-[#446f59]", helper: "text-[#709f83]",
+            label: "UMBRA · MOMENT CAPTURE", text: "聊天瞬间待绘制",
+        },
+    }[mode];
+    return (
+        <button type="button" disabled={disabled} onClick={onGenerate}
+            className={`group/draw my-2 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left shadow-sm transition-colors disabled:cursor-wait disabled:opacity-60 ${styles.frame}`}>
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${styles.icon}`}><ImageIcon size={18}/></span>
+            <span className="min-w-0 flex-1">
+                <span className={`block text-[9px] font-bold tracking-[0.13em] ${styles.helper}`}>{styles.label}</span>
+                <span className={`mt-1 block text-xs font-semibold ${styles.title}`}>{styles.text}</span>
+            </span>
+            <span className={`shrink-0 text-[11px] font-medium ${styles.helper}`}>{busy ? "生成中…" : "点击生成"}</span>
+        </button>
+    );
+};
 
 const renderContent = (text: string, onOpenImage: (src: string) => void, selfColors: Record<string, string> = {}) => {
     if (!text) return null;
@@ -294,6 +319,10 @@ export const ChatInterface = ({
         try { await onGenerateDraw(index); }
         catch (error) { showToast(`插图生成失败：${error instanceof Error ? error.message : '未知错误'}`); }
         finally { setDrawingIndex(null); }
+    };
+
+    const confirmStopGeneration = async () => {
+        if (await dialog.confirm("确认暂停当前 AI 输出吗？已生成的内容可能无法完整保存。", { destructive: true })) stopGeneration();
     };
 
     const [showMobileTopMenu, setShowMobileTopMenu] = useState(false);
@@ -672,6 +701,7 @@ export const ChatInterface = ({
                                  )}
                                 {msg.role === 'assistant' && activeDrawMatch && (
                                     <DrawPlaceholder busy={drawingIndex === i} disabled={drawingIndex !== null}
+                                        mode={currentSession.memoryMode === "sliding" ? "sliding" : currentSession.memoryMode === "chat" ? "chat" : "infinite"}
                                         onGenerate={() => void confirmDraw(i)} />
                                 )}
 
@@ -795,7 +825,7 @@ export const ChatInterface = ({
                     <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,text/plain,.txt" />
                     <div className="absolute bottom-2 right-2 flex gap-1">
                         {isMultimodal && <button disabled={inputLocked} onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-emerald-500 disabled:opacity-30"><Paperclip size={18} /></button>}
-                        {isLoading ? <button onClick={stopGeneration} className="p-1.5 bg-red-500 text-white rounded animate-pulse"><Square size={18} fill="currentColor" /></button> : (!inputLocked && !input.trim() && !selectedFile && currentSession && currentSession.messages.length > 1) ? <button onClick={() => handleRegenerate(currentSession.messages.length - 1)} className="p-1.5 text-white rounded hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><RotateCcw size={18} /></button> : <button onClick={() => handleSend()} disabled={inputLocked || (!input.trim() && !selectedFile)} className="p-1.5 text-white rounded disabled:opacity-30 hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><Send size={18} /></button>}
+                        {isLoading ? <button type="button" aria-label="暂停输出" title="暂停输出" onClick={() => void confirmStopGeneration()} className="p-1.5 bg-red-500 text-white rounded animate-pulse"><Square size={18} fill="currentColor" /></button> : (!inputLocked && !input.trim() && !selectedFile && currentSession && currentSession.messages.length > 1) ? <button onClick={() => handleRegenerate(currentSession.messages.length - 1)} className="p-1.5 text-white rounded hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><RotateCcw size={18} /></button> : <button onClick={() => handleSend()} disabled={inputLocked || (!input.trim() && !selectedFile)} className="p-1.5 text-white rounded disabled:opacity-30 hover:brightness-110 transition-all" style={{ backgroundColor: currentSession?.memoryMode === 'sliding' ? '#e11e54' : currentCharacter.hex }}><Send size={18} /></button>}
                     </div>
                 </div>
                 {selectedFile && <div className="text-xs text-gray-400 mt-1 ml-2 flex items-center gap-2">{selectedFile.type === 'text' ? <FileText size={12} /> : <Paperclip size={12} />} <span>{selectedFile.name}</span><button onClick={() => setSelectedFile(null)} className="text-red-400">×</button></div>}
