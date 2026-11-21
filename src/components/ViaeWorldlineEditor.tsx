@@ -1,8 +1,10 @@
 "use client";
 import { Plus, Trash2, Globe2 } from "lucide-react";
+import { useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import type { ChartaWorld } from "../lib/chartaWorld";
 import { canExtendWorldline } from "../lib/worldlineLock";
-import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, BANG_DREAM_CANON, worldlineFor, type StoryWorldline } from "../lib/storyWorldline";
+import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, BANG_DREAM_CANON, worldlineFor, worldlineStageIndex, timelineStageDescription, type StoryWorldline } from "../lib/storyWorldline";
 
 const selectStyle = "mt-1 w-full rounded-lg border border-[#dfe6eb] bg-white px-3 py-2.5 text-xs text-[#253f58] outline-none focus:border-[#bfaa7b]";
 const rowStyle = "rounded-xl border border-[#e7e9ea] bg-[#fcfcfa] p-3";
@@ -17,8 +19,12 @@ export function ViaeWorldlineEditor({ value, onChange, worlds, saved }: {
   worlds: ChartaWorld[];
   saved?: StoryWorldline;
 }) {
+  const { locale } = useLanguage();
+  const [timeUnlocked, setTimeUnlocked] = useState(false);
   const available = worldsList(worlds);
   const primaryLocked = Boolean(saved);
+  const timeEditable = !primaryLocked || timeUnlocked;
+  const minIndex = saved?.kind === "canon" ? worldlineStageIndex(saved) : -1;
   const safeChange = (next: StoryWorldline) => { if (!saved || canExtendWorldline(saved, next)) onChange(next); };
   const protectedSecondary = new Set(saved?.crossWorld?.secondary.map(w => w.worldId) || []);
   const stages = value.canonTimeline || [];
@@ -50,8 +56,8 @@ export function ViaeWorldlineEditor({ value, onChange, worlds, saved }: {
     }] });
   };
   const base = stages.filter(s => !value.baseEra || s.era === value.baseEra);
-  const periods = stages.filter(s => !value.era || s.era === value.era);
-  const eras = [...new Set(stages.map(s => s.era))];
+  const periods = stages.filter((s, index) => (minIndex < 0 || index >= minIndex) && (!value.era || s.era === value.era));
+  const eras = [...new Set(stages.filter((s,index) => minIndex < 0 || index >= minIndex).map(s => s.era))];
   return (
     <div className="space-y-4 text-[#29445c]">
       <div className="flex items-center gap-2 text-xs font-semibold"><Globe2 size={15} className="text-[#b69a64]"/> WORLDLINE / 道路世界线</div>
@@ -78,17 +84,22 @@ export function ViaeWorldlineEditor({ value, onChange, worlds, saved }: {
             <option value="">选择 PERIOD</option>{base.map(s => <option key={s.period} value={s.period}>{s.period}</option>)}</select></label>
         </div>
       </div>}
+      {primaryLocked && <div className="flex items-center justify-between gap-2 rounded-lg border border-[#e1d3b7] bg-[#fffaf0] px-3 py-2 text-[11px]">
+        <span>时间线：{timeUnlocked ? "已解锁，可向后推进" : "已锁定"}</span>
+        <button type="button" className="rounded border border-[#d5c39e] px-2 py-1" onClick={() => { setTimeUnlocked(v => !v); onChange(saved!); }}>{timeUnlocked ? "重新锁定" : "解锁时间线"}</button>
+      </div>}
       <div className="grid grid-cols-2 gap-2">
         <label className="text-[11px]">ERA · 时代 *{value.kind === "canon"
-          ? <select disabled={primaryLocked} value={value.era} className={selectStyle} onChange={e => safeChange({ ...value, era: e.target.value, period: "" })}>
+          ? <select disabled={!timeEditable} value={value.era} className={selectStyle} onChange={e => { const candidate = stages.find((s,index) => s.era === e.target.value && (minIndex < 0 || index >= minIndex)); if(candidate) safeChange({ ...value, era: candidate.era, period: candidate.period }); }}>
               <option value="">选择 ERA</option>{eras.map(v => <option key={v} value={v}>{v}</option>)}</select>
           : <input disabled={primaryLocked} value={value.era} maxLength={100} onChange={e => safeChange({ ...value, era: e.target.value })} className={selectStyle} placeholder="AU 时代"/>}</label>
         <label className="text-[11px]">PERIOD · 时期 *{value.kind === "canon"
-          ? <select disabled={primaryLocked} value={value.period} className={selectStyle} onChange={e => onChange({
+          ? <select disabled={!timeEditable} value={value.period} className={selectStyle} onChange={e => safeChange({
               ...value, period: e.target.value, era: stages.find(s => s.period === e.target.value)?.era || value.era })}>
-              <option value="">选择 PERIOD</option>{periods.map(s => <option key={s.period} value={s.period}>{s.period}</option>)}</select>
+              <option value="">选择 PERIOD</option>{periods.map(s => <option key={s.period} value={s.period}>{s.period}{timelineStageDescription(s, locale) ? " · " + timelineStageDescription(s, locale) : ""}</option>)}</select>
           : <input disabled={primaryLocked} value={value.period} maxLength={100} onChange={e => safeChange({ ...value, period: e.target.value })} className={selectStyle} placeholder="AU 时期"/>}</label>
       </div>
+      {timelineStageDescription(stages.find(s => s.era === value.era && s.period === value.period), locale) && <p className="rounded-lg bg-[#f9f4e8] px-3 py-2 text-[11px] leading-5 text-[#846b49]">{timelineStageDescription(stages.find(s => s.era === value.era && s.period === value.period), locale)}</p>}
       <div className={rowStyle}>
         <label className="flex items-center justify-between gap-2 text-xs font-semibold">
           跨世界观 · CROSS-WORLD <input type="checkbox" disabled={Boolean(saved?.crossWorld?.enabled)} checked={cross.enabled}
