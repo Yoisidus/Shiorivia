@@ -2,6 +2,14 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "worldline.legacyModal.heading": ["故事世界线", "故事世界線", "Story worldline", "物語の世界線", "이야기 세계선"],
+  "worldline.legacyModal.description": ["决定故事的世界、时代与当前事件", "決定故事的世界、時代與當前事件", "Choose the world, era and current event of the story", "物語の世界・時代・現在の出来事を決めます", "이야기의 세계, 시대, 현재 사건을 정합니다"],
+  "worldline.legacyModal.timelineType": ["时间线类型", "時間線類型", "Timeline type", "時間軸の種類", "타임라인 유형"],
+  "worldline.legacyModal.canon": ["原作时间线", "原作時間線", "Canon timeline", "原作の時間軸", "원작 타임라인"],
+  "worldline.legacyModal.au": ["AU · 自定义时间线", "AU · 自訂時間線", "AU · Custom timeline", "AU · カスタム時間軸", "AU · 사용자 지정 타임라인"],
+  "worldline.legacyModal.canonHelp": ["按 ERA / PERIOD 对照选择", "依 ERA / PERIOD 對照選擇", "Choose from canon ERA / PERIOD", "原作の ERA / PERIOD から選ぶ", "원작 ERA / PERIOD에서 선택"],
+  "worldline.legacyModal.auHelp": ["自行输入 ERA 与 PERIOD", "自行輸入 ERA 與 PERIOD", "Enter a custom ERA and PERIOD", "ERA と PERIOD を手入力", "ERA와 PERIOD 직접 입력"],
+  "worldline.legacyModal.descriptionPrefix": ["设定简介：", "設定簡介：", "World notes: ", "設定の概要：", "세계관 설명: "],
   "archive.ui.overwrite": ["⚠️ 覆盖槽位 {index}？", "⚠️ 覆蓋儲存槽 {index}？", "⚠️ Overwrite slot {index}?", "⚠️ スロット {index} を上書きしますか？", "⚠️ 슬롯 {index}을(를) 덮어쓸까요?"],
   "archive.ui.saveFailed": ["存档保存失败。", "存檔儲存失敗。", "Failed to save archive.", "アーカイブの保存に失敗しました。", "보관 자료 저장에 실패했습니다."],
   "archive.ui.loadAsk": ["读取槽位 {index}？当前未保存的进度将丢失。", "讀取儲存槽 {index}？目前未儲存的進度將會遺失。", "Load slot {index}? Unsaved progress will be lost.", "スロット {index} を読み込みますか？未保存の進行状況は失われます。", "슬롯 {index}을(를) 불러올까요? 저장하지 않은 진행 상황은 사라집니다."],
