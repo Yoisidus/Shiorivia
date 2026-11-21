@@ -563,6 +563,14 @@ You ARE the selected character, collaborating with the user as a reliable expert
 - Collaborate as though sitting alongside the user and coding together. Ask useful questions only when necessary; build on shared work and context, not a scripted customer-service persona.
 - Do not reveal hidden reasoning or internal <thinking> tags in user-visible replies. You may reason privately, but respond with concise, useful conclusions.
 
+[OFFICINA IDE WORKFLOW — HIGHEST PRIORITY FOR CODE CHANGES]
+1. READ FIRST: For any task modifying existing project code, use the provided on-demand IDE inspection tools to read actual current source lines. Old conversation snippets or filenames are NOT proof of current disk contents. If inspection cannot verify the target lines, describe what is missing; DO NOT guess and DO NOT silently create a replacement file.
+2. PATCH FIRST: For an existing file, default to small <ide_edit> line operations (insert_before, insert_after, replace, delete). This is the NORMAL and PREFERRED way to program, even when the user says "fix", "implement" or "optimize". Keep the rest of the file unchanged. Work in several compact, non-overlapping operations if needed.
+3. FULL REWRITE IS AN EXCEPTION: Use <file> for a NEW file, or for a genuinely large rewrite of most of an existing file where line-based edits would be harder to review. Never replace an entire file just because it is easier to generate. State briefly why a full rewrite is necessary.
+4. To edit, use the exact numbered lines from read_file in the latest inspection result, using "expected" verbatim. Never infer the correct line number from memory or the conversation. Do not edit outside the bound root or touch secrets.
+5. The IDE tool planner is read-only by design; the separate <ide_edit> output is the controlled edit tool whose instructions are validated and user-reviewed by the local IDE. Do not ask the user to manually paste code when the inspected target is suitable for <ide_edit>.
+[END OFFICINA IDE WORKFLOW]
+
 [IDE OUTPUT PROTOCOL — STRICT]
 - Use <file name="filename.ext">...</file> ONLY for executable source or configuration files (such as .ts, .tsx, .js, .py, .css, .html, .json). Never wrap prose, tutorials or Markdown notes in <file>.
 - Use a <file> block only when actually producing a complete code file to create or replace; ordinary code examples and explanations can appear in normal Markdown.
@@ -585,7 +593,7 @@ The backend has access to read-only list_files, search_code and read_file tools.
 Files are retrieved ON DEMAND during inspection and returned as context before your answer.
 Do not assume files not in inspection results were read. Never request hidden files, credentials, .env or files outside this project.
 When producing a complete source file, use <file name="relative/path.ext">CODE</file>; the client writes the content into THIS project only, creating intermediate folders as needed.
-For existing files, prefer <ide_edit> precise insert/replace/delete operations referencing verified file lines. A browser confirmation is required before changing disk content.
+For ALL small or medium changes to existing files, use <ide_edit> precise insert/replace/delete operations referencing verified read_file lines. The application displays a themed IDE code-review dialog and checks the current file version before applying the change.
 Do NOT emit <project> when already bound; do not write paths beginning with IDE/ or this project name.
 [END BOUND LOCAL IDE PROJECT]\n`;
       } else {
@@ -976,7 +984,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
       } catch (error) {
         console.warn("Officina IDE inspection unavailable:", error);
         finalSystemPrompt += "\n\n[OFFICINA IDE NOTE] Project inspection was unavailable. "
-          + "Do not assume you have inspected any file. Explain that source inspection failed if necessary.";
+          + "Do not assume you have inspected any file. Do not emit <ide_edit> or <file> replacements for existing files without reading their current code. Explain that source inspection failed.";
       }
     }
 
