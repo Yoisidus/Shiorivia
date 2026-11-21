@@ -349,41 +349,27 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
   };
 
   /**
-   * Correct one visible VIAE bubble without silently re-running the model.
-   * Preserves all other speakers, role IDs, and archived chronology.
-   * A subsequent manual refresh can rewind the latest turn from its checkpoint.
+   * Editing is intentionally restricted to user/director messages.
+   * Assistant bubble editing is paused until edits can reconcile STM/LTM
+   * and later generated dialogue without corrupting continuity.
    */
-  const editMessage = (index: number, revised: string, segmentIndex?: number): boolean => {
+  const editMessage = (index: number, revised: string): boolean => {
     if (!activeGroup || busyRef.current || isLoading) return false;
     const target = activeGroup.messages[index];
     const text = revised.trim();
-    if (!target || !text || text.length > 5000) return false;
-    let content = text;
-    if (target.role === "assistant" && typeof segmentIndex === "number") {
-      const original = target.content.match(/<(?:viae_chat|lime_chat)>\s*([\s\S]*?)\s*<\/(?:viae_chat|lime_chat)>/i);
-      if (original) {
-        try {
-          const parsed: unknown = JSON.parse(original[1]);
-          if (!Array.isArray(parsed) || segmentIndex < 0 || segmentIndex >= parsed.length ||
-              typeof parsed[segmentIndex]?.text !== "string") return false;
-          const next = parsed.map((item, i) => i === segmentIndex ? { ...item, text } : item);
-          content = target.content.replace(original[0], "<viae_chat>" + JSON.stringify(next) + "</viae_chat>");
-        } catch { return false; }
-      } else if (segmentIndex !== 0) return false;
-    } else if (target.role === "assistant") {
-      return false; // An AI block must be edited one speaker bubble at a time.
-    }
-    if (content === target.content) return true;
+    if (!target || target.role !== "user" || !text || text.length > 5000) return false;
+    if (text === target.content) return true;
     const messageId = target.id;
     patchGroup(activeGroup.id, group => {
-      if (group.messages[index]?.id !== messageId) return group;
+      const live = group.messages[index];
+      if (!live || live.id !== messageId || live.role !== "user") return group;
       return {
         ...group,
         messages: group.messages.map((message, i) => {
-          if (i === index) return { ...message, content };
-          // A changed user prompt makes its immediately following AI reply
-          // stale. Do not silently discard that reply or change the memory.
-          if (i === index + 1 && target.role === "user" && message.role === "assistant")
+          if (i === index) return { ...message, content: text };
+          // Existing generated turns and memory remain untouched. Only mark
+          // the immediate assistant response as stale for optional refresh.
+          if (i === index + 1 && message.role === "assistant")
             return { ...message, needsRegeneration: true };
           return message;
         }),
