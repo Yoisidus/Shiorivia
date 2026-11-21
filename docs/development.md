@@ -105,6 +105,15 @@ The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint 
 - Startup Local sync status compares the normalized loaded disk snapshot to the actual state. Hydration and changes to auto-sync preferences or generation status are not edits; do not show **未保存的更改** unless the stored payload actually differs.
 - `src/app/api/summarize/route.ts` remains as historical API compatibility, but **none of the four interactive narrative/chat hooks calls it automatically**.
 
+### Five-language interface completion / 五语言界面补全
+
+- All user-facing translations follow the existing `src/lib/i18n.ts`, `i18nDeep.ts` and `i18nLocal.ts` dictionaries, with exact locale keys `zh-CN`, `zh-TW`, `en`, `ja`, `ko`. Do not translate persisted user-authored worlds, prompts, chat/novel content or role/worldline data when switching locale.
+- **Protected proper nouns / 专有名词原样保留:** Shiorivia, Local, Officina, Via Lata, Umbra, Tela, VIAE, Semita, Compitum, Charta, BanG Dream!, MyGO!!!!!, Ave Mujica, CRYCHIC, model/provider names, character names, identifiers, `WORLD`, `ERA`, `PERIOD`, `EVENT`, `STM`, `LTM`, JSON fields and private protocol tags such as `novel_state` and `viae_chat`. UI labels and explanatory prose around those names may be localized.
+- **First current completion wave:** shared Via Lata/Tela/Umbra worldline modal (including unlocked canon/AU time and error states), Charta world and five-locale timeline description editor, VIAE path listing/scene indicators and confirmed user-message edits/refresh, Tela and Via Lata plot-guide send/insert dialogs, shared themed confirmation/feedback and IDE-review dialogs, and global context-window/autosave/danmaku controls.
+- Newly added strings belong to `i18nDeep.ts` and are retrieved by `deepText(locale, key)`. The shared `DialogProvider` is nested under `LanguageProvider` in `layout.tsx`; it now follows the selected locale for generic confirm/feedback captions as well.
+- **Further completion remains:** older hard-coded copy in the main chat interface, remaining SettingsCenter developer/media panels, Tela authoring presets and chapter controls, Charta self/character/lore editors, and remaining mode-specific action feedback. Existing legacy UI strings should be reviewed gradually rather than translating user-defined content or mutating saved JSON. Translation-only changes must not alter generated protocol IDs or provider instruction syntax.
+- No forced fallback to another language for custom Charta stage descriptions: if that exact locale was not authored, its stage description remains hidden. Built-in chronology descriptions use the existing translated `timeline.*` entries.
+
 ### Session-specific notes / 会话设定
 
 - Via Lata's **故事手记** and Umbra's **聊天笔记** each edit their own session worldbook. The legacy global worldbook is no longer shown or injected into AI prompts for either mode.
