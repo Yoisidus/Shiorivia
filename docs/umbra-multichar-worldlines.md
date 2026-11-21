@@ -41,6 +41,6 @@ npm run build
 Manual checks:
 1. Fresh Umbra has an empty character and a locked composer. Save a worldline and choose a character to unlock it. Do not send the visual-only welcome to AI.
 2. Chat with Mutsu, switch to Sakiko and ask her opinion of Mutsu's last message. Verify each assistant bubble keeps its original portrait, the provider request explicitly labels the speaker and previous speaker, and each character has its own Memory Vault content.
-3. Enable one secondary world and verify its characters become available. Add another later. Try altering main ERA/PERIOD, deleting a saved secondary world or changing its baseline; none should succeed.
+3. Enable one secondary world and verify its characters become available. Add another later. A canon ERA/PERIOD can only advance after unlocking and cannot move backward; AU ERA/PERIOD are user-editable after unlocking. Deleting an established secondary world or changing its original-canon baseline must still fail.
 4. In Officina request a complete source file using a model known to sometimes omit file markup. Confirm the manual completion button appears, does not dispatch when cancelled and can dispatch after confirmation. Ordinary greetings must not produce it.
 5. Inspect Settings Center and the white sidebar model panel for aligned background/border colors.
