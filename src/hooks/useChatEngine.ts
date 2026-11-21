@@ -334,62 +334,12 @@ export const useChatEngine = ({
                 // requires a compatibility summary request.
                 const needsFallback = !isRegen && fullText.trim() &&
                     (!inlineMemory?.stm || (parseLocalMemoryEntries(originalMemory.stm).length >= 6 && !inlineMemory.ltm));
-                // The active provider summarizes Chat memories without changing Local JSON format.
-                // Run this after the visible response so memory work does not block the conversation.
                 if (needsFallback) {
-                    void (async () => {
-                        try {
-                            const r = await fetch("/api/summarize", {
-                                method: "POST", headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    text: `User: ${txt}\n${customCharacters.find((c: any) => c.id === activeCharacterId)?.names?.[locale] || CHARACTERS.find(c => c.id === activeCharacterId)?.name || 'Character'}: ${fullText}`,
-                                    mode: "micro", provider: apiProvider, model: modelToUse, uiLanguage: locale,
-                                }),
-                            });
-                            if (!r.ok) return;
-                            const result = await r.json();
-                            if (typeof result?.summary !== "string" || !result.summary.trim()) return;
-                            const summaryLine = `• ${result.summary.trim()}`;
-                            const originalStm = String(originalMemory.stm || "");
-                            const originalLtm = String(originalMemory.ltm || "");
-                            const batch = inlineMemory?.stm
-                                ? [...parseLocalMemoryEntries(originalStm), "• " + inlineMemory.stm]
-                                : [...parseLocalMemoryEntries(originalStm), summaryLine];
-                            let archive = "";
-                            if (batch.length > LOCAL_STM_SLOTS) {
-                                const merged = await fetch("/api/summarize", {
-                                    method: "POST", headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                        text: formatLocalMemoryEntries(batch), previousLtm: originalLtm,
-                                        mode: "macro", provider: apiProvider, model: modelToUse, uiLanguage: locale,
-                                    }),
-                                });
-                                if (merged.ok) {
-                                    const mergedData = await merged.json();
-                                    archive = typeof mergedData?.summary === "string" ? mergedData.summary.trim() : "";
-                                }
-                            }
-                            setSessions((prev: Session[]) => prev.map(session => {
-                                if (session.id !== currentSessionId || session.memoryMode !== "chat"
-                                    || session.messages[session.messages.length - 1]?.storyGenerationId !== generationId) return session;
-                                const memory = session.chatCharacterMemories?.[activeCharacterId] || { stm: "", ltm: "" };
-                                const expectedStm = inlineApplied?.stm ?? originalStm;
-                                if (memory.stm !== expectedStm || memory.ltm !== originalLtm) return session;
-                                // Seventh-turn fallback may clear memory only on valid macro.
-                                // Otherwise preserve the seventh STM for a later retry.
-                                const next = archive
-                                    ? { stm: "", ltm: archive }
-                                    : inlineApplied
-                                        ? { stm: memory.stm, ltm: memory.ltm }
-                                        : { stm: formatLocalMemoryEntries(batch), ltm: originalLtm };
-                                return { ...session, chatCharacterMemories: {
-                                    ...(session.chatCharacterMemories || {}), [activeCharacterId]: next,
-                                }, updatedAt: Date.now() };
-                            }));
-                        } catch (error) {
-                            console.warn("Chat memory summary skipped:", error);
-                        }
-                    })();
+                    setSessions((prev: Session[]) => prev.map(session => session.id === currentSessionId
+                        ? { ...session, messages: session.messages.map(message => message.storyGenerationId === generationId
+                            ? { ...message, metadataRepairMissing: true } : message) }
+                        : session));
+                    showToast("本轮聊天记忆不完整，可点击「补齐状态」手动恢复。");
                 }
                 return;
             }
@@ -413,53 +363,6 @@ export const useChatEngine = ({
                 // available on this assistant bubble; it never runs invisibly.
                 storyProtocolMissing = true;
                 showToast("本轮故事状态不完整；可以点击消息下方的「补齐状态」。");
-            }
-            // Some providers occasionally omit or truncate the trailing novel_state.
-            // Recover only the state, never regenerate and replace the chapter itself.
-            if (currentSession.memoryMode === "novel" && (!extractNovelState(fullText) || !extractNovelState(fullText)?.choices)) {
-                try {
-                    const worldline = parseStoryWorldline(currentSession.storyWorldline);
-                    const knownCast = [...CHARACTERS, ...customCharacters].filter((character: any) =>
-                        worldline && storyCastAllowed(character, worldline))
-                        .map((character: any) => ({ id: character.id, name: character.name || character.names?.[locale] || character.names?.[character.primaryLanguage] }));
-                    const earlier = currentSession.novelState || {
-                        environment: configOverride?.novelConfig?.environment || "",
-                        event: configOverride?.novelConfig?.event || "",
-                        nextSceneCastIds: currentSession.storyNextCastIds || [],
-                    };
-                    const repairPrompt = [
-                        "请仅恢复以下已生成小说章节末尾的 <novel_state> JSON，禁止续写正文。",
-                        `既有 Environment/Event: ${JSON.stringify(earlier).slice(0, 5000)}`,
-                        `允许角色 ID 与姓名: ${JSON.stringify(knownCast).slice(0, 7000)}`,
-                        `已生成的小说章节: ${stripNovelState(fullText).slice(-16000)}`,
-                    ].join("\n\n");
-                    const response = await fetch("/api/chat", {
-                        method: "POST", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            novelStateRepair: true, memoryMode: "novel", model: modelToUse,
-                            provider: apiProvider, uiLanguage: locale,
-                            storyWorldline: currentSession.storyWorldline,
-                            debugRequestPayload: config.terminalRequestLog === true,
-                            debugFullOutput: config.terminalLog === true,
-                            messages: [{ role: "user", content: repairPrompt }],
-                        }), signal: abortControllerRef.current?.signal,
-                    });
-                    if (!response.ok || !response.body) throw new Error("novel_state recovery unavailable");
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-                    let text = "";
-                    while (text.length < 16000) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        text += decoder.decode(value, { stream: true });
-                    }
-                    text += decoder.decode();
-                    const recovered = extractNovelState(text);
-                    if (!recovered) throw new Error("novel_state recovery returned invalid JSON");
-                    fullText = stripNovelState(fullText) + "\n\n<novel_state>" + JSON.stringify(recovered) + "</novel_state>";
-                } catch (error) {
-                    console.warn("Novel state recovery skipped:", error);
-                }
             }
             let currentText = fullText;
             let novelState = currentSession.memoryMode === "novel" ? extractNovelState(fullText) : null;
@@ -778,6 +681,13 @@ export const useChatEngine = ({
                 // The user sees fiction, not a broken trailing JSON block.
                 currentText = storyProseWithoutState(currentText);
             }
+            const incompleteMemory = ["sliding", "novel"].includes(currentSession.memoryMode)
+                && (!inlineStoryMemory?.stm || ((currentSession.turnCount || 0) >= 6 && !inlineStoryMemory.ltm));
+            if (incompleteMemory && !storyProtocolMissing) {
+                setSessions((prev: Session[]) => prev.map(session => session.id === currentSessionId
+                    ? { ...session, messages: session.messages.map(message => message.storyGenerationId === generationId
+                        ? { ...message, metadataRepairMissing: true } : message) } : session));
+            }
             if (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel")
                 currentText = stripStoryTurnMemory(currentText);
 
@@ -1004,81 +914,8 @@ export const useChatEngine = ({
                         stmBackup: session.stm, turnCount: count + 1, updatedAt: Date.now() };
                 }));
             }
-            // A nonconforming seventh-turn LTM never causes silent memory loss.
-            // Use the older summarizer only as an exceptional fallback, while
-            // preserving all seven captured STM records until consolidation works.
-            if (["sliding", "novel"].includes(currentSession.memoryMode) && !storyProtocolMissing
-                && inlineStoryMemory?.stm && (currentSession.turnCount || 0) >= 6
-                && !inlineStoryMemory.ltm) {
-                void (async () => {
-                    try {
-                        const records = formatLocalMemoryEntries([
-                            ...parseLocalMemoryEntries(currentSession.stm),
-                            "• " + inlineStoryMemory.stm,
-                        ]);
-                        const response = await fetch("/api/summarize", {
-                            method: "POST", headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                text: records, previousLtm: currentSession.ltm,
-                                mode: "macro", provider: apiProvider, model: modelToUse, uiLanguage: locale,
-                            }),
-                        });
-                        if (!response.ok) throw new Error("LTM fallback HTTP " + response.status);
-                        const result = await response.json();
-                        const consolidated = typeof result?.summary === "string" ? result.summary.trim() : "";
-                        if (!consolidated) throw new Error("Empty LTM fallback");
-                        setSessions((prev: Session[]) => prev.map(session =>
-                            session.id === currentSessionId && session.memoryMode === currentSession.memoryMode
-                            && session.messages.some(message => message.storyGenerationId === generationId)
-                            && session.turnCount === 7 && session.stm === records
-                                ? { ...session, stm: "", ltm: consolidated,
-                                    stmBackup: session.stm, turnCount: 0, updatedAt: Date.now() }
-                                : session));
-                    } catch (error) {
-                        console.warn("Seventh-turn LTM fallback failed; retained all STM records:", error);
-                        showToast("本轮长期记忆未能合并，已保留短期记忆，可在记忆档案中查看。");
-                    }
-                })();
-            }
-            if (["sliding", "novel"].includes(currentSession.memoryMode) && !storyProtocolMissing && !inlineStoryMemory?.stm) {
-                const textToSummarize = currentSession.memoryMode === 'novel' ? stripNovelSuggestions(currentText) : `User: ${txt}\nAI: ${currentText}\n`;
-                const summarizeMode = currentSession.memoryMode === 'novel' ? 'novel_chapter' : 'micro';
-
-                fetch("/api/summarize", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text: textToSummarize, mode: summarizeMode, provider: apiProvider, model: modelToUse, uiLanguage: locale })
-                })
-                .then(res => res.json())
-                .then(microData => {
-                    if (microData.summary) {
-                        const prefix = currentSession.memoryMode === 'novel' ? `[Chapter]: ` : `• `;
-                        const summaryLine = `${prefix}${microData.summary}\n`;
-                        
-                        setSessions((prev: any) => prev.map((s: any) => {
-                            if (s.id === currentSessionId && ((s.memoryMode !== "sliding" && s.memoryMode !== "novel") ||
-                                s.messages.some((message: any) => message.storyGenerationId === generationId))) {
-                                const newStm = (s.stm || "") + summaryLine;
-                                const newCount = (s.turnCount || 0) + 1;
-                                
-                                if (newCount >= 7) {
-                                    fetch("/api/summarize", {
-                                        method: "POST", headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ text: newStm, previousLtm: s.ltm, mode: 'macro', provider: apiProvider, model: modelToUse, uiLanguage: locale })
-                                    }).then(r => r.json()).then(macroData => {
-                                        if (macroData.summary) {
-                                            setSessions((inner: any) => inner.map((innerS: any) => innerS.id === currentSessionId && ((innerS.memoryMode !== "sliding" && innerS.memoryMode !== "novel") || innerS.messages.some((message: any) => message.storyGenerationId === generationId)) && innerS.stm === newStm && innerS.turnCount === newCount ? { ...innerS, ltm: macroData.summary, stm: "", turnCount: 0 } : innerS));
-                                            showToast("✨ Memory Consolidated");
-                                        }
-                                    });
-                                    return { ...s, stm: newStm, stmBackup: s.stm, turnCount: newCount };
-                                }
-                                return { ...s, stm: newStm, stmBackup: s.stm, turnCount: newCount };
-                            }
-                            return s;
-                        }));
-                    }
-                });
-            }
+            // Missing memory is explicitly recoverable from the message UI,
+            // never by an automatic background summarize request.
 
         } catch (e: any) {
             if (e.name !== 'AbortError') {
