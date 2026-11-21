@@ -448,7 +448,7 @@ export const useChatEngine = ({
             if (currentSession.memoryMode === "novel") {
                 // A malformed or missing chapter state must never erase the last good state.
                 if (!novelState) {
-                    showToast("本章没有返回完整的 novel_state：正文已保留，环境、事件和下章阵容未更新。");
+                    showToast("本章没有返回完整的 novel_state：正文已保留，环境和事件未更新。");
                 } else {
                     const worldline = parseStoryWorldline(currentSession.storyWorldline);
                     const allowed = new Set([...CHARACTERS, ...customCharacters].filter((char: any) =>
@@ -1126,7 +1126,7 @@ export const useChatEngine = ({
         if (!await dialog.confirm(currentSession.memoryMode === "sliding"
             ? "确认刷新这轮故事吗？将恢复本轮之前的自身状态、角色数值、剧情引导与记忆，然后重新生成。"
             : currentSession.memoryMode === "novel"
-              ? "确认重写最后一章吗？将回退本章的环境、事件、下章阵容与记忆，保留世界线和 Style。"
+              ? "确认重写最后一章吗？将回退本章的环境、事件、登场角色与记忆，保留世界线和 Style。"
               : "确认重新生成这条 AI 回复吗？当前回复会被替换。")) return;
         if (currentSession.memoryMode !== "sliding" && currentSession.memoryMode !== "novel") {
             void handleSend(undefined, currentSession.messages.slice(0, idx));
@@ -1176,7 +1176,7 @@ export const useChatEngine = ({
             return;
         }
         if (!await dialog.confirm(currentSession.memoryMode === "novel"
-            ? "确定删除最新章节并回退环境、事件、下章阵容和记忆吗？世界线与 Style 会保留。"
+            ? "确定删除最新章节并回退环境、事件、登场角色和记忆吗？世界线与 Style 会保留。"
             : "确定删除最后一条消息并回退故事状态与记忆吗？")) return;
         const newMsgs = [...oldMessages];
         if (role === "assistant") newMsgs.splice(idx, 1);
@@ -1191,7 +1191,7 @@ export const useChatEngine = ({
             }
             if (s.memoryMode !== "sliding") return { ...s, messages: newMsgs, updatedAt: Date.now() };
             // Prefer the saved pre-turn snapshot even when deleting the FIRST turn:
-            // this restores the user's original cast selection, not the AI's forecast.
+            // this restores the user's original first-turn pins, not a later AI cast.
             const checkpoint = latestAssistant?.storyStateBefore || (role === "user" ? oldMessages[idx]?.storyStateBefore : undefined);
             const restored = checkpoint || newMsgs.some((m: any) => m.role === "user")
                 ? restoreStoryState(s, checkpoint)
