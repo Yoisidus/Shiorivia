@@ -4,6 +4,8 @@ import { memo, useEffect, useMemo, useRef, useState, type RefObject } from "reac
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ArrowDownUp, ChevronDown, ChevronRight, Disc3, ListMusic, Music2, Pause, Play, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, X, FolderClosed, PlayCircle } from "lucide-react";
 import { useMusic } from "../context/MusicContext";
+import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 import { musicFolderTree, type MusicFolder } from "../lib/musicPlaylists";
 import { parseLrc, type LyricLine } from "../lib/lrcParser";
 
@@ -15,11 +17,12 @@ const seconds = (n: number) => {
 function PlaylistTree({ folders, selected, onSelect, depth = 0 }: {
   folders: MusicFolder[]; selected: string | null; onSelect: (key: string) => void; depth?: number;
 }) {
+  const { locale } = useLanguage();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ "本地音乐": true });
   return <div className="space-y-1">
     {folders.map(folder => <div key={folder.key}>
       <div className="flex items-center gap-1 rounded-lg hover:bg-white/5" style={{ paddingLeft: `${depth * 13 + 6}px` }}>
-        <button type="button" aria-label={`展开 ${folder.name}`} onClick={() => setExpanded(p => ({ ...p, [folder.key]: !p[folder.key] }))} className="rounded p-1.5 text-[#a8b8c9] hover:text-[#ecd9b8]">
+        <button type="button" aria-label={`${deepText(locale, "music.ui.expand")} ${folder.name}`} onClick={() => setExpanded(p => ({ ...p, [folder.key]: !p[folder.key] }))} className="rounded p-1.5 text-[#a8b8c9] hover:text-[#ecd9b8]">
           {folder.children.length ? (expanded[folder.key] ? <ChevronDown size={14}/> : <ChevronRight size={14}/>) : <span className="block w-3.5"/>}
         </button>
         <button type="button" onClick={() => onSelect(folder.key)} aria-pressed={selected === folder.key} className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-xs ${selected === folder.key ? "bg-[#c2a577]/20 text-[#eedbb5]" : "text-[#c4d0db]"}`}>
@@ -39,6 +42,7 @@ const VinylRecord = memo(function VinylRecord({ cover, isPlaying }: {
   // Album art can be thousands of pixels across, even though the record label
   // only renders at ~150 CSS pixels. Decode once and animate a 256px texture.
   // This also avoids rotating a clipped element with borders and shadows.
+  const { locale } = useLanguage();
   const [thumbnail, setThumbnail] = useState<{ cover: string; url: string } | null>(null);
   const [fallbackCover, setFallbackCover] = useState<string | null>(null);
 
@@ -89,7 +93,7 @@ const VinylRecord = memo(function VinylRecord({ cover, isPlaying }: {
           {/* Static circular clip/frame; only the plain image is compositor-animated. */}
           <div className="relative z-10 flex h-[36%] w-[36%] items-center justify-center overflow-hidden rounded-full border-[5px] border-[#c8b17f] bg-[#d8c79f] text-[#334961] shadow-[0_0_0_5px_rgba(0,0,0,0.6)]">
             {imageUrl ? (
-              <img src={imageUrl} alt="音乐封面" decoding="async"
+              <img src={imageUrl} alt={deepText(locale, "music.ui.cover")} decoding="async"
                 className="block h-full w-full object-cover animate-spin-slow"
                 style={{ animationDuration: "7s", animationPlayState: isPlaying ? "running" : "paused", willChange: "transform", backfaceVisibility: "hidden" }}/>
             ) : (
@@ -113,6 +117,7 @@ const VinylRecord = memo(function VinylRecord({ cover, isPlaying }: {
 const LyricLines = memo(function LyricLines({ lyrics, lineIndex, audioRef }: {
   lyrics: LyricLine[]; lineIndex: number; audioRef: RefObject<HTMLAudioElement | null>;
 }) {
+  const { locale } = useLanguage();
   return (
     <>
             {lyrics.length ? <div className="space-y-1 pb-10 pt-1 text-left">
@@ -120,12 +125,13 @@ const LyricLines = memo(function LyricLines({ lyrics, lineIndex, audioRef }: {
                 <span className={`block text-sm leading-8 md:text-lg ${index === lineIndex ? "font-semibold" : "font-normal"}`}>{line.text}</span>
                 {line.translation && <span className="mt-1 block text-xs leading-6 text-[#aebbc9]">{line.translation}</span>}
               </button>)}
-            </div> : <div className="flex h-full min-h-48 items-center gap-3 text-sm text-[#8ea3b6]"><Disc3 size={20} className="text-[#c3a879]"/> 暂无歌词 · Instrumental</div>}
+            </div> : <div className="flex h-full min-h-48 items-center gap-3 text-sm text-[#8ea3b6]"><Disc3 size={20} className="text-[#c3a879]"/> {deepText(locale, "music.ui.instrumental")}</div>}
     </>
   );
 });
 
 export function MusicPlayerModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { locale } = useLanguage();
   const music = useMusic();
   const { currentTrack, isPlaying, togglePlay, playNext, playPrev, setTrackId,
     playMode, setPlayMode, volume, setVolume, progress, duration, audioRef,
@@ -182,17 +188,17 @@ export function MusicPlayerModal({ isOpen, onClose }: { isOpen: boolean; onClose
   const modes = ["sequence", "reverse", "loop", "shuffle"] as const;
   const toggleMode = () => setPlayMode(modes[(modes.indexOf(playMode) + 1) % modes.length]);
   const modeNames: Record<typeof playMode, string> = {
-    sequence: "顺序播放", reverse: "逆序播放", loop: "单曲循环", shuffle: "随机播放",
+    sequence: deepText(locale, "music.ui.sequence"), reverse: deepText(locale, "music.ui.reverse"), loop: deepText(locale, "music.ui.loop"), shuffle: deepText(locale, "music.ui.shuffle"),
   };
   const modeIcon = playMode === "reverse" ? <ArrowDownUp size={18}/> : playMode === "loop" ? <Repeat1 size={18}/> : playMode === "shuffle" ? <Shuffle size={18}/> : <ArrowRight size={19}/>;
 
   return <AnimatePresence>
-    {isOpen && <motion.div role="dialog" aria-modal="true" aria-label="Shiorivia 音乐播放器"
+    {isOpen && <motion.div role="dialog" aria-modal="true" aria-label={deepText(locale, "music.ui.player")}
       initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 24 }}
       transition={{ duration: 0.23 }} className="fixed inset-0 z-[210] flex flex-col overflow-hidden bg-[#152941] text-[#e8e4dc]">
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_42%,rgba(184,160,113,0.11),transparent_48%),linear-gradient(135deg,#152941,#0f1f33)]"/>
       <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-[#d1b982]/20 px-5 py-4 md:px-10">
-        <button type="button" onClick={onClose} aria-label="关闭播放器" className="rounded-xl border border-[#c6b187]/30 p-2 text-[#e0cfb2] transition hover:bg-white/10"><ChevronDown size={21}/></button>
+        <button type="button" onClick={onClose} aria-label={deepText(locale, "music.ui.close")} className="rounded-xl border border-[#c6b187]/30 p-2 text-[#e0cfb2] transition hover:bg-white/10"><ChevronDown size={21}/></button>
         <div className="text-center"><p className="text-[10px] font-semibold tracking-[0.3em] text-[#ccb887]">SHIORIVIA / MUSIC</p><p className="mt-1 max-w-[55vw] truncate font-serif text-sm text-[#ead9b8]">Where stories find their way.</p></div>
         <span aria-hidden="true" className="h-9 w-9"/>
       </header>
@@ -206,29 +212,29 @@ export function MusicPlayerModal({ isOpen, onClose }: { isOpen: boolean; onClose
           <div ref={lyricBox} className="relative mb-5 mt-6 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-4 scrollbar-thin md:mb-8 md:mt-8">
             <LyricLines lyrics={lyrics} lineIndex={lineIndex} audioRef={audioRef}/>
           </div>
-          {showMobileLyrics && <button type="button" onClick={() => setShowMobileLyrics(false)} className="mt-2 self-start text-xs text-[#d5be93] md:hidden">返回唱片</button>}
+          {showMobileLyrics && <button type="button" onClick={() => setShowMobileLyrics(false)} className="mt-2 self-start text-xs text-[#d5be93] md:hidden">{deepText(locale, "music.ui.backRecord")}</button>}
         </section>
       </main>
 
       <footer className="relative z-20 shrink-0 border-t border-[#d0b784]/20 bg-[#0c1b2c]/95 px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 md:px-12">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 text-[11px] text-[#96a9ba]"><span>{seconds(progress)}</span><div className="relative h-1 flex-1 rounded-full bg-[#d9c39b]/15"><div className="h-full rounded-full bg-[#c6aa79]" style={{ width: `${pct}%` }}/><input aria-label="歌曲进度" type="range" min={0} max={duration || 1} step={0.1} value={Math.min(progress, duration || 1)} onChange={e => { if (audioRef.current) audioRef.current.currentTime = Number(e.target.value); }} className="absolute inset-x-0 -top-3 h-7 w-full cursor-pointer opacity-0"/></div><span>{seconds(duration)}</span></div>
+        <div className="mx-auto flex max-w-5xl items-center gap-3 text-[11px] text-[#96a9ba]"><span>{seconds(progress)}</span><div className="relative h-1 flex-1 rounded-full bg-[#d9c39b]/15"><div className="h-full rounded-full bg-[#c6aa79]" style={{ width: `${pct}%` }}/><input aria-label={deepText(locale, "music.ui.songProgress")} type="range" min={0} max={duration || 1} step={0.1} value={Math.min(progress, duration || 1)} onChange={e => { if (audioRef.current) audioRef.current.currentTime = Number(e.target.value); }} className="absolute inset-x-0 -top-3 h-7 w-full cursor-pointer opacity-0"/></div><span>{seconds(duration)}</span></div>
         <div className="mx-auto mt-4 grid max-w-5xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          <button type="button" onClick={toggleMode} aria-label={`播放模式：${modeNames[playMode]}`} title={modeNames[playMode]} className="flex h-9 w-9 items-center justify-center justify-self-start rounded-lg text-[#b5c1cc] hover:bg-white/10">{modeIcon}</button>
-          <div className="flex items-center justify-self-center gap-5 md:gap-9"><button type="button" onClick={playPrev} aria-label="上一首" className="text-[#c6d0d9] hover:text-[#f0d8a8]"><SkipBack size={25}/></button><button type="button" onClick={togglePlay} aria-label={isPlaying ? "暂停" : "播放"} className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e5d2aa] text-[#223951] transition-transform hover:scale-105 md:h-14 md:w-14">{isPlaying ? <Pause size={23} fill="currentColor"/> : <Play size={23} fill="currentColor" className="ml-1"/>}</button><button type="button" onClick={playNext} aria-label="下一首" className="text-[#c6d0d9] hover:text-[#f0d8a8]"><SkipForward size={25}/></button></div>
-          <div className="flex min-w-0 items-center justify-self-end gap-2"><Volume2 size={16} className="hidden text-[#a9b9c8] sm:block"/><input aria-label="音量" aria-valuetext={`${Math.round(volume * 100)}%`} type="range" min={0} max={1} step={0.01} value={volume} onChange={e => setVolume(Number(e.target.value))} className="hidden w-20 accent-[#c9ae7b] sm:block"/><span aria-live="off" className="hidden w-9 text-right text-[11px] tabular-nums text-[#cbb993] sm:inline-block">{Math.round(volume * 100)}%</span><button type="button" onClick={() => setShowLibrary(p => !p)} aria-label="歌单与播放列表" aria-expanded={showLibrary} className="relative left-2 rounded-lg p-2 text-[#d7c29c] hover:bg-white/10 md:left-5"><ListMusic size={22}/></button></div>
+          <button type="button" onClick={toggleMode} aria-label={`${deepText(locale, "music.ui.mode")}${modeNames[playMode]}`} title={modeNames[playMode]} className="flex h-9 w-9 items-center justify-center justify-self-start rounded-lg text-[#b5c1cc] hover:bg-white/10">{modeIcon}</button>
+          <div className="flex items-center justify-self-center gap-5 md:gap-9"><button type="button" onClick={playPrev} aria-label={deepText(locale, "music.ui.previous")} className="text-[#c6d0d9] hover:text-[#f0d8a8]"><SkipBack size={25}/></button><button type="button" onClick={togglePlay} aria-label={deepText(locale, isPlaying ? "music.ui.pause" : "music.ui.play")} className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e5d2aa] text-[#223951] transition-transform hover:scale-105 md:h-14 md:w-14">{isPlaying ? <Pause size={23} fill="currentColor"/> : <Play size={23} fill="currentColor" className="ml-1"/>}</button><button type="button" onClick={playNext} aria-label={deepText(locale, "music.ui.next")} className="text-[#c6d0d9] hover:text-[#f0d8a8]"><SkipForward size={25}/></button></div>
+          <div className="flex min-w-0 items-center justify-self-end gap-2"><Volume2 size={16} className="hidden text-[#a9b9c8] sm:block"/><input aria-label={deepText(locale, "music.ui.volume")} aria-valuetext={`${Math.round(volume * 100)}%`} type="range" min={0} max={1} step={0.01} value={volume} onChange={e => setVolume(Number(e.target.value))} className="hidden w-20 accent-[#c9ae7b] sm:block"/><span aria-live="off" className="hidden w-9 text-right text-[11px] tabular-nums text-[#cbb993] sm:inline-block">{Math.round(volume * 100)}%</span><button type="button" onClick={() => setShowLibrary(p => !p)} aria-label={deepText(locale, "music.ui.library")} aria-expanded={showLibrary} className="relative left-2 rounded-lg p-2 text-[#d7c29c] hover:bg-white/10 md:left-5"><ListMusic size={22}/></button></div>
         </div>
       </footer>
 
-      <AnimatePresence>{showLibrary && <motion.div role="dialog" aria-label="歌单与播放列表" initial={{ opacity: 0, scale: 0.97, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: 12 }} className="absolute bottom-[112px] right-3 z-30 flex h-[min(68vh,500px)] w-[min(94vw,365px)] flex-col overflow-hidden rounded-2xl border border-[#c6a978]/35 bg-[#1b3048] shadow-[0_20px_80px_rgba(0,0,0,0.56)] md:bottom-[120px] md:right-8">
-        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3"><p className="text-xs font-semibold tracking-[0.15em] text-[#e1c995]">MUSIC LIBRARY</p><button type="button" aria-label="关闭歌单" onClick={() => setShowLibrary(false)} className="rounded-lg p-1 text-[#c6d1da] hover:bg-white/10"><X size={17}/></button></div>
-        <div className="flex shrink-0 gap-2 border-b border-white/10 px-4 py-2 text-xs"><button type="button" onClick={() => setLibraryTab("folders")} className={`flex-1 rounded-lg py-2 ${libraryTab === "folders" ? "bg-[#d3bc90] text-[#20364f]" : "text-[#aabbd0] hover:bg-white/10"}`}>歌单</button><button type="button" onClick={() => setLibraryTab("queue")} className={`flex-1 rounded-lg py-2 ${libraryTab === "queue" ? "bg-[#d3bc90] text-[#20364f]" : "text-[#aabbd0] hover:bg-white/10"}`}>播放列表</button></div>
+      <AnimatePresence>{showLibrary && <motion.div role="dialog" aria-label={deepText(locale, "music.ui.library")} initial={{ opacity: 0, scale: 0.97, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, y: 12 }} className="absolute bottom-[112px] right-3 z-30 flex h-[min(68vh,500px)] w-[min(94vw,365px)] flex-col overflow-hidden rounded-2xl border border-[#c6a978]/35 bg-[#1b3048] shadow-[0_20px_80px_rgba(0,0,0,0.56)] md:bottom-[120px] md:right-8">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3"><p className="text-xs font-semibold tracking-[0.15em] text-[#e1c995]">MUSIC LIBRARY</p><button type="button" aria-label={deepText(locale, "music.ui.closeLibrary")} onClick={() => setShowLibrary(false)} className="rounded-lg p-1 text-[#c6d1da] hover:bg-white/10"><X size={17}/></button></div>
+        <div className="flex shrink-0 gap-2 border-b border-white/10 px-4 py-2 text-xs"><button type="button" onClick={() => setLibraryTab("folders")} className={`flex-1 rounded-lg py-2 ${libraryTab === "folders" ? "bg-[#d3bc90] text-[#20364f]" : "text-[#aabbd0] hover:bg-white/10"}`}>{deepText(locale, "music.ui.folders")}</button><button type="button" onClick={() => setLibraryTab("queue")} className={`flex-1 rounded-lg py-2 ${libraryTab === "queue" ? "bg-[#d3bc90] text-[#20364f]" : "text-[#aabbd0] hover:bg-white/10"}`}>{deepText(locale, "music.ui.queue")}</button></div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3 scrollbar-thin">
           {libraryTab === "folders" ? <>
-            <button type="button" onClick={() => selectPlaylist(null)} className={`mb-2 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs ${selectedPlaylist === null ? "bg-[#c2a577]/20 text-[#eedbb5]" : "text-[#bdcad6] hover:bg-white/5"}`}><span>全部歌曲</span><span className="opacity-60">{allTracks.length}</span></button>
+            <button type="button" onClick={() => selectPlaylist(null)} className={`mb-2 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs ${selectedPlaylist === null ? "bg-[#c2a577]/20 text-[#eedbb5]" : "text-[#bdcad6] hover:bg-white/5"}`}><span>{deepText(locale, "music.ui.all")}</span><span className="opacity-60">{allTracks.length}</span></button>
             <PlaylistTree folders={folders} selected={selectedPlaylist} onSelect={selectPlaylist}/>
-            <p className="mt-4 border-t border-white/10 px-2 pt-3 text-[11px] leading-5 text-[#95aabe]">选择文件夹将其及子文件夹的歌曲设为播放列表。扫描入口位于设置 → 媒体。</p>
+            <p className="mt-4 border-t border-white/10 px-2 pt-3 text-[11px] leading-5 text-[#95aabe]">{deepText(locale, "music.ui.folderHelp")}</p>
           </> : <div className="space-y-1">
-            {playQueue.length ? playQueue.map((track, index) => <button type="button" key={track.id} onClick={() => setTrackId(track.id)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-white/10 ${currentTrack?.id === track.id ? "bg-[#c2a577]/15 text-[#e9d6b3]" : "text-[#c4d0de]"}`}><span className="w-5 shrink-0 text-[10px] opacity-50">{index + 1}</span><span className="min-w-0 flex-1"><span className="block truncate text-xs">{track.name}</span><span className="mt-0.5 block truncate text-[10px] opacity-60">{track.artist}</span></span>{currentTrack?.id === track.id && <PlayCircle size={15}/>}</button>) : <p className="py-10 text-center text-xs text-[#99acbd]">当前歌单没有歌曲</p>}
+            {playQueue.length ? playQueue.map((track, index) => <button type="button" key={track.id} onClick={() => setTrackId(track.id)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-white/10 ${currentTrack?.id === track.id ? "bg-[#c2a577]/15 text-[#e9d6b3]" : "text-[#c4d0de]"}`}><span className="w-5 shrink-0 text-[10px] opacity-50">{index + 1}</span><span className="min-w-0 flex-1"><span className="block truncate text-xs">{track.name}</span><span className="mt-0.5 block truncate text-[10px] opacity-60">{track.artist}</span></span>{currentTrack?.id === track.id && <PlayCircle size={15}/>}</button>) : <p className="py-10 text-center text-xs text-[#99acbd]">{deepText(locale, "music.ui.emptyQueue")}</p>}
           </div>}
         </div>
       </motion.div>}</AnimatePresence>
