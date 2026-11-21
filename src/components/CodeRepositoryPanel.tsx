@@ -7,8 +7,10 @@ import {
 } from "lucide-react";
 import { CodeFile } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAppDialog } from "../context/DialogContext";
 
 const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScreen, projectRoot, onBindProject }: any) => {
+    const dialog = useAppDialog();
     const [files, setFiles] = useState<Record<string, CodeFile>>({});
     const [activeFile, setActiveFile] = useState<string>("");
     const [isEditing, setIsEditing] = useState(false);
@@ -31,7 +33,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         if (!target) return;
         const hasDraft = isEditing && Object.entries(files).some(([name, file]) =>
             diskBaseline[name]?.content !== file.content);
-        if (confirmDiscard && hasDraft && !window.confirm("当前 IDE 有未保存的修改。重新同步将丢弃它们，确定继续吗？")) return;
+        if (confirmDiscard && hasDraft && !await dialog.confirm("当前 IDE 有未保存的修改。重新同步将丢弃它们，确定继续吗？")) return;
         setBusy(true);
         try {
             const [filesResponse, treeResponse] = await Promise.all([
@@ -47,7 +49,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
             setActiveFile(current => current in nextFiles ? current : Object.keys(nextFiles)[0] || "");
             setIsEditing(false);
             setStatus(`已同步 IDE/${target} · ${Object.keys(nextFiles).length} 个文件`);
-        } catch (error: any) { setStatus(error.message); alert(error.message); }
+        } catch (error: any) { setStatus(error.message); void dialog.alert(error.message); }
         finally { setBusy(false); }
     };
 
@@ -68,7 +70,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
     }, [projectRoot]);
 
     const handleSave = async () => {
-        if (!window.confirm("确认保存所修改的工程文件吗？")) return;
+        if (!await dialog.confirm("确认保存所修改的工程文件吗？")) return;
         if (!projectRoot) {
             onUpdate(files);
             setIsEditing(false);
@@ -82,7 +84,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                 }
             }
             await syncDisk(projectRoot, false);
-        } catch (error: any) { alert(error.message); }
+        } catch (error: any) { void dialog.alert(error.message); }
         finally { setBusy(false); }
     };
 
@@ -91,11 +93,11 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         setIsEditing(false);
     };
 
-    const handleNewFile = () => {
-        const name = window.prompt("文件路径（例如 src/components/App.tsx）：");
+    const handleNewFile = async () => {
+        const name = await dialog.prompt("文件路径（例如 src/components/App.tsx）：");
         if (!name) return;
         if (!/^[^\\/:*?"<>|]+(?:\/[^\\/:*?"<>|]+)*$/.test(name) || name.split("/").includes("..")) {
-            alert("文件路径不可用。"); return;
+            void dialog.alert("文件路径不可用。"); return;
         }
         setFiles(prev => ({ ...prev, [name]: { name, language: name.split(".").pop() || "text", content: "" } }));
         setActiveFile(name);
@@ -106,24 +108,24 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         if (!projectRoot) return;
         const legacy = Object.entries(repository || {}) as [string, CodeFile][];
         if (!legacy.length) return;
-        if (!window.confirm(`将旧会话中 ${legacy.length} 个代码文件复制到 IDE/${projectRoot}？同名文件将被覆盖。`)) return;
+        if (!await dialog.confirm(`将旧会话中 ${legacy.length} 个代码文件复制到 IDE/${projectRoot}？同名文件将被覆盖。`)) return;
         setBusy(true);
         try {
             for (const [name, file] of legacy) {
                 await ideRequest("write", { project: projectRoot, path: name, content: file.content });
             }
             await syncDisk(projectRoot, false);
-        } catch (error: any) { alert(`导入中止：${error.message}`); }
+        } catch (error: any) { void dialog.alert(`导入中止：${error.message}`); }
         finally { setBusy(false); }
     };
     const handleNewFolder = async () => {
-        if (!projectRoot) { alert("请先绑定项目根目录。"); return; }
-        const relative = window.prompt("新建文件夹（支持 src/components 这样的多级路径）：");
+        if (!projectRoot) { void dialog.alert("请先绑定项目根目录。"); return; }
+        const relative = await dialog.prompt("新建文件夹（支持 src/components 这样的多级路径）：");
         if (!relative) return;
         try {
             await ideRequest("createFolder", { project: projectRoot, path: relative });
             await syncDisk(projectRoot);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { void dialog.alert(e.message); }
     };
     const loadProjects = async () => {
         try {
@@ -131,27 +133,27 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
             const result = await response.json();
             if (!response.ok) throw new Error(result.error || "读取项目失败");
             setProjects(result.projects || []);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { void dialog.alert(e.message); }
     };
     const createAndBind = async () => {
-        const name = window.prompt("项目根目录名（存放在 Shiorivia/IDE 下）：");
+        const name = await dialog.prompt("项目根目录名（存放在 Shiorivia/IDE 下）：");
         if (!name) return;
         try {
             const created = await ideRequest("createProject", { name });
             onBindProject(created.project);
             setProjects(prev => [...new Set([...prev, created.project])]);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { void dialog.alert(e.message); }
     };
 
     const handleDelete = async (e: React.MouseEvent, name: string) => {
         e.stopPropagation();
         setFileMenu(null);
-        if (!window.confirm(`确认删除 ${name} 吗？删除后将从当前工程文件库移除。`)) return;
+        if (!await dialog.confirm(`确认删除 ${name} 吗？删除后将从当前工程文件库移除。`)) return;
         const updated = { ...files };
         delete updated[name];
         if (projectRoot && name in diskBaseline) {
             try { await ideRequest("delete", { project: projectRoot, path: name }); }
-            catch (error: any) { alert(error.message); return; }
+            catch (error: any) { void dialog.alert(error.message); return; }
         } else if (!projectRoot) onUpdate(updated);
         setFiles(updated);
         if (projectRoot) setDiskBaseline(prev => { const next = { ...prev }; delete next[name]; return next; });
@@ -309,7 +311,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
 
                             <div
                                 className="absolute top-2 right-4 z-10 opacity-30 hover:opacity-100 cursor-pointer transition-opacity p-1 bg-black/50 rounded"
-                                onClick={() => { navigator.clipboard.writeText(files[activeFile].content); alert("Copied!"); }}
+                                onClick={() => { void navigator.clipboard.writeText(files[activeFile].content).then(() => dialog.alert("已复制代码")).catch(() => dialog.alert("复制失败")); }}
                                 title="Copy Content"
                             >
                                 <Copy size={14} />
