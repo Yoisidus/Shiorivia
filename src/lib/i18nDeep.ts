@@ -2,6 +2,20 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "bulk.phrase": ["我确定删除这些对话", "我確定刪除這些對話", "I confirm deleting these chats", "これらの会話を削除します", "이 대화들을 삭제하겠습니다"],
+  "bulk.wrongPhrase": ["确认语输入错误！请严格输入：", "確認語輸入錯誤！請完整輸入：", "The confirmation phrase does not match. Enter exactly: ", "確認文が一致しません。正確に入力してください：", "확인 문구가 일치하지 않습니다. 정확히 입력하세요: "],
+  "bulk.wrongCode": ["访问码错误！", "存取碼錯誤！", "Incorrect access code!", "アクセスコードが間違っています！", "접근 코드가 올바르지 않습니다!"],
+  "bulk.verifyFailed": ["无法连接验证服务。", "無法連線至驗證服務。", "Unable to reach the verification service.", "認証サービスに接続できません。", "인증 서비스에 연결하지 못했습니다."],
+  "bulk.heading": ["永久删除会话", "永久刪除對話", "Permanently delete chats", "会話を完全に削除", "대화 영구 삭제"],
+  "bulk.prefix": ["即将永久删除", "即將永久刪除", "Permanently delete", "完全に削除する対象：", "영구 삭제할 대화:"],
+  "bulk.suffix": ["个平行世界。", "個平行世界。", "parallel worlds.", "件の並行世界。", "개의 평행 세계."],
+  "bulk.irreversible": ["此操作绝对无法撤销。", "此操作絕對無法復原。", "This action cannot be undone.", "この操作は取り消せません。", "이 작업은 되돌릴 수 없습니다."],
+  "bulk.accessCode": ["安全访问码", "安全存取碼", "Security access code", "セキュリティアクセスコード", "보안 접근 코드"],
+  "bulk.passwordHint": ["请输入 .env.local 中的密码", "請輸入 .env.local 中的密碼", "Enter the password from .env.local", " .env.local のパスワードを入力", " .env.local의 비밀번호를 입력하세요"],
+  "bulk.confirmLabel": ["确认短句", "確認短句", "Confirmation phrase", "確認文", "확인 문구"],
+  "bulk.enter": ["输入：", "輸入：", "Type: ", "入力：", "입력: "],
+  "bulk.verifying": ["正在验证…", "正在驗證…", "Verifying…", "確認中…", "확인 중…"],
+  "bulk.delete": ["确认删除", "確認刪除", "Confirm deletion", "削除を確定", "삭제 확인"],
   "sidebar.story.worldline": ["世界线", "世界線", "Worldline", "世界線", "세계선"],
   "sidebar.story.selfStatus": ["自身状态", "自身狀態", "Your status", "自身の状態", "자신의 상태"],
   "sidebar.story.unnamed": ["未命名", "未命名", "Unnamed", "名前未設定", "이름 없음"],
