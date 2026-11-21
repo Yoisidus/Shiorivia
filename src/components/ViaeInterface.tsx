@@ -438,7 +438,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                     {/* TTS is paused while provider adapters are being redesigned. */}
                     {!isUser && !isLoading && index === activeGroup.messages.length - 1 && <button type="button" onClick={() => void send(true)} title={deepText(locale, "common.retry")} aria-label={deepText(locale, "common.retry")}><RotateCcw size={14}/></button>}
                     <button type="button" onClick={() => { void navigator.clipboard.writeText(text); setCopyIndex(index); }} title={deepText(locale, "common.copy")} aria-label={deepText(locale, "common.copy")}>{copyIndex === index ? <Check size={14}/> : <Copy size={14}/>}</button>
-                    {!isLoading && <button type="button" onClick={() => { if (window.confirm(deepText(locale, "viae.deleteMessage"))) deleteMessage(index); }} title={deepText(locale, "common.delete")} aria-label={deepText(locale, "common.delete")}><Trash2 size={14}/></button>}
+                    {!isLoading && <button type="button" onClick={async () => { if (await dialog.confirm(deepText(locale, "viae.deleteMessage"))) deleteMessage(index); }} title={deepText(locale, "common.delete")} aria-label={deepText(locale, "common.delete")}><Trash2 size={14}/></button>}
                   </div>
                 </div>;
               })}
