@@ -2,14 +2,16 @@ import { CHAR_DATA } from "../data/char_config";
 import { LORE_LIBRARY } from "../data/lore_library";
 import { formatChartaLore } from "./chartaLore";
 import type { chartaWireCharacters } from "./chartaWire";
-import { BANG_DREAM_CANON, BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME } from "./storyWorldline";
+import { BANG_DREAM_CANON, BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, timelineStageDescription } from "./storyWorldline";
+import { normalizeLocale } from "./locale";
+import type { ChartaTimelineStage } from "./chartaWorld";
 
 export type EngineeringLoreOptions = { relationships: boolean; experiences: boolean };
 export type EngineeringWorldInfo = {
   id: string;
   name: string;
   description: string;
-  canonTimeline: Array<{ era: string; period: string }>;
+  canonTimeline: ChartaTimelineStage[];
 };
 type WireCharacter = ReturnType<typeof chartaWireCharacters>[number];
 
@@ -47,6 +49,7 @@ export function buildEngineeringCharacterContext(
   customCharacters: readonly WireCharacter[],
   customWorlds: readonly EngineeringWorldInfo[],
   options: EngineeringLoreOptions = DEFAULT_ENGINEERING_LORE_OPTIONS,
+  uiLanguage: unknown = "zh-CN",
 ): string {
   const included: EngineeringLoreOptions = {
     relationships: options.relationships === true,
@@ -66,6 +69,11 @@ export function buildEngineeringCharacterContext(
     : customWorld?.description || "";
   const worldTimeline = worldId === BANG_DREAM_WORLD_ID ? BANG_DREAM_CANON
     : customWorld?.canonTimeline || [];
+  const locale = normalizeLocale(uiLanguage);
+  const localizedTimeline = worldTimeline.map(stage => ({
+    era: stage.era, period: stage.period,
+    ...(timelineStageDescription(stage, locale) ? { description: timelineStageDescription(stage, locale) } : {}),
+  }));
   const identity = custom
     ? `[Character machine ID] ${custom.id}\n[Character public ID] ${custom.characterCode}\n[Localized names] ${JSON.stringify(custom.names)}`
     : `[Character ID] ${builtIn?.id}`;
@@ -88,7 +96,7 @@ export function buildEngineeringCharacterContext(
 ${identity}
 [Origin world] ${worldName} (${worldId || "unbound"})
 [World setting] ${worldDescription || "(No setting provided.)"}
-[World canonical timeline — reference index] ${JSON.stringify(worldTimeline)}
+[World canonical timeline — reference index, UI locale ${locale}] ${JSON.stringify(localizedTimeline)}
 [Historical lore coverage] The character profile includes all available canonical eras, not just the current time. Treat later events as possible references, not as things already experienced in every conversation.
 [Core relationships included] ${included.relationships ? "YES — all eras" : "NO"}
 [Major experiences included] ${included.experiences ? "YES — all eras" : "NO"}
