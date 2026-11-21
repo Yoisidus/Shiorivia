@@ -548,7 +548,7 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
         return [{ id: raw.id, name: raw.name, description: raw.description, canonTimeline }];
       }) : [];
       engineerPersona += "\n\n" + buildEngineeringCharacterContext(
-        characterId, customCast, engineerWorlds, engineerOptions,
+        characterId, customCast, engineerWorlds, engineerOptions, body.uiLanguage,
       );
       // Officina relies on its full budgeted transcript and on-demand IDE
       // reads. Legacy STM/LTM is never appended or regenerated in this mode.
