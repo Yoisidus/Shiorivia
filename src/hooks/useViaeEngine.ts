@@ -72,17 +72,37 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
     if (!regenerate && !text) return;
     if (regenerate && !preceding.some(msg => msg.role === "user")) return;
 
+    const lastAssistant = isReplace ? previous[previous.length - 1] : null;
+    const checkpoint = lastAssistant?.viaeTurnBefore;
+    if (regenerate && isReplace && !checkpoint) {
+      dialog.notify("这条旧回复没有生成前的记忆快照，无法安全刷新。请使用编辑功能修正文本，或新建道路继续。", { type: "warning", tone: "viae" });
+      return;
+    }
+    const requestGroup: ViaeConversation = checkpoint
+      ? { ...activeGroup, stm: checkpoint.stm, ltm: checkpoint.ltm,
+          turnCount: checkpoint.turnCount, storyWorldline: checkpoint.storyWorldline,
+          timeline: checkpoint.timeline }
+      : activeGroup;
+    const turnBefore: NonNullable<ViaeMessage["viaeTurnBefore"]> = {
+      stm: requestGroup.stm || "", ltm: requestGroup.ltm || "",
+      turnCount: parseLocalMemoryEntries(requestGroup.stm).length,
+      storyWorldline: requestGroup.storyWorldline, timeline: requestGroup.timeline,
+    };
     const requestId = newId();
     const userMessage: ViaeMessage | null = regenerate ? null : { id: newId(), role: "user", kind: activeGroup.pov === "outsider" ? "director" : "chat", content: text, createdAt: Date.now() };
     const context = userMessage ? [...preceding, userMessage] : preceding;
-    const assistant: ViaeMessage = { id: requestId, role: "assistant", content: "", createdAt: Date.now(), modelName: model };
+    const assistant: ViaeMessage = { id: requestId, role: "assistant", content: "", createdAt: Date.now(), modelName: model, viaeTurnBefore: turnBefore };
     const groupId = activeGroup.id;
     const controller = new AbortController();
     abortRef.current = controller;
     busyRef.current = true;
     setIsLoading(true);
     if (!regenerate) setInput("");
-    patchGroup(groupId, group => ({ ...group, messages: [...context, assistant], updatedAt: Date.now() }));
+    patchGroup(groupId, group => ({ ...group,
+      ...(checkpoint ? { stm: checkpoint.stm, ltm: checkpoint.ltm,
+        turnCount: checkpoint.turnCount, storyWorldline: checkpoint.storyWorldline,
+        timeline: checkpoint.timeline } : {}),
+      messages: [...context, assistant], updatedAt: Date.now() }));
 
     let fullText = "";
     try {
@@ -99,17 +119,17 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
           customCharacters: customCharacters.map(asChartaPromptData),
           viaeSelf: activeGroup.pov === "insider" && activeSelf ? asChartaSelfPromptData(activeSelf) : null,
           messages: context.map(msg => ({ role: msg.role, content: msg.content, kind: msg.kind })),
-          stm: activeGroup.stm || "", ltm: activeGroup.ltm || "",
+          stm: requestGroup.stm || "", ltm: requestGroup.ltm || "",
           viaeGroup: {
-            name: activeGroup.name,
-            type: activeGroup.type,
-            members: activeGroup.members,
-            pov: activeGroup.pov,
-            defaultPovChar: activeGroup.defaultPovChar,
-            reality: activeGroup.reality,
-            auContext: activeGroup.auContext,
-            timeline: activeGroup.timeline,
-            storyWorldline: activeGroup.storyWorldline,
+            name: requestGroup.name,
+            type: requestGroup.type,
+            members: requestGroup.members,
+            pov: requestGroup.pov,
+            defaultPovChar: requestGroup.defaultPovChar,
+            reality: requestGroup.reality,
+            auContext: requestGroup.auContext,
+            timeline: requestGroup.timeline,
+            storyWorldline: requestGroup.storyWorldline,
           },
         }),
       });
@@ -136,9 +156,9 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
       fullText = stripStoryTurnMemory(stripWorldlineAdvance(rawOutput));
       if (!fullText.trim()) throw new Error("模型没有返回聊天内容");
 
-      const originalStm = String(activeGroup.stm || "");
-      const originalLtm = String(activeGroup.ltm || "");
-      const inlineApplied = !regenerate && inlineMemory?.stm
+      const originalStm = String(requestGroup.stm || "");
+      const originalLtm = String(requestGroup.ltm || "");
+      const inlineApplied = inlineMemory?.stm
         ? nextConversationMemory({ stm: originalStm, ltm: originalLtm }, inlineMemory) : null;
       patchGroup(groupId, group => {
         const currentWorldline = viaeWorldline(group);
@@ -172,8 +192,8 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
           }
         } catch { completeChat = false; }
       }
-      const memoryMissing = !regenerate && (!inlineMemory?.stm ||
-        (parseLocalMemoryEntries(originalStm).length >= LOCAL_STM_SLOTS && !inlineMemory.ltm));
+      const memoryMissing = !inlineMemory?.stm ||
+        (parseLocalMemoryEntries(originalStm).length >= LOCAL_STM_SLOTS && !inlineMemory.ltm);
       const needsRepair = memoryMissing || !completeChat;
       if (needsRepair) {
         patchGroup(groupId, group => ({ ...group, messages: group.messages.map(m =>
