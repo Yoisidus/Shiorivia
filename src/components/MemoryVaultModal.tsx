@@ -5,6 +5,7 @@ import { Archive, Brain, Check, LockKeyhole, Plus, Save, Trash2, X } from "lucid
 import { formatLocalMemoryEntries, latestLocalMemoryEntry, LOCAL_STM_SLOTS, parseLocalMemoryEntries } from "../lib/localMemory";
 import { useLanguage } from "../context/LanguageContext";
 import { localText } from "../lib/i18nLocal";
+import { deepText } from "../lib/i18nDeep";
 import { useAppDialog } from "../context/DialogContext";
 
 export type MemoryTone = "engineering" | "story" | "chat" | "viae" | "novel" | "novel-sage" | "novel-paper";
@@ -45,8 +46,8 @@ export function MemoryPreviewButton({ stm, ltm, onOpen, tone = "story" }: {
   return (
     <button type="button" onClick={onOpen} className={`w-full rounded-xl border ${style.border} ${style.frame} p-3 text-left shadow-[0_5px_20px_rgba(42,56,72,.05)] transition hover:brightness-[.985]`} aria-label={localText(locale, "memory.open")}>
       <div className={`mb-3 flex items-center justify-between gap-2 text-xs font-bold ${style.accent}`}>
-        <span className="flex items-center gap-2"><Brain size={15} /> {style.label} / 记忆档案</span>
-        <span className={`rounded-md px-2 py-1 text-[10px] ${style.tag}`}>OPEN</span>
+        <span className="flex items-center gap-2"><Brain size={15} /> {style.label} / {deepText(locale, "memory.ui.title")}</span>
+        <span className={`rounded-md px-2 py-1 text-[10px] ${style.tag}`}>{deepText(locale, "memory.ui.open")}</span>
       </div>
       <div className="space-y-2 text-[11px] leading-5 text-slate-600">
         <div className={`rounded-lg ${style.panel} p-2`}><span className="font-semibold text-slate-400">STM · {stmCount}</span><p className="mt-0.5 line-clamp-2 break-words">{latestStm || localText(locale, "memory.emptyStm")}</p></div>
@@ -100,11 +101,11 @@ export function MemoryVaultModal({ open, onClose, sessionId, stm = "", ltm = "",
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/50 p-2 backdrop-blur-sm sm:p-5" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-label="Memory Vault 记忆档案" className={`flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border ${style.border} ${style.frame} text-slate-700 shadow-2xl sm:max-h-[calc(100dvh-3rem)]`}>
+      <div role="dialog" aria-modal="true" aria-label={deepText(locale, "memory.ui.title")} className={`flex max-h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border ${style.border} ${style.frame} text-slate-700 shadow-2xl sm:max-h-[calc(100dvh-3rem)]`}>
         <header className={`flex shrink-0 items-start justify-between gap-3 border-b ${style.border} ${style.header} px-4 py-4 sm:px-6`}>
           <div>
             <p className={`mb-1 text-[10px] font-bold uppercase tracking-[0.2em] ${style.accent}`}>{style.label}</p>
-            <h2 className="flex items-center gap-2 text-lg font-bold sm:text-xl"><Brain size={21} className={style.accent} /> Memory Vault / 记忆档案</h2>
+            <h2 className="flex items-center gap-2 text-lg font-bold sm:text-xl"><Brain size={21} className={style.accent} /> {deepText(locale, "memory.ui.title")}</h2>
             <p className="mt-1 text-xs leading-5 text-slate-500">{localText(locale, "memory.description")}</p>
           </div>
           <button type="button" onClick={onClose} aria-label={localText(locale, "memory.close")} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={19} /></button>
@@ -113,11 +114,11 @@ export function MemoryVaultModal({ open, onClose, sessionId, stm = "", ltm = "",
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="mb-5 grid gap-3 sm:grid-cols-2">
             <div className={`rounded-xl border ${style.border} ${style.panel} p-3`}>
-              <div className={`mb-1 flex items-center gap-1.5 text-xs font-bold ${style.accent}`}><Brain size={14} /> Latest STM</div>
+              <div className={`mb-1 flex items-center gap-1.5 text-xs font-bold ${style.accent}`}><Brain size={14} /> {deepText(locale, "memory.ui.latest")} STM</div>
               <p className="line-clamp-3 min-h-10 break-words text-xs leading-6 text-slate-600">{latestLocalMemoryEntry(stm) || localText(locale, "memory.emptyStm")}</p>
             </div>
             <div className={`rounded-xl border ${style.border} ${style.panel} p-3`}>
-              <div className={`mb-1 flex items-center gap-1.5 text-xs font-bold ${style.accent}`}><Archive size={14} /> Latest LTM</div>
+              <div className={`mb-1 flex items-center gap-1.5 text-xs font-bold ${style.accent}`}><Archive size={14} /> {deepText(locale, "memory.ui.latest")} LTM</div>
               <p className="line-clamp-3 min-h-10 break-words text-xs leading-6 text-slate-600">{latestLocalMemoryEntry(ltm) || localText(locale, "memory.emptyLtm")}</p>
             </div>
           </div>
@@ -126,19 +127,19 @@ export function MemoryVaultModal({ open, onClose, sessionId, stm = "", ltm = "",
             <section>
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h3 className={`flex items-center gap-2 text-sm font-bold ${style.accent}`}><Brain size={16} /> STM · {localText(locale, "memory.stm")}</h3>
-                <span className={`rounded-md px-2 py-1 text-[10px] ${style.tag}`}>{filledStm} 条 · 基础 {LOCAL_STM_SLOTS} 格</span>
+                <span className={`rounded-md px-2 py-1 text-[10px] ${style.tag}`}>{deepText(locale, "memory.ui.filledSlots").replace("{filled}", String(filledStm)).replace("{slots}", String(LOCAL_STM_SLOTS))}</span>
               </div>
-              {visibleStmCount > LOCAL_STM_SLOTS && <p className="mb-3 text-xs leading-5 text-amber-700">检测到旧存档或自动摘要产生的额外短期记忆；已保留全部 {visibleStmCount} 格，不会截断。</p>}
+              {visibleStmCount > LOCAL_STM_SLOTS && <p className="mb-3 text-xs leading-5 text-amber-700">{deepText(locale, "memory.ui.legacyWarning").replace("{count}", String(visibleStmCount))}</p>}
               <div className="space-y-3">
                 {Array.from({ length: visibleStmCount }, (_, index) => (
                   <div key={index} className={`rounded-xl border ${style.border} bg-white/85 p-3`}>
                     <label htmlFor={`shiorivia-stm-${index}`} className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-slate-500">
                       <span className="rounded bg-slate-100 px-2 py-0.5 font-mono">STM {index + 1}</span>
-                      {index >= LOCAL_STM_SLOTS && <span className="text-amber-700">旧记录保留</span>}
+                      {index >= LOCAL_STM_SLOTS && <span className="text-amber-700">{deepText(locale, "memory.ui.legacyRetained")}</span>}
                     </label>
                     <textarea id={`shiorivia-stm-${index}`} rows={3} value={stmSlots[index] || ""}
                       onChange={(e) => setStmSlots((prev) => Array.from({ length: Math.max(index + 1, prev.length) }, (_, i) => i === index ? e.target.value : prev[i] || ""))}
-                      placeholder="当前剧情、人物关系、近期任务……"
+                      placeholder={deepText(locale, "memory.ui.stmPlaceholder")}
                       className={`w-full resize-y rounded-lg border ${style.border} bg-white/85 p-2 text-xs leading-6 outline-none focus:ring-1 focus:ring-current ${style.accent}`} />
                   </div>
                 ))}
@@ -155,11 +156,11 @@ export function MemoryVaultModal({ open, onClose, sessionId, stm = "", ltm = "",
                   <div key={index} className={`rounded-xl border ${style.border} bg-white/85 p-3`}>
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <label htmlFor={`shiorivia-ltm-${index}`} className="rounded bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-500">LTM {index + 1}</label>
-                      <button type="button" aria-label={`删除长期记忆 ${index + 1}`} onClick={async () => { if (await dialog.confirm(`删除第 ${index + 1} 条长期记忆？保存后生效。`)) setLtmSlots((prev) => prev.filter((_, i) => i !== index)); }} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 size={15} /></button>
+                      <button type="button" aria-label={`${deepText(locale, "memory.ui.removeLtm")} ${index + 1}`} onClick={async () => { if (await dialog.confirm(deepText(locale, "memory.ui.removeLtmConfirm").replace("{index}", String(index + 1)))) setLtmSlots((prev) => prev.filter((_, i) => i !== index)); }} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 size={15} /></button>
                     </div>
                     <textarea id={`shiorivia-ltm-${index}`} rows={3} value={entry}
                       onChange={(e) => setLtmSlots((prev) => prev.map((item, i) => i === index ? e.target.value : item))}
-                      placeholder="长期设定、人物关系、重要事件……"
+                      placeholder={deepText(locale, "memory.ui.ltmPlaceholder")}
                       className={`w-full resize-y rounded-lg border ${style.border} bg-white/85 p-2 text-xs leading-6 outline-none focus:ring-1 focus:ring-current ${style.accent}`} />
                   </div>
                 ))}
@@ -169,7 +170,7 @@ export function MemoryVaultModal({ open, onClose, sessionId, stm = "", ltm = "",
         </div>
 
         <footer className={`flex shrink-0 flex-col gap-3 border-t ${style.border} ${style.header} px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6`}>
-          <div className="flex items-start gap-2 text-[11px] leading-5 text-slate-500"><LockKeyhole size={15} className="mt-0.5 shrink-0" /> 保存回原有 STM/LTM 字段，不会改变旧存档格式。自动摘要流程保持原有行为。</div>
+          <div className="flex items-start gap-2 text-[11px] leading-5 text-slate-500"><LockKeyhole size={15} className="mt-0.5 shrink-0" /> {deepText(locale, "memory.ui.storageHelp")}</div>
           <div className="flex shrink-0 items-center justify-end gap-2">
             <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">{localText(locale, "memory.cancel")}</button>
             <button type="button" onClick={save} className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold text-white ${style.button}`}><Save size={15} /> {localText(locale, "memory.save")} <Check size={13} /></button>

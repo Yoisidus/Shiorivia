@@ -2,6 +2,17 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "memory.ui.title": ["记忆档案", "記憶檔案", "Memory Vault", "記憶アーカイブ", "기억 보관함"],
+  "memory.ui.open": ["打开", "開啟", "Open", "開く", "열기"],
+  "memory.ui.latest": ["最近一条", "最近一則", "Latest", "最新", "최근"],
+  "memory.ui.filledSlots": ["{filled} 条 · 基础 {slots} 格", "{filled} 則 · 基本 {slots} 格", "{filled} entries · {slots} base slots", "{filled} 件 · 基本 {slots} 枠", "{filled}개 항목 · 기본 {slots}칸"],
+  "memory.ui.legacyWarning": ["检测到旧存档或自动摘要产生的额外短期记忆；已保留全部 {count} 格，不会截断。", "偵測到舊存檔或自動摘要產生的額外短期記憶；已保留全部 {count} 格，不會截斷。", "Additional short-term memories from legacy saves or summaries were detected. All {count} slots are retained without truncation.", "古い保存データや自動要約による追加の短期記憶を検出しました。全 {count} 枠を保持し、切り捨てません。", "이전 저장 데이터 또는 자동 요약에서 추가 단기 기억을 감지했습니다. {count}칸을 모두 유지하며 잘라내지 않습니다."],
+  "memory.ui.legacyRetained": ["旧记录保留", "舊紀錄保留", "Legacy entry retained", "旧データを保持", "이전 기록 유지"],
+  "memory.ui.stmPlaceholder": ["当前剧情、人物关系、近期任务……", "目前劇情、人物關係、近期任務……", "Current story, relationships, recent tasks…", "現在の展開、関係性、最近のタスク…", "현재 이야기, 인물 관계, 최근 작업…"],
+  "memory.ui.ltmPlaceholder": ["长期设定、人物关系、重要事件……", "長期設定、人物關係、重要事件……", "Long-term settings, relationships, major events…", "長期設定、人物関係、重要な出来事…", "장기 설정, 인물 관계, 주요 사건…"],
+  "memory.ui.removeLtm": ["删除长期记忆", "刪除長期記憶", "Delete long-term memory", "長期記憶を削除", "장기 기억 삭제"],
+  "memory.ui.removeLtmConfirm": ["删除第 {index} 条长期记忆？保存后生效。", "刪除第 {index} 則長期記憶？儲存後生效。", "Delete long-term memory {index}? This takes effect after saving.", "長期記憶 {index} を削除しますか？保存後に反映されます。", "장기 기억 {index}번을 삭제할까요? 저장하면 적용됩니다."],
+  "memory.ui.storageHelp": ["保存回原有 STM/LTM 字段，不会改变旧存档格式。自动摘要流程保持原有行为。", "儲存回原有 STM/LTM 欄位，不變更舊存檔格式。自動摘要流程維持原本行為。", "Saves to the existing STM/LTM fields without changing the archive format. Automatic summaries retain their original behavior.", "既存の STM/LTM フィールドへ保存し、旧保存形式は変更しません。自動要約の動作もそのままです。", "기존 STM/LTM 필드에 저장하며 이전 저장 형식은 변경하지 않습니다. 자동 요약 동작도 그대로 유지합니다."],
   "modal.notesSaved": ["会话设定保存成功。", "對話設定儲存成功。", "Session notes saved.", "セッション設定を保存しました。", "세션 설정이 저장되었습니다."],
   "modal.notesScope": ["仅用于当前会话，不会影响其他会话。", "僅用於目前對話，不影響其他對話。", "Applies to this session only; other sessions are unaffected.", "このセッションにのみ適用され、他のセッションには影響しません。", "현재 세션에만 적용되며 다른 세션에는 영향을 주지 않습니다."],
   "modal.notesPlaceholder": ["写下这个会话的背景、规则、补充说明……", "寫下這段對話的背景、規則與補充說明……", "Enter session background, rules and notes…", "このセッションの背景、ルール、補足事項を記入…", "세션의 배경, 규칙, 추가 설명을 입력하세요…"],
