@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ViaeConversation, ViaeMessage, Session } from "../types";
 import { formatLocalMemoryEntries, LOCAL_STM_SLOTS, parseLocalMemoryEntries } from "../lib/localMemory";
 import { useLanguage } from "../context/LanguageContext";
+import { DEFAULT_CONTEXT_WINDOW_TOKENS } from "../lib/contextWindow";
 import { useAppDialog } from "../context/DialogContext";
 import { asChartaPromptData, type ChartaCharacter } from "../lib/charta";
 import { asChartaSelfPromptData, type ChartaSelf } from "../lib/chartaSelf";
@@ -13,7 +14,7 @@ import { applyWorldlineAdvance, stripWorldlineAdvance } from "../lib/worldlineAd
 const newId = () => typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 /** Viae messages live *inside* the Viae workspace; they never enter normal chat history. */
-export function useViaeEngine({ session, updateSession, provider, model, notify, customCharacters = [], activeSelf = null, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = 32768 }: {
+export function useViaeEngine({ session, updateSession, provider, model, notify, customCharacters = [], activeSelf = null, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = DEFAULT_CONTEXT_WINDOW_TOKENS }: {
   session: Session;
   updateSession: (updater: (current: Session) => Session) => void;
   provider: string;
