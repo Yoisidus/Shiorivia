@@ -65,7 +65,7 @@ export const useChatEngine = ({
         const isRegen = overrideMessages !== undefined;
         const modelToUse = (config.customModelId || config.selectedModel || "").trim();
         if (!modelToUse) {
-            await dialog.alert("请先在模型配置中选择当前供应商的模型，确认后再发送。");
+            dialog.notify("请先在模型配置中选择当前供应商的模型，确认后再发送。");
             return;
         }
         const txt = overrideInput !== undefined ? overrideInput : input.trim();
@@ -803,7 +803,7 @@ export const useChatEngine = ({
                             showToast(`已局部修改 ${applied.length} 个 IDE 文件`);
                         } catch (editError: any) {
                             currentText += `\n\n**IDE 局部修改未全部应用：** 已修改 ${applied.join(", ") || "无"}；${editError.message}`;
-                            await dialog.alert(`IDE 局部编辑失败：${editError.message}`);
+                            dialog.notify(`IDE 局部编辑失败：${editError.message}`);
                         }
                     } else if (previews.length) {
                         currentText += "\n\n*IDE 局部修改已取消，磁盘文件未更改。*";
@@ -811,7 +811,7 @@ export const useChatEngine = ({
                 } catch (editError: any) {
                     console.warn("IDE edit rejected:", editError);
                     currentText += `\n\n**IDE 局部修改未执行：** ${editError.message}`;
-                    await dialog.alert(`无法应用 IDE 局部修改：${editError.message}`);
+                    dialog.notify(`无法应用 IDE 局部修改：${editError.message}`);
                 }
             }
 
@@ -987,7 +987,7 @@ export const useChatEngine = ({
             if (e.name !== 'AbortError') {
                 showToast(e.message);
                 if (currentSession.memoryMode === "infinite" && /(?:联网搜索|搜索供应商|web_search|web search|grounding)/i.test(String(e.message))) {
-                    await dialog.alert(String(e.message), { title: "联网搜索工具调用失败" });
+                    dialog.notify("联网搜索工具调用失败：" + String(e.message), { type: "error", duration: 5000 });
                 }
             }
         } finally {
