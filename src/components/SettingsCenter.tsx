@@ -225,7 +225,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
               <section>
                 <h2 className="mb-2 text-xl font-bold">{t("settings.ai")}</h2>
                 <p className="mb-8 text-sm text-slate-400">{t("settings.ai.description")}</p>
-                <SectionTitle>{t("settings.providers")}</SectionTitle>
+                <SectionTitle>通用模型 · {t("settings.providers")}</SectionTitle>
                 <div className="mb-7 space-y-2">
                   {providers.map((provider) => (
                     <div key={provider.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm">
@@ -248,8 +248,6 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   ))}
                 </div>
                 <p className="mb-6 text-xs leading-6 text-slate-500">{t("settings.providers.description")}</p>
-                <SectionTitle>通用模型</SectionTitle>
-                <p className="mb-5 text-xs leading-5 text-slate-500">当前供应商与模型选择由各模式共用，下方扩展能力独立开启。</p>
                 <SectionTitle>扩展能力 · EXTENSIONS</SectionTitle>
                 {(activeMode === "sliding" || activeMode === "novel") && <>
                   <SwitchRow title="趣味弹幕" description="默认关闭。开启后 AI 为本轮故事或小说生成有趣、贴合场景的虚拟观众弹幕，不参与剧情或角色对话。" checked={danmakuEnabled} onClick={onToggleDanmaku} icon={Sparkles} />
