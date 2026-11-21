@@ -110,11 +110,12 @@ function buildMusicMenu() {
   if (!tracks.length) return '';
   const choices = tracks.map(t => `- ${JSON.stringify(t.name)} — ${JSON.stringify(t.artist)}`).join('\n');
   return `
-=== MUSIC CONTROL ===
-Select only a listed song using its exact title and artist. Do not invent tracks.
-Story JSON: "music": {"trigger": true, "name": "Song Title", "artist": "Artist"}.
-Novel: <audio>{"name":"Song Title","artist":"Artist"}</audio>.
-Song catalog (title — artist only):
+=== AUTO DJ — STORY / NOVEL ONLY ===
+Only use a song from the provided catalog, matching its exact title and artist. Do not invent tracks.
+Select a song ONLY if it genuinely fits the current scene, mood and pacing. A silence/no-change choice is VALID and PREFERRED when no track fits.
+Story: when a matching track is appropriate, set game_state.music to {"trigger":true,"name":"Song Title","artist":"Artist"}; otherwise set game_state.music to null. Never use a placeholder or unrelated track.
+Novel: emit <audio>{"name":"Song Title","artist":"Artist"}</audio> ONLY when a fitting new track is warranted; otherwise omit <audio> entirely.
+No separate music tool calls. Song catalog (title — artist only):
 ${choices}
 `;
 }
@@ -198,7 +199,8 @@ export async function POST(req: Request) {
     if (!routedModel) return Response.json({ error: "Select a model for this provider" }, { status: 400 });
     const independentRepair = body.stateRepair === true || body.novelStateRepair === true;
     const webEnabled = memoryMode === "infinite" && useWebSearch === true && !independentRepair;
-    const imageEnabled = useImageGen === true && ["infinite", "novel", "sliding"].includes(memoryMode) && !independentRepair;
+    const imageEnabled = useImageGen === true && ["infinite", "novel", "sliding", "chat"].includes(memoryMode) && !independentRepair;
+    const autoDjEnabled = useMusicControl === true && ["sliding", "novel"].includes(memoryMode) && !independentRepair;
     const toolPlan = await planOptionalTools({
       provider: selectedProvider, model: routedModel,
       messages: Array.isArray(messages) ? messages : [],
@@ -351,7 +353,7 @@ Use this worldline as the novel's established background. Do not replace it with
 [MANDATORY FORMATTING RULES]:
 1. **METADATA — EVERY CHAPTER, NO EXCEPTIONS**: The FIRST LINE of EVERY response, including Chapter 2 and every continuation, MUST be exactly <meta title="NOVEL_TITLE" chapter="CHAPTER_TITLE" /> with real, non-empty titles in the UI language. Use the novel's established overall title for NOVEL_TITLE. Read the previous chapter's title in the conversation: if this chapter stays in essentially the same scene/theme, you MAY reuse that CHAPTER_TITLE; when the chapter's main event, focus or location materially shifts, write a distinct, meaningful new CHAPTER_TITLE. Do NOT omit the tag just because the novel is continuing. Output <meta> ONCE at the start, never after the prose.
 2. **ILLUSTRATION**: ${imageToolSelected ? "The image-generation tool was SELECTED for this turn. Only when an illustration would genuinely improve the scene may you output ONE valid JSON <draw>...</draw> tag using the provided visualizer protocol." : "Image generation is DISABLED. Do NOT output <draw>, <draw_log>, image descriptions intended as tool commands, image JSON or illustration instructions."}
-3. **Music**: ${useMusicControl ? 'Optional: output <audio>{"trackId": "ID"}</audio> only when the music context calls for a change.' : "Do not output audio control tags."}
+3. **Music**: ${autoDjEnabled ? 'Optional: output <audio>{"trackId": "ID"}</audio> only when the music context calls for a change.' : "Do not output audio control tags."}
 4. **NOVEL CHOICES — REQUIRED**: Finish the literary prose with exactly three grounded, distinct, clickable next-plot suggestions in ONE <novel_choices> JSON block; never print them as ordinary chapter paragraphs or markdown lists. Shape: <novel_choices>{"fun":"...","rational":"...","radical":"..."}</novel_choices>. Each VALUE must be a concrete, compelling potential NEXT action/event in the active UI language. 'fun' is playful/unexpected but plausible, 'rational' is smart/cautious with consequences, 'radical' is a bold/high-risk but psychologically believable choice. All three must respect the chosen worldline, agency, motivations and established canon; NEVER force OOC behavior or pre-decide a participant protagonist's major actions. Do not reveal future facts.
 5. **NOVEL STATE — REQUIRED**: After the prose and <novel_choices> block, append ONE complete <novel_state> JSON object. It must be the very LAST block in every novel response. Keep it outside any draw/audio/markdown fences.
 <novel_state>{"environment":"current location, weather, temperature and significant surroundings as established by THIS chapter","event":"what is happening NOW at the chapter's endpoint, not the whole historical plot","nextSceneCastIds":["character IDs expected in the NEXT chapter"]}</novel_state>
@@ -413,7 +415,7 @@ Use this worldline as the novel's established background. Do not replace it with
         }
       }
 
-      if (useMusicControl) finalSystemPrompt += buildMusicMenu();
+      if (autoDjEnabled) finalSystemPrompt += buildMusicMenu();
 
     } else if (memoryMode === "lime") { // Persisted VIAE mode ID, kept for older saves.
       console.log("🛤️ Mode: Viae / Semita / Compitum");
@@ -527,11 +529,12 @@ ${lore || "(No profile supplied.)"}`;
         body.activeChartaSelf && typeof body.activeChartaSelf === "object"
           ? `[ACTIVE CHARTA SELF — user's identity in this conversation]\n${JSON.stringify(body.activeChartaSelf).slice(0, 14000)}`
           : "The other party is the user, with no specified fictional identity; do not invent a named self.",
-        "Write like real chat messages, not novel chapters. No <game_state>, <file>, <draw>, <thinking> or story option tags.",
+        `Write like real chat messages, not novel chapters. No <game_state>, <file>, <thinking> or story option tags. ${imageToolSelected ? "You may append ONE valid <draw> JSON instruction to request an illustration of a relevant conversational moment. Rendering requires user confirmation." : "Do not output <draw> tags; the image tool was not selected."}`,
         localWorldInfo?.trim() ? `[SESSION WORLD]\n${String(localWorldInfo).slice(0, 6000)}` : "",
         ltm?.trim() ? `[CURRENT SPEAKER LTM]\n${String(ltm).slice(0, 9000)}` : "",
         stm?.trim() ? `[CURRENT SPEAKER STM]\n${String(stm).slice(0, 5000)}` : "",
       ].filter(Boolean).join("\n\n");
+      if (imageToolSelected) finalSystemPrompt += "\n\n" + VISUAL_INSTRUCTION;
       finalMessages = messages.map((message: any) => {
         if (message.role !== "assistant") return { role: "user", content:
           `[User message addressed to: ${speakerName(message.characterId || characterId)} | ID: ${message.characterId || characterId}]\n${typeof message.content === "string" ? message.content : JSON.stringify(message.content)}` };
@@ -728,7 +731,7 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
 
       finalSystemPrompt += VISUAL_INSTRUCTION;
 
-      if (useMusicControl) {
+      if (autoDjEnabled) {
         finalSystemPrompt += `\n${buildMusicMenu()}\n`;
       }
 
