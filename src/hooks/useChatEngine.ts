@@ -757,7 +757,7 @@ export const useChatEngine = ({
 <draw>${JSON.stringify(instruction)}</draw>`;
                     }
 
-                    if (capturedState.music?.trigger && (capturedState.music?.name || capturedState.music?.trackId) && setTrackId) {
+                    if (["sliding", "novel"].includes(currentSession.memoryMode) && config.musicControl && capturedState.music?.trigger && (capturedState.music?.name || capturedState.music?.trackId) && setTrackId) {
                         setTimeout(() => setTrackId(capturedState.music.name || capturedState.music.trackId, capturedState.music.artist), 500);
                     }
 
