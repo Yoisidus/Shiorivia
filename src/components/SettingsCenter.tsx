@@ -128,7 +128,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
       if (!response.ok) throw new Error(result.error || deepText(locale, "settings.musicScanFailed"));
       await refreshLibrary();
       setScanNotice(`${deepText(locale, "settings.musicScanned")}${result.count} ${deepText(locale, "settings.musicScannedSuffix")}`);
-    } catch (error) { setScanNotice(error instanceof Error ? error.message : "音乐扫描失败"); }
+    } catch (error) { setScanNotice(error instanceof Error ? error.message : deepText(locale, "settings.musicScanFailed")); }
     finally { setScanningMusic(false); }
   };
   const { t, locale, setLocale } = useLanguage();
@@ -345,7 +345,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 <h2 className="mb-2 text-xl font-bold">{t("settings.media")}</h2>
                 <p className="mb-8 text-sm text-slate-400">{t("settings.media.description")}</p>
                 <SectionTitle>{t("settings.voiceAndMusic")}</SectionTitle>
-                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-400"><Mic size={18}/><span>{t("settings.tts")} · 开发中 / In development</span></div>
+                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-400"><Mic size={18}/><span>{t("settings.tts")} · {deepText(locale, "settings.developing")}</span></div>
                 {(activeMode === "sliding" || activeMode === "novel") && <SwitchRow
                   title={t("settings.autoDJ")}
                   description={deepText(locale, "settings.autoDJDetail")}
