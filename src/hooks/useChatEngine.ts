@@ -21,6 +21,7 @@ import { lastStoryGameState, storyProseWithoutState, stripStoryThinking } from "
 import { aiConversationMessages, isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { engineeringOutputIncomplete, OFFICINA_COMPLETION_REQUEST } from "../lib/engineeringCompletion";
 import { extractIdeEditBlocks } from "../lib/ideEdits";
+import { useAppDialog } from "../context/DialogContext";
 
 export const useChatEngine = ({
     currentSession, currentSessionId, setSessions,
@@ -32,6 +33,7 @@ export const useChatEngine = ({
 }: any) => {
     
     const { locale } = useLanguage();
+    const dialog = useAppDialog();
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<{ url: string, type: 'image' | 'video' | 'text', name: string } | null>(null);
@@ -63,7 +65,7 @@ export const useChatEngine = ({
         const isRegen = overrideMessages !== undefined;
         const modelToUse = (config.customModelId || config.selectedModel || "").trim();
         if (!modelToUse) {
-            window.alert("请先在模型配置中选择当前供应商的模型，确认后再发送。");
+            await dialog.alert("请先在模型配置中选择当前供应商的模型，确认后再发送。");
             return;
         }
         const txt = overrideInput !== undefined ? overrideInput : input.trim();
@@ -84,7 +86,7 @@ export const useChatEngine = ({
                 return;
             }
             if (!isRegen && !isEngineeringCharacterLocked(currentSession)) {
-                if (!window.confirm("确认与当前角色开启 Officina 工程会话吗？\n发送第一条消息后，将永久绑定此角色，当前会话无法切换。")) return;
+                if (!await dialog.confirm("确认与当前角色开启 Officina 工程会话吗？\n发送第一条消息后，将永久绑定此角色，当前会话无法切换。")) return;
             }
         }
         const novelMode = currentSession.memoryMode === "novel";
@@ -782,16 +784,7 @@ export const useChatEngine = ({
                         const preview = await ideEditRequest("previewEdit", { path: block.path, edits: block.edits });
                         previews.push({ path: block.path, version: preview.version, edits: block.edits });
                     }
-                    const summary = previews.map(file =>
-                        file.path + "\n" + file.edits.map(edit => {
-                            const where = edit.startLine === (edit.endLine ?? edit.startLine)
-                                ? `L${edit.startLine}` : `L${edit.startLine}–${edit.endLine}`;
-                            const operation = { insert_before: "前插入", insert_after: "后插入", replace: "替换", delete: "删除" }[edit.op];
-                            return `  ${where} · ${operation}\n  - ${edit.expected.slice(0, 180).replace(/\n/g, "\n  - ")}`
-                                + (edit.text ? `\n  + ${edit.text.slice(0, 200).replace(/\n/g, "\n  + ")}` : "");
-                        }).join("\n")
-                    ).join("\n\n");
-                    if (previews.length && window.confirm(`确认应用以下 IDE 局部修改？\n\n${summary.slice(0, 7500)}${summary.length > 7500 ? "\n…（预览已截断）" : ""}`)) {
+                    if (previews.length && await dialog.reviewEdits(previews)) {
                         const applied: string[] = [];
                         try {
                             for (const file of previews) {
@@ -804,7 +797,7 @@ export const useChatEngine = ({
                             currentText += `\n\n**IDE 局部修改成功：** ${applied.join(", ")}`;
                         } catch (editError: any) {
                             currentText += `\n\n**IDE 局部修改未全部应用：** 已修改 ${applied.join(", ") || "无"}；${editError.message}`;
-                            window.alert(`IDE 局部编辑失败：${editError.message}`);
+                            await dialog.alert(`IDE 局部编辑失败：${editError.message}`);
                         }
                     } else if (previews.length) {
                         currentText += "\n\n*IDE 局部修改已取消，磁盘文件未更改。*";
@@ -812,7 +805,7 @@ export const useChatEngine = ({
                 } catch (editError: any) {
                     console.warn("IDE edit rejected:", editError);
                     currentText += `\n\n**IDE 局部修改未执行：** ${editError.message}`;
-                    window.alert(`无法应用 IDE 局部修改：${editError.message}`);
+                    await dialog.alert(`无法应用 IDE 局部修改：${editError.message}`);
                 }
             }
 
@@ -866,7 +859,7 @@ export const useChatEngine = ({
                     const previousPaths = new Set((existingData.entries || [])
                         .filter((item: any) => item.type === "file").map((item: any) => item.path));
                     const collisions = Object.keys(newFiles).filter(name => previousPaths.has(name));
-                    if (collisions.length && !window.confirm(
+                    if (collisions.length && !await dialog.confirm(
                         `当前 IDE 项目已有以下同名文件，是否覆盖？\n${collisions.slice(0, 10).join("\n")}`
                     )) {
                         throw new Error("用户取消覆盖，生成代码已保留在本轮会话的备用文件库。");
@@ -1061,14 +1054,14 @@ export const useChatEngine = ({
         void handleSend(undefined, [...currentSession.messages]);
     }, [pendingStoryRegeneration, currentSession, currentSessionId, isLoading]);
 
-    const handleRegenerate = (idx: number) => {
+    const handleRegenerate = async (idx: number) => {
         if (!currentSession || isLoading) return;
         const target = currentSession.messages[idx];
         if (!target || target.role !== "assistant") return;
         if ((currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel") && idx !== currentSession.messages.length - 1) {
             showToast("请从最后一轮开始刷新，以便正确回退状态与记忆。"); return;
         }
-        if (!window.confirm(currentSession.memoryMode === "sliding"
+        if (!await dialog.confirm(currentSession.memoryMode === "sliding"
             ? "确认刷新这轮故事吗？将恢复本轮之前的自身状态、角色数值、剧情引导与记忆，然后重新生成。"
             : currentSession.memoryMode === "novel"
               ? "确认重写最后一章吗？将回退本章的环境、事件、下章阵容与记忆，保留世界线和 Style。"
@@ -1111,7 +1104,7 @@ export const useChatEngine = ({
         rewindStoryTurn(keptMessages, snapshot);
     };
 
-    const handleDeleteMessage = (idx: number, role: string) => {
+    const handleDeleteMessage = async (idx: number, role: string) => {
         if (!currentSession || isLoading) return;
         const oldMessages = currentSession.messages as any[];
         const latestAssistant = role === "assistant" ? oldMessages[idx] : oldMessages[idx + 1]?.role === "assistant" ? oldMessages[idx + 1] : null;
@@ -1120,7 +1113,7 @@ export const useChatEngine = ({
             showToast("故事／小说模式仅支持从最后一轮向前删除，以确保状态与记忆同步回退。");
             return;
         }
-        if (!confirm(currentSession.memoryMode === "novel"
+        if (!await dialog.confirm(currentSession.memoryMode === "novel"
             ? "确定删除最新章节并回退环境、事件、下章阵容和记忆吗？世界线与 Style 会保留。"
             : "确定删除最后一条消息并回退故事状态与记忆吗？")) return;
         const newMsgs = [...oldMessages];
@@ -1149,10 +1142,10 @@ export const useChatEngine = ({
         setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? { ...s, codeRepository: newRepo } : s));
     };
 
-    const completeEngineeringOutput = (index: number) => {
+    const completeEngineeringOutput = async (index: number) => {
         if (!currentSession || currentSession.memoryMode !== "infinite" || isLoading) return;
         if (!currentSession.messages[index]?.engineeringOutputIncomplete) return;
-        if (!window.confirm("确认要求当前角色工程师补全缺失的代码文件吗？这会额外调用一次所选模型。")) return;
+        if (!await dialog.confirm("确认要求当前角色工程师补全缺失的代码文件吗？这会额外调用一次所选模型。")) return;
         void handleSend(OFFICINA_COMPLETION_REQUEST);
     };
 
