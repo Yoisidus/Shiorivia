@@ -58,7 +58,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
   }, [worlds, value]);
   const stages = draft.canonTimeline || [];
   const currentStage = stages.find(stage => stage.era === draft.era && stage.period === draft.period);
-  const eras = [...new Set(stages.filter((s, index) => (minStageIndex < 0 || index >= minStageIndex) && true).map(s => s.era))];
+  const eras = [...new Set(stages.filter((s, index) => (minStageIndex < 0 || index >= minStageIndex)).map(s => s.era))];
   const periods = [...new Set(stages.filter((s, index) => (minStageIndex < 0 || index >= minStageIndex) && (!draft.era || s.era === draft.era)).map(s => s.period))];
   const baseEras = [...new Set(stages.map(s => s.era))];
   const basePeriods = stages.filter(s => !draft.baseEra || s.era === draft.baseEra);
@@ -177,7 +177,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
                     <label className="text-[11px] text-[#526b5b]">基准 PERIOD *
                       <select disabled={previousSecondary.has(entry.worldId)} className={inputStyle} value={entry.basePeriod}
                         onChange={e => changeSecondaryBaseline(index, entry.canonTimeline.find(stage => stage.period === e.target.value)?.era || entry.baseEra, e.target.value)}>
-                        <option value="">请选择 PERIOD</option>{periods.map(stage => <option key={stage.period} value={stage.period}>{stage.period}</option>)}
+                        <option value="">请选择 PERIOD</option>{periods.map(stage => <option key={stage.period} value={stage.period}>{stage.period}{timelineStageDescription(stage, locale) ? " · " + timelineStageDescription(stage, locale) : ""}</option>)}
                       </select>
                     </label>
                   </div>
@@ -207,7 +207,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
             <p className="text-[11px] leading-6 text-[#718c7a]">决定人物从原作继承至哪个时期。AU 自己的 ERA / PERIOD 与此独立，不会提前注入后期经历。</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-xs font-semibold">基准 ERA *<select disabled={primaryLocked} className={inputStyle} value={draft.baseEra || ""} onChange={e=>setDraft(p=>({...p,baseEra:e.target.value,basePeriod:""}))}><option value="">请选择基准 ERA</option>{baseEras.map(era=><option key={era} value={era}>{era}</option>)}</select></label>
-              <label className="text-xs font-semibold">基准 PERIOD *<select disabled={primaryLocked} className={inputStyle} value={draft.basePeriod || ""} onChange={e=>setDraft(p=>({...p,basePeriod:e.target.value,baseEra:p.canonTimeline.find(stage=>stage.period===e.target.value)?.era || p.baseEra}))}><option value="">请选择基准 PERIOD</option>{basePeriods.map(stage=><option key={stage.period} value={stage.period}>{stage.period}</option>)}</select></label>
+              <label className="text-xs font-semibold">基准 PERIOD *<select disabled={primaryLocked} className={inputStyle} value={draft.basePeriod || ""} onChange={e=>setDraft(p=>({...p,basePeriod:e.target.value,baseEra:p.canonTimeline.find(stage=>stage.period===e.target.value)?.era || p.baseEra}))}><option value="">请选择基准 PERIOD</option>{basePeriods.map(stage=><option key={stage.period} value={stage.period}>{stage.period}{timelineStageDescription(stage, locale) ? " · " + timelineStageDescription(stage, locale) : ""}</option>)}</select></label>
             </div>
           </section>}
           {primaryLocked && <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#dac9bb] bg-white/75 px-3 py-2 text-[11px]">
@@ -221,7 +221,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
             <label className="text-xs font-bold tracking-[.12em]" style={geometric}>03 · ERA / 时代 *
               {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.era} onChange={e=>chooseEra(e.target.value)} className={inputStyle}><option value="">请选择 ERA</option>{eras.map(era=><option key={era} value={era}>{era}</option>)}</select> : <input disabled={!timeEditable || primaryLocked} value={draft.era} maxLength={100} placeholder="另一条时间轴中的时代" onChange={e=>setDraft(p=>({...p,era:e.target.value}))} className={inputStyle}/>}</label>
             <label className="text-xs font-bold tracking-[.12em]" style={geometric}>04 · PERIOD / 时期 *
-              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.period} onChange={e=>choosePeriod(e.target.value)} className={inputStyle}><option value="">请选择 PERIOD</option>{periods.map(period=><option key={period} value={period}>{period}</option>)}</select> : <input disabled={!timeEditable || primaryLocked} value={draft.period} maxLength={100} placeholder="另一条时间轴中的时期" onChange={e=>setDraft(p=>({...p,period:e.target.value}))} className={inputStyle}/>}</label>
+              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.period} onChange={e=>choosePeriod(e.target.value)} className={inputStyle}><option value="">请选择 PERIOD</option>{periods.map(period=><option key={period} value={period}>{period}{timelineStageDescription(stages.find(s => s.period === period), locale) ? " · " + timelineStageDescription(stages.find(s => s.period === period), locale) : ""}</option>)}</select> : <input disabled={!timeEditable || primaryLocked} value={draft.period} maxLength={100} placeholder="另一条时间轴中的时期" onChange={e=>setDraft(p=>({...p,period:e.target.value}))} className={inputStyle}/>}</label>
           </section>
           {timeEditable && !primaryLocked && draft.kind==="canon" && <button type="button" onClick={()=>setDraft(p=>({...p,era:"",period:""}))} className="flex items-center gap-1 text-[11px] text-[#648370] hover:underline"><RotateCcw size={12}/>重新选择 ERA / PERIOD</button>}
           {timelineStageDescription(currentStage, locale) && <div className="rounded-xl border border-[#e5d4bf] bg-white/70 px-3 py-2.5 text-xs leading-6">
