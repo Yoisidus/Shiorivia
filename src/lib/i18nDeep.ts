@@ -2,6 +2,21 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "archive.ui.overwrite": ["⚠️ 覆盖槽位 {index}？", "⚠️ 覆蓋儲存槽 {index}？", "⚠️ Overwrite slot {index}?", "⚠️ スロット {index} を上書きしますか？", "⚠️ 슬롯 {index}을(를) 덮어쓸까요?"],
+  "archive.ui.saveFailed": ["存档保存失败。", "存檔儲存失敗。", "Failed to save archive.", "アーカイブの保存に失敗しました。", "보관 자료 저장에 실패했습니다."],
+  "archive.ui.loadAsk": ["读取槽位 {index}？当前未保存的进度将丢失。", "讀取儲存槽 {index}？目前未儲存的進度將會遺失。", "Load slot {index}? Unsaved progress will be lost.", "スロット {index} を読み込みますか？未保存の進行状況は失われます。", "슬롯 {index}을(를) 불러올까요? 저장하지 않은 진행 상황은 사라집니다."],
+  "archive.ui.loadFailed": ["读取存档失败。", "讀取存檔失敗。", "Failed to load archive.", "アーカイブの読み込みに失敗しました。", "보관 자료 불러오기에 실패했습니다."],
+  "archive.ui.deleteAsk": ["永久删除此存档？", "永久刪除此存檔？", "Permanently delete this archive?", "このアーカイブを完全に削除しますか？", "이 보관 자료를 영구 삭제할까요?"],
+  "archive.ui.title": ["星路存档", "星路存檔", "Star Archive", "星路アーカイブ", "별길 보관함"],
+  "archive.ui.subtitle": ["将旅途中的瞬间，珍藏为可以再次抵达的星光。", "將旅途中的瞬間珍藏成日後仍可抵達的星光。", "Preserve moments from your journey as stars you can return to.", "旅の一瞬を、いつかまたたどり着ける星明かりとして残しましょう。", "여정의 순간을 다시 돌아올 수 있는 별빛으로 간직하세요."],
+  "archive.ui.close": ["关闭存档管理", "關閉存檔管理", "Close archive manager", "アーカイブ管理を閉じる", "보관함 관리 닫기"],
+  "archive.ui.saved": ["已收藏", "已收藏", "saved", "保存済み", "저장됨"],
+  "archive.ui.thumbnail": ["存档 {index} 缩略图", "存檔 {index} 縮圖", "Archive {index} thumbnail", "アーカイブ {index} のサムネイル", "보관 자료 {index} 미리보기"],
+  "archive.ui.empty": ["尚未存档", "尚未存檔", "Not saved yet", "未保存", "아직 저장하지 않음"],
+  "archive.ui.saveSlot": ["保存到槽位 {index}", "儲存至儲存槽 {index}", "Save to slot {index}", "スロット {index} に保存", "슬롯 {index}에 저장"],
+  "archive.ui.loadSlot": ["读取槽位 {index}", "讀取儲存槽 {index}", "Load slot {index}", "スロット {index} を読み込む", "슬롯 {index} 불러오기"],
+  "archive.ui.deleteSlot": ["删除槽位 {index}", "刪除儲存槽 {index}", "Delete slot {index}", "スロット {index} を削除", "슬롯 {index} 삭제"],
+  "archive.ui.load": ["读取", "讀取", "Load", "読み込む", "불러오기"],
   "viae.worldline.title": ["道路世界线", "道路世界線", "Path worldline", "道の世界線", "길 세계선"],
   "viae.worldline.primary": ["主世界观", "主世界觀", "Primary world", "主要世界観", "주 세계관"],
   "viae.worldline.canon": ["原作", "原作", "Canon", "原作", "원작"],
