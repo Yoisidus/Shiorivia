@@ -42,7 +42,7 @@ const parseSpeakers = (content: string): { charId: string; text: string }[] => {
   } catch { return [{ charId: "", text: content }]; }
 };
 const kindName = (group: ViaeConversation) => group.type === "direct" ? "Semita · 小径" : "Compitum · 路口";
-const routeName = (group: ViaeConversation) => describeStoryWorldline(viaeWorldline(group));
+const routeName = (group: ViaeConversation, locale?: string) => describeStoryWorldline(viaeWorldline(group), locale);
 
 function PathEmblem({ size = 24 }: { size?: number }) {
   return (
