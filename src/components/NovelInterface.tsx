@@ -65,7 +65,7 @@ const PRESETS = [
     { name: "命运岔路 · 重力", environment: "人生的重大抉择之前", event: "无法两全的选择迫使角色承担后果，避免轻易的圆满结局", style: "沉重、充满张力、因果清晰、保留人物缺点" },
 ];
 
-const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, theme, selfColors = {}, locale = "zh-CN", disabled = false }: any) => {
+const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, theme, selfColors = {}, locale = "zh-CN", disabled = false, suggestionsOverride }: any) => {
     let clean = cleanDrawTag(stripNovelState(content)) 
         .replace(/<meta.*?\/>/g, "")
         .replace(/<audio>.*?<\/audio>/g, "")
@@ -73,7 +73,7 @@ const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, the
         .replace(/<novel_danmaku\b[\s\S]*$/gi, "")
         .trim();
 
-    const suggestions = extractNovelSuggestions(content);
+    const suggestions = suggestionsOverride || extractNovelSuggestions(content);
     clean = stripNovelSuggestions(clean);
     const labels: Record<string, [string, string, string]> = {
         "zh-CN": ["趣味", "理智", "激进"], "zh-TW": ["趣味", "理智", "激進"],
@@ -643,7 +643,7 @@ export const NovelInterface = ({
                                 <div key={i} id={`chapter-${i}`} className="animate-fade-in-up">
                                     <div className="flex items-center gap-4 mb-8 opacity-30 justify-center"><div className={`h-px ${theme.text} w-12`}></div><span className="font-mono text-xs tracking-widest uppercase">{title}</span><div className={`h-px ${theme.text} w-12`}></div></div>
                                     <div className={`prose ${theme.prose} prose-lg md:prose-xl leading-loose ${theme.text} font-serif whitespace-pre-wrap`}>
-                                        <NovelContent content={msg.content}
+                                        <NovelContent content={msg.content} suggestionsOverride={msg.novelChoices}
                                             onOptionClick={(opt: string) => { void confirmNovelSuggestion(opt, "send"); }}
                                             onOptionInsert={(opt: string) => { void confirmNovelSuggestion(opt, "insert"); }}
                                             onImageOpen={setPreviewImage} theme={theme} selfColors={selfColors} locale={locale}
