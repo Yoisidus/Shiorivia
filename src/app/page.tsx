@@ -678,6 +678,8 @@ export default function Home() {
                     contextWindowTokens={config.contextWindowTokens}
                     onExit={() => setShowModeHub(true)}
                     onSettings={() => setShowSettingsCenter(true)}
+                    onManualSync={() => cloud.triggerSync("manual")}
+                    syncStatus={cloud.status}
                     providers={visibleProviders}
                     provider={apiProvider}
                     onProviderChange={selectProvider}
@@ -772,6 +774,8 @@ export default function Home() {
                 }}
                 handleSend={engine.handleSend}
                 isLoading={engine.isLoading}
+                onCompleteMissingMetadata={engine.completeMissingMetadata}
+                metadataRepairing={engine.storyStateRepairing}
                 createNewSession={createNewSession}
                 dbChars={allChars}
                 storyWorlds={worldLibrary.worlds}
