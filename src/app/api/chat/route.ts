@@ -225,7 +225,7 @@ export async function POST(req: Request) {
       finalMessages = Array.isArray(messages) ? messages.slice(-1) : [];
     } else if (body.stateRepair === true && memoryMode === "sliding") {
       finalSystemPrompt = `You are a structured story-state extractor, not a storyteller.
-Return ONLY <game_state>{...}</game_state>, with strictly valid JSON, no thinking, narration, markdown or comments.
+Return a complete <game_state>{...}</game_state> block with strictly valid JSON. If a separate memory repair is explicitly requested, append exactly one <turn_memory> block. Never output thinking, narration, markdown, comments or extra text.
 Base the state ONLY on the user-provided story excerpt and previous state. Preserve established facts and plausible relations; do not fabricate new events, memories or character personalities.
 Always include all keys: protagonist, sceneCastIds (characters currently on stage), nextSceneCastIds (legacy compatibility array; always []), character (array), suggestions (fun/rational/radical, plot-advancing and canon-appropriate), danmaku (array), timeline (era/period/event) and music (object or null).
 STRICT SHAPE: suggestions MUST be a JSON object like {"fun":"...","rational":"...","radical":"..."}, NEVER an array of {"tag","text"} items. timeline MUST be an object like {"era":"current era","period":"current period","event":"current event"} rather than an array. Never move to an earlier period. Each character entry uses id and name (not charId or characterName).
