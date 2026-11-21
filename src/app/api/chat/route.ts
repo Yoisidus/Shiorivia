@@ -732,13 +732,14 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
       finalSystemPrompt += `\n${PERSPECTIVE_RULES}\n`;
       finalSystemPrompt += `\n${COLOR_INSTRUCTION}\n`;
 
-      finalSystemPrompt += VISUAL_INSTRUCTION;
+      if (imageToolSelected) finalSystemPrompt += VISUAL_INSTRUCTION;
 
       if (autoDjEnabled) {
         finalSystemPrompt += `\n${buildMusicMenu() || "[AUTO DJ] The playlist is empty. Set game_state.music to null; never invent music."}\n`;
       }
 
-      finalSystemPrompt += `\n${STORY_POST_PROMPT}`;
+      finalSystemPrompt += "\n" + STORY_POST_PROMPT.replace('"danmaku": [],',
+        danmakuEnabled ? '"danmaku": ["根据本轮情节生成的有趣短评一", "不同角度的机智短评二"]' : '"danmaku": []');
       finalSystemPrompt += danmakuEnabled
         ? `\n[DANMAKU EXTENSION — ENABLED]
 The "danmaku" game_state field must contain exactly ${danmakuCount} short and witty viewer comments, written in the current UI language. These are fictional audience reactions to THIS scene, not actual characters speaking in-world. Make them funny, surprising, observant, varied and specific: playful teasing, amusing misunderstandings, relatable reactions or sharp but affectionate observations. Do not repeat a template, invent canon facts, reveal future events, mock sensitive traits or drown out the narrative. Each comment should stand on its own, about 5–28 Chinese characters when writing Chinese. Produce a JSON array of strings; never copy the schema example's empty array.
