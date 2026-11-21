@@ -45,7 +45,7 @@ export const SidebarLeft = ({
     useTTS, toggleTTS,
     syncStatus, onManualSync,
     apiProvider, setApiProvider, providers = [],
-    currentMode, chatWorldline, onSaveChatWorldline, storyWorlds = [],
+    currentMode, chatWorldline, onSaveChatWorldline, chatWorldlineOpenSignal = 0, storyWorlds = [],
 }: any) => {
     const { locale } = useLanguage();
     const dialog = useAppDialog();
@@ -53,6 +53,9 @@ export const SidebarLeft = ({
 
     const [showNewChatMenu, setShowNewChatMenu] = useState(false);
     const [chatWorldlineOpen, setChatWorldlineOpen] = useState(false);
+    useEffect(() => {
+        if (chatWorldlineOpenSignal > 0 && currentMode === "chat") setChatWorldlineOpen(true);
+    }, [chatWorldlineOpenSignal]);
     const showSession = (session: any) => session.memoryMode !== 'lime';
     // Group sessions by their current folder, but order BOTH folder groups
     // and unfiled conversations by the latest activity of their members.

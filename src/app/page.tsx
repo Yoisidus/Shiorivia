@@ -77,6 +77,7 @@ export default function Home() {
     const [curtainCycle, setCurtainCycle] = useState(0);
     const [showMemoryVault, setShowMemoryVault] = useState(false);
     const [worldlineOpenSignal, setWorldlineOpenSignal] = useState(0);
+    const [chatWorldlineOpenSignal, setChatWorldlineOpenSignal] = useState(0);
 
     useEffect(() => {
         if (process.env.NEXT_PUBLIC_ENABLE_LOCAL_LIVE2D !== "true") return;
@@ -916,6 +917,7 @@ export default function Home() {
                     currentMode={currentSession?.memoryMode}
                     chatWorldline={currentSession?.memoryMode === "chat" ? currentSession.storyWorldline : undefined}
                     onSaveChatWorldline={saveChatWorldline}
+                    chatWorldlineOpenSignal={chatWorldlineOpenSignal}
                     storyWorlds={worldLibrary.worlds}
 
                     expandedGroups={Array.isArray(config.expandedGroups) ? config.expandedGroups : []}
@@ -994,6 +996,7 @@ export default function Home() {
                     rightSidebarOpen={ui.rightSidebarOpen} setRightSidebarOpen={ui.setRightSidebarOpen}
                     setShowLocalWorld={ui.setShowLocalWorld}
                     onOpenStoryWorldline={() => { ui.setRightSidebarOpen(true); setWorldlineOpenSignal(value => value + 1); }}
+                    onOpenChatWorldline={() => { ui.setLeftSidebarOpen(true); setChatWorldlineOpenSignal(value => value + 1); }}
                     debugMode={ui.debugMode} setDebugMode={ui.setDebugMode}
                     showDrawDebugTags={ui.debugMode && config.debugDrawTags}
 

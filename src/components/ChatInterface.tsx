@@ -259,7 +259,7 @@ const Portal = ({ children }: { children: React.ReactNode }) => {
 export const ChatInterface = ({
     leftSidebarOpen, setLeftSidebarOpen,
     rightSidebarOpen, setRightSidebarOpen,
-    setShowLocalWorld, onOpenStoryWorldline,
+    setShowLocalWorld, onOpenStoryWorldline, onOpenChatWorldline,
 
     currentCharacter, currentSession,
     input, setInput, isLoading,
@@ -820,7 +820,7 @@ export const ChatInterface = ({
                     className="mx-auto mb-3 flex max-w-3xl items-center gap-2 rounded-xl border border-[#dce8df] bg-[#f7faf8] px-4 py-3 text-xs text-[#557968]">
                     <TreeDeciduous size={16}/>
                     {requiresChatWorldline ? deepText(locale, "chat.needUmbraWorldline") : deepText(locale, "chat.needCharacter")}
-                    <button type="button" onClick={() => requiresChatWorldline ? setLeftSidebarOpen(true) : setRightSidebarOpen(true)}
+                    <button type="button" onClick={() => requiresChatWorldline ? onOpenChatWorldline() : setRightSidebarOpen(true)}
                         className="ml-auto shrink-0 rounded-lg border border-[#d9e5dd] bg-white px-3 py-2 text-xs font-semibold">
                         {requiresChatWorldline ? deepText(locale, "chat.configureWorldline") : deepText(locale, "chat.chooseCharacter")}
                     </button>
