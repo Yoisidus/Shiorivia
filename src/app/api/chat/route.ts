@@ -826,6 +826,12 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
           messages: Array.isArray(messages) ? messages : [],
           roster: eligible.map(char => ({ id: char.id, name: char.name })),
           pinnedIds: pinned, worldline: JSON.stringify(worldline),
+          sceneContext: JSON.stringify(memoryMode === "novel"
+            ? { environment: novelConfig?.environment ?? novelConfig?.scenario,
+                event: novelConfig?.event ?? novelConfig?.action,
+                outline: String(novelConfig?.outline || "").slice(0, 1800) }
+            : { timeline: body.timeline, protagonist: body.previousProtagonist,
+                charStatus: body.charStatus }).slice(0, 6500),
           stm: String(stm || ""), ltm: String(ltm || ""),
           contextWindowTokens: body.contextWindowTokens,
           debug: body.debugRequestPayload === true,
