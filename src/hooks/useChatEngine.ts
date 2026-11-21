@@ -745,17 +745,9 @@ export const useChatEngine = ({
                         })();
                     }
 
-                    if (capturedState.imageGen?.trigger && config.imageGen && !/<draw>[\s\S]*?<\/draw>/.test(currentText)) {
-                        const image = capturedState.imageGen;
-                        const instruction = {
-                            charId: image.charId || activeCharacterId,
-                            outfitId: image.outfitId || manualOutfitId || 'default',
-                            description: [image.emotion, image.description].filter(Boolean).join(', '),
-                        };
-                        currentText += `
-
-<draw>${JSON.stringify(instruction)}</draw>`;
-                    }
+                    // Do not turn legacy game_state.imageGen into a <draw> command.
+                    // Draw placeholders now require an explicit AI-selected image
+                    // tool and a complete <draw> protocol block in the reply.
 
                     if (["sliding", "novel"].includes(currentSession.memoryMode) && config.musicControl && capturedState.music?.trigger && (capturedState.music?.name || capturedState.music?.trackId) && setTrackId) {
                         setTimeout(() => setTrackId(capturedState.music.name || capturedState.music.trackId, capturedState.music.artist), 500);
