@@ -108,7 +108,13 @@ export async function searchWithProvider(query: string, providerId: string, mode
       return response.text() + "\nSources:\n" + [...new Set(refs)].slice(0, 8).join("\n");
     }
     if (provider.id === "openrouter") {
-      // Documented OpenRouter web plugin; the request is made only after tool selection.
+      // OpenRouter's legacy web plugin can fall back to third-party search even
+      // with native requested on unsupported models. Fail closed for unknown
+      // model families rather than silently changing the engine.
+      const supportedFamily = /^(?:openai\/(?:gpt-(?:5|[6-9])(?:[.\w-]*)?|o[34](?:[.\w-]*)?)|anthropic\/claude-(?:3[.-]7|[4-9])\S*|google\/gemini-(?:3|[4-9])\S*|x-ai\/grok-(?:4|[5-9])\S*|perplexity\/\S+)$/i.test(model);
+      if (!supportedFamily) throw new Error("当前 OpenRouter 模型不在已验证的原生联网搜索家族中；已停止调用以防使用第三方回退。请改用支持原生联网的模型或自定义提供商。");
+      // The documented engine=native mode is requested explicitly.
+
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST", headers: {
           "Content-Type": "application/json",
@@ -126,7 +132,12 @@ export async function searchWithProvider(query: string, providerId: string, mode
       if (!res.ok) throw new Error(data?.error?.message || "OpenRouter HTTP " + res.status);
       const message = data?.choices?.[0]?.message;
       if (typeof message?.content !== "string" || !message.content.trim()) throw new Error("OpenRouter 未返回可用的搜索结果。");
-      return message.content;
+      const citations = Array.isArray(message.annotations) ? message.annotations
+        .map((annotation: any) => annotation?.url_citation?.url)
+        .filter((url: unknown): url is string => typeof url === "string" && /^https?:\/\//.test(url))
+        .slice(0, 10) : [];
+      if (!citations.length) throw new Error("OpenRouter 未返回实际联网检索的来源引用；已拒绝将普通模型回答冒充搜索结果。");
+      return message.content + "\nSources:\n" + [...new Set(citations)].join("\n");
     }
     if (provider.id === "deepseek") {
       throw new Error("当前 DeepSeek 接口未提供兼容的内置联网搜索工具；请选择其他搜索供应商。");
@@ -138,6 +149,9 @@ export async function searchWithProvider(query: string, providerId: string, mode
       model, input: "Search the live web and provide concise sourced findings:\n" + query,
       tools: [{ type: "web_search" }],
     } as any);
+    const resultItems = (result as any).output;
+    if (!Array.isArray(resultItems) || !resultItems.some((item: any) => item?.type === "web_search_call"))
+      throw new Error("搜索供应商未报告实际 web_search 工具调用。");
     const reply = (result as any).output_text;
     if (typeof reply !== "string" || !reply.trim()) throw new Error("搜索供应商没有返回可用结果。");
     return reply;
