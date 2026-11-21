@@ -7,6 +7,7 @@ import { ArrowUpRight, Check, CircleDot, Compass, Globe2, Orbit, RotateCcw, Spar
 import type { ChartaWorld } from "../lib/chartaWorld";
 import { canExtendWorldline } from "../lib/worldlineLock";
 import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 import {
   BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, describeStoryWorldline,
   parseStoryWorldline, worldlineFor, timelineStageDescription, worldlineStageIndex, type StoryWorldline,
@@ -73,7 +74,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
     if (!crossWorld.enabled || crossWorld.secondary.length >= 3) return;
     const available = choices.find(item => item.id !== draft.worldId &&
       !crossWorld.secondary.some(secondary => secondary.worldId === item.id));
-    if (!available) { setError("没有可添加的其他世界观，请先在 Charta 创建。"); return; }
+    if (!available) { setError(deepText(locale, "worldline.noOtherWorld")); return; }
     const custom = worlds.find(item => item.id === available.id);
     const newWorld = { worldId: available.id, worldName: available.name,
       worldDescription: custom?.description || "",
@@ -102,10 +103,10 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
   const choosePeriod = (period: string) => { if (!timeEditable) return; setDraft(prev => ({ ...prev, period,
     era: !period || prev.canonTimeline.some(stage => stage.era === prev.era && stage.period === period) ? prev.era : "" })); };
   const save = () => {
-    if (draft.kind === "au" && (!draft.baseEra || !draft.basePeriod)) { setError("AU 必须选择基准 ERA 和 PERIOD。"); return; }
+    if (draft.kind === "au" && (!draft.baseEra || !draft.basePeriod)) { setError(deepText(locale, "worldline.baseRequired")); return; }
     const next = parseStoryWorldline(showEvent ? draft : { ...draft, event: "" });
-    if (!next) { setError("世界线尚未成立：请填写对应的 ERA 与 PERIOD。"); return; }
-    if (!canExtendWorldline(value, next)) { setError("原作时期只能向后推进；AU 时期可手动修改，但主世界、AU 原作基准及已保存的附属世界不能改变。"); return; }
+    if (!next) { setError(deepText(locale, "worldline.invalid")); return; }
+    if (!canExtendWorldline(value, next)) { setError(deepText(locale, "worldline.forbidden")); return; }
     onSave(next); onClose();
   };
 
@@ -114,7 +115,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
     {isOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className={`fixed inset-0 ${elevated ? "z-[800]" : "z-[110]"} flex items-center justify-center overflow-y-auto bg-[#101d1d]/75 p-3 backdrop-blur-[8px] sm:p-6`}
       onClick={onClose}>
-      <motion.section role="dialog" aria-modal="true" aria-label="世界线 · 命运航图"
+      <motion.section role="dialog" aria-modal="true" aria-label={deepText(locale, "worldline.heading")}
         initial={{ opacity: 0, scale: .96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: .97, y: 12 }} onClick={e => e.stopPropagation()}
         className={`relative flex max-h-[94dvh] w-full max-w-[760px] flex-col overflow-hidden rounded-[28px] border shadow-[0_35px_100px_rgba(4,18,18,.35)] ${novel ? "border-[#d7b889] bg-[#fff9ee] text-[#674a31]" : chat ? "border-[#b2d6bd] bg-[#f5fcf6] text-[#2e5e45]" : "border-[#e4a9c0] bg-[#fff6fa] text-[#6a2946]"}`}>
@@ -128,11 +129,11 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
               <div className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#e6d1a6]/45 bg-[#e6d1a6]/10 text-[#e7c992]"><Orbit size={23} strokeWidth={1.2}/></div>
               <div>
                 <div className="flex items-center gap-2 text-[10px] font-semibold tracking-[.29em] text-[#e5cf9f]" style={geometric}><Sparkles size={12}/> SHIORIVIA · STAR CHART</div>
-                <h2 className="mt-2 text-[25px] font-semibold tracking-[.11em] sm:text-[30px]" style={geometric}>WORLDLINE <span className="text-[#e7c994]">/</span> 世界线</h2>
-                <p className="mt-1 text-[11px] tracking-[.12em] text-[#b8c8bc]" style={geometric}>命运并非一条直线，而是无数次选择的回响。</p>
+                <h2 className="mt-2 text-[25px] font-semibold tracking-[.11em] sm:text-[30px]" style={geometric}>WORLDLINE <span className="text-[#e7c994]">/</span> {deepText(locale, "worldline.heading")}</h2>
+                <p className="mt-1 text-[11px] tracking-[.12em] text-[#b8c8bc]" style={geometric}>{deepText(locale, "worldline.motto")}</p>
               </div>
             </div>
-            <button type="button" onClick={onClose} aria-label="关闭世界线" className="relative rounded-full border border-white/20 p-2 text-[#c7d6cc] transition hover:bg-white/10"><X size={18}/></button>
+            <button type="button" onClick={onClose} aria-label={deepText(locale, "worldline.close")} className="relative rounded-full border border-white/20 p-2 text-[#c7d6cc] transition hover:bg-white/10"><X size={18}/></button>
           </div>
           <div className={`relative mt-7 flex items-center gap-3 text-[10px] font-semibold tracking-[.18em] ${novel ? "text-[#f7d7aa]" : chat ? "text-[#b3e6c6]" : "text-[#f6bdd4]"}`} style={geometric}>
             <CircleDot size={13} className="text-[#e3c992]"/><span>WORLD</span><span className="h-px flex-1 bg-gradient-to-r from-[#cfb781]/65 to-[#658777]/20"/><span>ERA</span><span className="h-px flex-1 bg-gradient-to-r from-[#cfb781]/65 to-[#658777]/20"/><span>PERIOD</span><span className="h-px flex-1 bg-gradient-to-r from-[#cfb781]/65 to-[#658777]/20"/>{showEvent && <span>EVENT</span>}
@@ -140,44 +141,44 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
         </header>
 
         <div className={`min-h-0 flex-1 space-y-6 overflow-y-auto p-5 sm:p-8 ${novel ? "bg-[#fff9ee]" : chat ? "bg-[#f5fcf6]" : "bg-[#fff6fa]"}`}>
-          {value && <div className={`rounded-xl border-l-[3px] px-4 py-3 text-xs leading-6 ${novel ? "border-[#b8884d] bg-[#f6e8d4] text-[#785334]" : chat ? "border-[#63a081] bg-[#e2f4e8] text-[#35664e]" : "border-[#c65d88] bg-[#fce5ef] text-[#823757]"}`}><span className="font-semibold">既定星路</span><span className="mx-2 text-[#a6b5a7]">/</span>{describeStoryWorldline(value, locale)}</div>}
-          {!value && legacyTimeline?.major && <div className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800">旧时间线仍保留：{legacyTimeline.major} / {legacyTimeline.medium || "未知时期"}。新世界线保存后将优先采用新设定。</div>}
+          {value && <div className={`rounded-xl border-l-[3px] px-4 py-3 text-xs leading-6 ${novel ? "border-[#b8884d] bg-[#f6e8d4] text-[#785334]" : chat ? "border-[#63a081] bg-[#e2f4e8] text-[#35664e]" : "border-[#c65d88] bg-[#fce5ef] text-[#823757]"}`}><span className="font-semibold">{deepText(locale, "worldline.current")}</span><span className="mx-2 text-[#a6b5a7]">/</span>{describeStoryWorldline(value, locale)}</div>}
+          {!value && legacyTimeline?.major && <div className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800">{deepText(locale, "worldline.legacy")}{legacyTimeline.major} / {legacyTimeline.medium || deepText(locale, "worldline.unknownPeriod")}{deepText(locale, "worldline.legacyEnd")}</div>}
           <section className="space-y-3">
-            <div className="flex items-center justify-between gap-3"><label htmlFor="fate-world-select" className="text-xs font-bold tracking-[.14em]" style={geometric}><Globe2 size={15} className="mr-2 inline text-[#7a956e]"/>01 · WORLD / 世界观</label>{onOpenCharta && <button type="button" onClick={onOpenCharta} className="flex items-center gap-1 text-[11px] font-semibold text-[#667e6c] hover:underline">Charta · 创造世界 <ArrowUpRight size={12}/></button>}</div>
+            <div className="flex items-center justify-between gap-3"><label htmlFor="fate-world-select" className="text-xs font-bold tracking-[.14em]" style={geometric}><Globe2 size={15} className="mr-2 inline text-[#7a956e]"/>01 · WORLD / {deepText(locale, "worldline.worldLabel")}</label>{onOpenCharta && <button type="button" onClick={onOpenCharta} className="flex items-center gap-1 text-[11px] font-semibold text-[#667e6c] hover:underline">Charta · {deepText(locale, "worldline.createWorld")} <ArrowUpRight size={12}/></button>}</div>
             <select id="fate-world-select" disabled={primaryLocked} value={draft.worldId} onChange={e=>chooseWorld(e.target.value)} className={inputStyle}>{choices.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>
-            <p className="text-[11px] leading-6 text-[#7d9286]">{draft.worldDescription ? `${draft.worldDescription.slice(0,180)}${draft.worldDescription.length>180 ? "…" : ""}` : "世界观未添加补充设定。模型将根据已有知识与剧情上下文理解这一世界。"}</p>
+            <p className="text-[11px] leading-6 text-[#7d9286]">{draft.worldDescription ? `${draft.worldDescription.slice(0,180)}${draft.worldDescription.length>180 ? "…" : ""}` : deepText(locale, "worldline.noExtraLore")}</p>
           </section>
           <section className="rounded-2xl border border-[#dbe5d9] bg-white/75 p-4 space-y-4">
             <label className="flex items-center justify-between gap-3 text-xs font-semibold text-[#496453]">
-              <span>跨世界观 · CROSS-WORLD <span className="ml-1 text-[10px] font-normal text-[#89998d]">（默认关闭）</span></span>
+              <span>{deepText(locale, "worldline.crossWorld")} · CROSS-WORLD <span className="ml-1 text-[10px] font-normal text-[#89998d]">{deepText(locale, "worldline.defaultOff")}</span></span>
               <input type="checkbox" disabled={Boolean(value?.crossWorld?.enabled)} checked={crossWorld.enabled} onChange={e => setDraft(prev => ({
                 ...prev, crossWorld: { ...crossWorld, enabled: e.target.checked, includeUniversal: e.target.checked && crossWorld.includeUniversal,
                   secondary: e.target.checked ? crossWorld.secondary : [] },
               }))} className="h-4 w-4 accent-[#577d67]" />
             </label>
             {crossWorld.enabled && <>
-              <p className="text-[11px] leading-5 text-[#7a9180]">以主世界观的 ERA / PERIOD 为叙事时间；其他世界观分别设定原作认知截止时期，最多三项。</p>
+              <p className="text-[11px] leading-5 text-[#7a9180]">{deepText(locale, "worldline.crossHelp")}</p>
               {crossWorld.secondary.map((entry, index) => {
                 const eras = [...new Set(entry.canonTimeline.map(stage => stage.era))];
                 const periods = entry.canonTimeline.filter(stage => !entry.baseEra || stage.era === entry.baseEra);
                 return <div key={index} className="space-y-3 rounded-xl border border-[#dae6d9] bg-[#f7faf6] p-3">
-                  <div className="flex items-center justify-between"><span className="text-xs font-semibold">其他世界观 {index + 1}</span>
+                  <div className="flex items-center justify-between"><span className="text-xs font-semibold">{deepText(locale, "worldline.otherWorld")} {index + 1}</span>
                     <button type="button" disabled={previousSecondary.has(entry.worldId)} onClick={() => setDraft(prev => ({ ...prev, crossWorld: { ...crossWorld,
-                      secondary: crossWorld.secondary.filter((_, i) => i !== index) } }))} aria-label="移除世界观" className="text-[#a27d73]"><Trash2 size={15}/></button></div>
+                      secondary: crossWorld.secondary.filter((_, i) => i !== index) } }))} aria-label={deepText(locale, "worldline.removeWorld")} className="text-[#a27d73]"><Trash2 size={15}/></button></div>
                   <select disabled={previousSecondary.has(entry.worldId)} value={entry.worldId} onChange={e => changeSecondary(index, e.target.value)} className={inputStyle}>
                     {choices.filter(item => item.id === entry.worldId || (item.id !== draft.worldId && !crossWorld.secondary.some(s => s.worldId === item.id))).map(item =>
                       <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="text-[11px] text-[#526b5b]">基准 ERA *
+                    <label className="text-[11px] text-[#526b5b]">{deepText(locale, "worldline.baseEra")} *
                       <select disabled={previousSecondary.has(entry.worldId)} className={inputStyle} value={entry.baseEra} onChange={e => changeSecondaryBaseline(index, e.target.value, "")}>
-                        <option value="">请选择 ERA</option>{eras.map(era => <option key={era} value={era}>{era}</option>)}
+                        <option value="">{deepText(locale, "worldline.chooseEra")}</option>{eras.map(era => <option key={era} value={era}>{era}</option>)}
                       </select>
                     </label>
-                    <label className="text-[11px] text-[#526b5b]">基准 PERIOD *
+                    <label className="text-[11px] text-[#526b5b]">{deepText(locale, "worldline.basePeriod")} *
                       <select disabled={previousSecondary.has(entry.worldId)} className={inputStyle} value={entry.basePeriod}
                         onChange={e => changeSecondaryBaseline(index, entry.canonTimeline.find(stage => stage.period === e.target.value)?.era || entry.baseEra, e.target.value)}>
-                        <option value="">请选择 PERIOD</option>{periods.map(stage => <option key={stage.period} value={stage.period}>{stage.period}{timelineStageDescription(stage, locale) ? " · " + timelineStageDescription(stage, locale) : ""}</option>)}
+                        <option value="">{deepText(locale, "worldline.choosePeriod")}</option>{periods.map(stage => <option key={stage.period} value={stage.period}>{stage.period}{timelineStageDescription(stage, locale) ? " · " + timelineStageDescription(stage, locale) : ""}</option>)}
                       </select>
                     </label>
                   </div>
@@ -185,10 +186,10 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
               })}
               <button type="button" disabled={crossWorld.secondary.length >= 3} onClick={addSecondary}
                 className="flex items-center gap-2 rounded-lg border border-[#bad0bc] bg-[#f0f7ef] px-3 py-2 text-xs text-[#4a7059] disabled:opacity-40">
-                <Plus size={14}/> 添加其他世界观 · {crossWorld.secondary.length}/3
+                <Plus size={14}/> {deepText(locale, "worldline.addWorld")} · {crossWorld.secondary.length}/3
               </button>
               <label className="flex items-center justify-between rounded-xl border border-[#e2e9df] bg-[#fbfdf9] px-3 py-3 text-xs">
-                <span>启用通用角色 <span className="text-[#94a597]">（未绑定世界观）</span></span>
+                <span>{deepText(locale, "worldline.universal")} <span className="text-[#94a597]">{deepText(locale, "worldline.unbound")}</span></span>
                 <input type="checkbox" checked={crossWorld.includeUniversal}
                   onChange={e => setDraft(prev => ({ ...prev, crossWorld: { ...crossWorld, includeUniversal: e.target.checked } }))}
                   className="h-4 w-4 accent-[#577d67]" />
@@ -196,42 +197,42 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
             </>}
           </section>
           <section className="space-y-3">
-            <h3 className="text-xs font-bold tracking-[.14em]" style={geometric}><Compass size={15} className="mr-2 inline text-[#9d8859]"/>02 · DESTINY / 时间线分歧</h3>
+            <h3 className="text-xs font-bold tracking-[.14em]" style={geometric}><Compass size={15} className="mr-2 inline text-[#9d8859]"/>02 · DESTINY / {deepText(locale, "worldline.destiny")}</h3>
             <div className="grid grid-cols-2 gap-3">
-              {([{id:"canon",title:"ORIGINAL / 原作",hint:"遵循既定时间轴"},{id:"au",title:"ALTERNATE / AU",hint:"书写另一种可能"}] as const).map(mode=><button key={mode.id} type="button" disabled={primaryLocked || !stages.length} onClick={()=>setDraft(p=>({...p,kind:mode.id,era:"",period:"",baseEra:undefined,basePeriod:undefined}))} className={`relative rounded-xl border px-4 py-4 text-left transition disabled:opacity-35 ${draft.kind===mode.id ? "border-[#ab925e] bg-[#f1ede3] shadow-[inset_0_0_0_1px_#d8c79d]" : "border-[#d6dfd5] bg-white hover:border-[#b1c6b4]"}`}><span className="block text-xs font-bold tracking-wider" style={geometric}>{mode.title}</span><span className="mt-1 block text-[10px] text-[#7e9284]">{mode.hint}</span>{draft.kind===mode.id && <CircleDot size={13} className="absolute right-3 top-3 text-[#ae9364]"/>}</button>)}
+              {([{id:"canon",title:deepText(locale, "worldline.original"),hint:deepText(locale, "worldline.originalHint")},{id:"au",title:"ALTERNATE / AU",hint:deepText(locale, "worldline.alternateHint")}] as const).map(mode=><button key={mode.id} type="button" disabled={primaryLocked || !stages.length} onClick={()=>setDraft(p=>({...p,kind:mode.id,era:"",period:"",baseEra:undefined,basePeriod:undefined}))} className={`relative rounded-xl border px-4 py-4 text-left transition disabled:opacity-35 ${draft.kind===mode.id ? "border-[#ab925e] bg-[#f1ede3] shadow-[inset_0_0_0_1px_#d8c79d]" : "border-[#d6dfd5] bg-white hover:border-[#b1c6b4]"}`}><span className="block text-xs font-bold tracking-wider" style={geometric}>{mode.title}</span><span className="mt-1 block text-[10px] text-[#7e9284]">{mode.hint}</span>{draft.kind===mode.id && <CircleDot size={13} className="absolute right-3 top-3 text-[#ae9364]"/>}</button>)}
             </div>
-            {!stages.length && <p className="text-[11px] text-[#a17855]">这个世界尚未定义时间线，请先去 Charta 创建。AU 也需要原作基准时间线。</p>}
+            {!stages.length && <p className="text-[11px] text-[#a17855]">{deepText(locale, "worldline.noStages")}</p>}
           </section>
           {draft.kind === "au" && <section className={`space-y-3 rounded-2xl border p-4 ${novel ? "border-[#e0c6a4] bg-[#f9edda]" : chat ? "border-[#b9dac4] bg-[#e8f6ec]" : "border-[#eab6cd] bg-[#fdeaf2]"}`}>
-            <h3 className="text-xs font-bold tracking-[.12em] text-[#456b57]" style={geometric}>AU ONLY · 基准时间线 *</h3>
-            <p className="text-[11px] leading-6 text-[#718c7a]">决定人物从原作继承至哪个时期。AU 自己的 ERA / PERIOD 与此独立，不会提前注入后期经历。</p>
+            <h3 className="text-xs font-bold tracking-[.12em] text-[#456b57]" style={geometric}>{deepText(locale, "worldline.auBaseline")} *</h3>
+            <p className="text-[11px] leading-6 text-[#718c7a]">{deepText(locale, "worldline.auExplain")}</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="text-xs font-semibold">基准 ERA *<select disabled={primaryLocked} className={inputStyle} value={draft.baseEra || ""} onChange={e=>setDraft(p=>({...p,baseEra:e.target.value,basePeriod:""}))}><option value="">请选择基准 ERA</option>{baseEras.map(era=><option key={era} value={era}>{era}</option>)}</select></label>
-              <label className="text-xs font-semibold">基准 PERIOD *<select disabled={primaryLocked} className={inputStyle} value={draft.basePeriod || ""} onChange={e=>setDraft(p=>({...p,basePeriod:e.target.value,baseEra:p.canonTimeline.find(stage=>stage.period===e.target.value)?.era || p.baseEra}))}><option value="">请选择基准 PERIOD</option>{basePeriods.map(stage=><option key={stage.period} value={stage.period}>{stage.period}{timelineStageDescription(stage, locale) ? " · " + timelineStageDescription(stage, locale) : ""}</option>)}</select></label>
+              <label className="text-xs font-semibold">基准 ERA *<select disabled={primaryLocked} className={inputStyle} value={draft.baseEra || ""} onChange={e=>setDraft(p=>({...p,baseEra:e.target.value,basePeriod:""}))}><option value="">{deepText(locale, "worldline.chooseBaseEra")}</option>{baseEras.map(era=><option key={era} value={era}>{era}</option>)}</select></label>
+              <label className="text-xs font-semibold">基准 PERIOD *<select disabled={primaryLocked} className={inputStyle} value={draft.basePeriod || ""} onChange={e=>setDraft(p=>({...p,basePeriod:e.target.value,baseEra:p.canonTimeline.find(stage=>stage.period===e.target.value)?.era || p.baseEra}))}><option value="">{deepText(locale, "worldline.chooseBasePeriod")}</option>{basePeriods.map(stage=><option key={stage.period} value={stage.period}>{stage.period}{timelineStageDescription(stage, locale) ? " · " + timelineStageDescription(stage, locale) : ""}</option>)}</select></label>
             </div>
           </section>}
           {primaryLocked && <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#dac9bb] bg-white/75 px-3 py-2 text-[11px]">
-            <span>ERA / PERIOD {timeUnlocked ? draft.kind === "au" ? "已解锁 · AU 时间由用户自由设定" : "已解锁 · 原作仅可向后推进" : "已锁定 · 防止意外更改"}</span>
+            <span>ERA / PERIOD {timeUnlocked ? draft.kind === "au" ? deepText(locale, "worldline.unlockAu") : deepText(locale, "worldline.unlockCanon") : deepText(locale, "worldline.locked")}</span>
             <button type="button" className="rounded-lg border border-[#cbb49b] px-3 py-1.5 font-semibold hover:bg-[#f5eee5]"
               onClick={() => { setTimeUnlocked(v => !v); setDraft(value!); setError(""); }}>
-              {timeUnlocked ? "重新锁定" : "解锁时间线"}
+              {timeUnlocked ? deepText(locale, "worldline.relock") : deepText(locale, "worldline.unlock")}
             </button>
           </div>}
           <section className="grid gap-4 sm:grid-cols-2">
-            <label className="text-xs font-bold tracking-[.12em]" style={geometric}>03 · ERA / 时代 *
-              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.era} onChange={e=>chooseEra(e.target.value)} className={inputStyle}><option value="">请选择 ERA</option>{eras.map(era=><option key={era} value={era}>{era}</option>)}</select> : <input disabled={!timeEditable} value={draft.era} maxLength={100} placeholder="另一条时间轴中的时代" onChange={e=>setDraft(p=>({...p,era:e.target.value}))} className={inputStyle}/>}</label>
-            <label className="text-xs font-bold tracking-[.12em]" style={geometric}>04 · PERIOD / 时期 *
-              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.period} onChange={e=>choosePeriod(e.target.value)} className={inputStyle}><option value="">请选择 PERIOD</option>{periods.map(period=><option key={period} value={period}>{period}{timelineStageDescription(stages.find(s => s.period === period), locale) ? " · " + timelineStageDescription(stages.find(s => s.period === period), locale) : ""}</option>)}</select> : <input disabled={!timeEditable} value={draft.period} maxLength={100} placeholder="另一条时间轴中的时期" onChange={e=>setDraft(p=>({...p,period:e.target.value}))} className={inputStyle}/>}</label>
+            <label className="text-xs font-bold tracking-[.12em]" style={geometric}>03 · ERA / {deepText(locale, "worldline.eraLabel")} *
+              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.era} onChange={e=>chooseEra(e.target.value)} className={inputStyle}><option value="">请选择 ERA</option>{eras.map(era=><option key={era} value={era}>{era}</option>)}</select> : <input disabled={!timeEditable} value={draft.era} maxLength={100} placeholder={deepText(locale, "worldline.auEraPlaceholder")} onChange={e=>setDraft(p=>({...p,era:e.target.value}))} className={inputStyle}/>}</label>
+            <label className="text-xs font-bold tracking-[.12em]" style={geometric}>04 · PERIOD / {deepText(locale, "worldline.periodLabel")} *
+              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.period} onChange={e=>choosePeriod(e.target.value)} className={inputStyle}><option value="">请选择 PERIOD</option>{periods.map(period=><option key={period} value={period}>{period}{timelineStageDescription(stages.find(s => s.period === period), locale) ? " · " + timelineStageDescription(stages.find(s => s.period === period), locale) : ""}</option>)}</select> : <input disabled={!timeEditable} value={draft.period} maxLength={100} placeholder={deepText(locale, "worldline.auPeriodPlaceholder")} onChange={e=>setDraft(p=>({...p,period:e.target.value}))} className={inputStyle}/>}</label>
           </section>
-          {timeEditable && !primaryLocked && draft.kind==="canon" && <button type="button" onClick={()=>setDraft(p=>({...p,era:"",period:""}))} className="flex items-center gap-1 text-[11px] text-[#648370] hover:underline"><RotateCcw size={12}/>重新选择 ERA / PERIOD</button>}
+          {timeEditable && !primaryLocked && draft.kind==="canon" && <button type="button" onClick={()=>setDraft(p=>({...p,era:"",period:""}))} className="flex items-center gap-1 text-[11px] text-[#648370] hover:underline"><RotateCcw size={12}/>{deepText(locale, "worldline.resetStage")}</button>}
           {timelineStageDescription(currentStage, locale) && <div className="rounded-xl border border-[#e5d4bf] bg-white/70 px-3 py-2.5 text-xs leading-6">
             <span className="mb-1 block text-[10px] font-semibold tracking-wider opacity-60">PERIOD · {draft.period}</span>
             {timelineStageDescription(currentStage, locale)}
           </div>}
-          {showEvent && <label className="block text-xs font-bold tracking-[.12em]" style={geometric}>05 · EVENT / 命运事件（选填）<textarea value={draft.event} maxLength={500} rows={3} onChange={e=>setDraft(p=>({...p,event:e.target.value}))} placeholder="这一刻会发生什么？也可以交给故事本身。" className={`${inputStyle} resize-y leading-6`}/></label>}
+          {showEvent && <label className="block text-xs font-bold tracking-[.12em]" style={geometric}>05 · EVENT / {deepText(locale, "worldline.eventLabel")}<textarea value={draft.event} maxLength={500} rows={3} onChange={e=>setDraft(p=>({...p,event:e.target.value}))} placeholder={deepText(locale, "worldline.eventPlaceholder")} className={`${inputStyle} resize-y leading-6`}/></label>}
           {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">{error}</p>}
         </div>
-        <footer className={`flex shrink-0 items-center justify-between border-t px-5 py-4 sm:px-8 ${novel ? "border-[#e6d3b9] bg-[#f8ecd9]" : chat ? "border-[#bed9c8] bg-[#e5f2e9]" : "border-[#eec7d7] bg-[#fbe7ef]"}`}><span className="hidden text-[10px] tracking-[.19em] text-[#879b8b] sm:block" style={geometric}>THE STORY BEGINS WITH A CHOICE.</span><div className="ml-auto flex items-center gap-3"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs text-[#6c8174] hover:bg-[#e1e9e1]">取消</button><button type="button" onClick={save} className={`flex items-center gap-2 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg ${novel ? "bg-[#805638] shadow-[#805638]/20 hover:bg-[#67452e]" : chat ? "bg-[#367356] shadow-[#367356]/20 hover:bg-[#24583e]" : "bg-[#ae3d69] shadow-[#ae3d69]/20 hover:bg-[#8c2b51]"}`}><Check size={15}/>铭刻世界线</button></div></footer>
+        <footer className={`flex shrink-0 items-center justify-between border-t px-5 py-4 sm:px-8 ${novel ? "border-[#e6d3b9] bg-[#f8ecd9]" : chat ? "border-[#bed9c8] bg-[#e5f2e9]" : "border-[#eec7d7] bg-[#fbe7ef]"}`}><span className="hidden text-[10px] tracking-[.19em] text-[#879b8b] sm:block" style={geometric}>THE STORY BEGINS WITH A CHOICE.</span><div className="ml-auto flex items-center gap-3"><button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-xs text-[#6c8174] hover:bg-[#e1e9e1]">{deepText(locale, "common.cancel")}</button><button type="button" onClick={save} className={`flex items-center gap-2 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg ${novel ? "bg-[#805638] shadow-[#805638]/20 hover:bg-[#67452e]" : chat ? "bg-[#367356] shadow-[#367356]/20 hover:bg-[#24583e]" : "bg-[#ae3d69] shadow-[#ae3d69]/20 hover:bg-[#8c2b51]"}`}><Check size={15}/>{deepText(locale, "worldline.seal")}</button></div></footer>
       </motion.section>
     </motion.div>}
   </AnimatePresence>, document.body);
