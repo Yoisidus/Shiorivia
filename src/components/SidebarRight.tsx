@@ -233,10 +233,10 @@ const SidebarRightComponent = ({
                                                 )}
                                             </div>
 
-                                            <StatBar label="Affection" value={currentChar.affection} color={themeColor} icon={Heart} />
-                                            <StatBar label="Possessiveness" value={currentChar.Possessiveness} color="#9333ea" icon={Zap} />
-                                            <StatBar label="Obsession" value={currentChar.Obsession} color="#dc2626" icon={Skull} />
-                                            <StatBar label="Intimacy" value={currentChar.Intimacy} color="#fb7185" icon={Sparkles} />
+                                            <StatBar label="Affection · 好感度" value={currentChar.affection} color={themeColor} icon={Heart} />
+                                            <StatBar label="Possessiveness · 独占欲" value={currentChar.Possessiveness} color="#9333ea" icon={Zap} />
+                                            <StatBar label="Obsession · 病态程度" value={currentChar.Obsession} color="#dc2626" icon={Skull} />
+                                            <StatBar label="Lust · 情欲" value={currentChar.Lust ?? currentChar.Intimacy ?? 0} color="#fb7185" icon={Sparkles} />
 
                                             <div className="mt-3 text-[10px] space-y-2 text-gray-600 border-t pt-2" style={{ borderColor: `${themeColor}30` }}>
                                                 {currentChar.innerState && (
