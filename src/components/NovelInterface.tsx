@@ -29,7 +29,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { deepText } from "../lib/i18nDeep";
 import { characterDisplayName } from "../lib/characterNames";
 import { localText } from "../lib/i18nLocal";
-import { deepText } from "../lib/i18nDeep";
+
 import { useAppDialog } from "../context/DialogContext";
 import { IllustratedImage, ImageLightbox } from "./IllustrationImage";
 import { stripNovelState } from "../lib/novelState";
