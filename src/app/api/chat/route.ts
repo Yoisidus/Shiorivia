@@ -238,7 +238,7 @@ When any character score is supplied, use affection (fondness), Possessiveness (
 Only JSON belongs between the tags.`;
       if (body.repairMemory === true) {
         finalSystemPrompt += "\nAlso return a complete <turn_memory>{\"stm\":\"factual summary\",\"ltm\":"
-          + (Number(body.memoryTurnCount || 0) >= 6 ? \"\"updated consolidated long-term memory\"\" : "null")
+          + (Number(body.memoryTurnCount || 0) >= 6 ? '"updated consolidated long-term memory"' : "null")
           + "}</turn_memory> after </game_state>. Derive only from the supplied completed story, earlier STM and prior LTM. When consolidating, LTM must be a nonempty string. Do not continue story prose.";
       }
       finalSystemPrompt += body.danmakuEnabled === true
