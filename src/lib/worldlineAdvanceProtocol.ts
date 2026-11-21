@@ -12,9 +12,9 @@ export function worldlineAdvanceInstruction(worldline: StoryWorldline, locale: s
 [OPTIONAL WORLDLINE ADVANCEMENT — PRIVATE METADATA]
 Current: ${JSON.stringify({ era: worldline.era, period: worldline.period })}.
 Ordered valid stages (earliest to latest): ${JSON.stringify(stages)}.
-Continue normal conversation / VIAE chat formatting. ONLY if this response definitively moves the actual in-world story to a LATER stage, append ONE private marker at the very end of the response:
+Continue normal conversation / VIAE chat formatting. ONLY if this response definitively moves the actual in-world story to a LATER stage, append ONE private marker after <viae_chat> and BEFORE the required <turn_memory> block:
 <worldline_update>{"era":"exact later ERA","period":"exact later PERIOD"}</worldline_update>
-If the time stays the same, OMIT the marker entirely. Never use this tag to report a character's memories, retrospective mentions, proposed future visits or speculation. Never rewind; never alter WORLD, AU baselines or other worlds. The client validates the request and ignores illegal changes. The tag is not conversational content and should not be repeated in quoted speech.
+If the time stays the same, OMIT the marker entirely. When a <turn_memory> block is required, place worldline_update BEFORE turn_memory, never after it. Never use this tag to report a character's memories, retrospective mentions, proposed future visits or speculation. Never rewind; never alter WORLD, AU baselines or other worlds. The client validates the request and ignores illegal changes. The tag is not conversational content and should not be repeated in quoted speech.
 [END OPTIONAL WORLDLINE ADVANCEMENT]
 `;
 }
