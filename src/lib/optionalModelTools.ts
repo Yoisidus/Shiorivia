@@ -4,7 +4,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getServerLocalProvider } from "./localProviderServer";
 
 type Provider = { id: string; apiKey: string; baseURL?: string };
-export type WebToolConfig = { mode: "native" | "model"; provider: string; model: string };
 export type ToolPlan = { image: boolean; webQuery: string | null };
 type ModelMessage = { role: string; content: unknown };
 type Choice = { tool: "generate_image" | "web_search" | "done"; query?: string };
