@@ -237,7 +237,7 @@ export const NovelInterface = ({
     const [environment, setEnvironment] = useState("");
     const [event, setEvent] = useState("");
     const [manualStateEdit, setManualStateEdit] = useState(false);
-    const [style, setStyle] = useState("温馨、细腻、富有生活感");
+    const [style, setStyle] = useState(deepText(locale, "novel.ui.styleDefault"));
 
     const [outline, setOutline] = useState(currentSession.localWorldInfo || "");
     // Restore the draft carried by an imported Novel JSON when its new session opens.
@@ -270,7 +270,7 @@ export const NovelInterface = ({
     const inputsLocked = hasNovelChapters && !manualStateEdit;
     const allowSceneEdit = async () => {
         if (isLoading) return;
-        if (!hasNovelChapters || await dialog.confirm("本章已经开始。确定手动覆盖 AI 自动更新的 Environment / Event 吗？修改后会在下一章使用。")) {
+        if (!hasNovelChapters || await dialog.confirm(deepText(locale, "novel.ui.overrideAsk"))) {
             setManualStateEdit(true);
         }
     };
@@ -419,7 +419,7 @@ export const NovelInterface = ({
     const handleGenerate = async (type: 'new' | 'continue', optionText?: string) => {
         if (isLoading) return;
         if (!activeModel.trim()) {
-            dialog.notify("请先选择当前供应商的模型，确认后再编织篇章。");
+            dialog.notify(deepText(locale, "novel.ui.needModel"));
             return;
         }
         if (!novelWorldline) {
@@ -435,7 +435,7 @@ export const NovelInterface = ({
         }
         const targetNames = chars.filter((c: any) => selectedCharIds.includes(c.id)).map((c: any) => characterDisplayName(c.id, c.name, locale)).join(", ");
         if (!environment.trim() || !event.trim()) {
-            showToast?.("Environment（环境）和 Event（当前事件）都是必填项。");
+            showToast?.(deepText(locale, "novel.ui.needState"));
             return;
         }
         const novelConfig = { charNames: targetNames, environment:environment.trim(), event:event.trim(), style, outline, selfId:novelRole === "participant" ? novelSelfId : null };
@@ -445,7 +445,7 @@ export const NovelInterface = ({
             const chapterCount = currentSession.messages.filter((m: any) => m.role === 'assistant' && !m.content.includes("（...正在")).length;
 
             if (chapterCount > 0) {
-                if (await dialog.confirm("⚠️ 当前梦境已有剧情，是否保存并开启一段【全新的梦境】？\n(这会创建一个新的会话)")) {
+                if (await dialog.confirm(deepText(locale, "novel.ui.newDreamAsk"))) {
                     createNewSession(selectedCharIds[0] || "sakiko", 'novel');
                     return;
                 } else {
@@ -484,7 +484,7 @@ export const NovelInterface = ({
     const updateNovelRole = (role: "observer" | "participant") => {
         if (isLoading || novelStarted) return;
         if (role === "participant" && !canParticipate) {
-            showToast?.("请先在 Charta 创建并启用自设；世界线确定后再验证所属世界观。");
+            showToast?.(deepText(locale, "novel.ui.needSelf"));
             return;
         }
         const self = role === "participant" ? activeNovelSelf : null;
@@ -616,18 +616,18 @@ export const NovelInterface = ({
                     min-h-[3.5rem]
                 `}>
                     <div className="justify-self-start">
-                        <button type="button" onClick={() => setLeftOpen(!leftOpen)} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title="切换章节目录" aria-label="切换章节目录"><AlignLeft size={19} /></button>
+                        <button type="button" onClick={() => setLeftOpen(!leftOpen)} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title={deepText(locale, "novel.toc")} aria-label={deepText(locale, "novel.toc")}><AlignLeft size={19} /></button>
                     </div>
                     <h1 className={`whitespace-nowrap text-sm font-semibold tracking-[0.24em] sm:text-base ${theme.title}`}>TELA</h1>
                     <div className="flex items-center justify-self-end gap-0.5 sm:gap-1">
                         <button type="button" onClick={() => setShowMemoryVault(true)}
-                            title="TELA · 记忆档案" aria-label="打开小说记忆档案"
+                            title={`TELA · ${deepText(locale, "novel.ui.memory")}`} aria-label={deepText(locale, "novel.ui.memoryOpen")}
                             className="flex items-center gap-1.5 rounded-lg border border-[#d8c29c] bg-[#fff8e7] px-2 py-1.5 text-[#865e35] shadow-sm transition hover:bg-[#f3e4c8]">
-                            <Brain size={17}/><span className="hidden text-[10px] font-semibold sm:inline">记忆</span>
+                            <Brain size={17}/><span className="hidden text-[10px] font-semibold sm:inline">{deepText(locale, "novel.ui.memory")}</span>
                             <span className="rounded bg-[#f1e2c7] px-1.5 text-[10px] font-mono">{parseLocalMemoryEntries(currentSession.stm).length}/{parseLocalMemoryEntries(currentSession.ltm).length}</span>
                         </button>
-                        <button type="button" onClick={onOpenSettings} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title="打开 Shiorivia 设置中心" aria-label="打开设置中心"><Settings2 size={19} /></button>
-                        <button type="button" onClick={() => setRightOpen(!rightOpen)} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title="切换小说设定面板" aria-label="切换小说设定面板"><PanelRight size={19} /></button>
+                        <button type="button" onClick={onOpenSettings} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title={`Shiorivia · ${deepText(locale, "common.settings")}`} aria-label={deepText(locale, "common.settings")}><Settings2 size={19} /></button>
+                        <button type="button" onClick={() => setRightOpen(!rightOpen)} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title={deepText(locale, "novel.ui.sidebarOpen")} aria-label={deepText(locale, "novel.ui.sidebarOpen")}><PanelRight size={19} /></button>
                     </div>
                 </div>
 
@@ -653,11 +653,11 @@ export const NovelInterface = ({
                                         {msg.metadataRepairMissing && i === chapters.length - 1 && (
                                             <div role="status" className="my-5 flex items-center gap-3 rounded-xl border border-[#dfc29a] bg-[#fff8e9] p-3 text-xs text-[#735439]">
                                                 <AlertTriangle size={16} className="shrink-0"/>
-                                                <span className="flex-1">本章状态或记忆不完整，章节正文已保留。</span>
+                                                <span className="flex-1">{deepText(locale, "novel.ui.incomplete")}</span>
                                                 <button type="button" disabled={isLoading || metadataRepairing}
                                                     onClick={() => onCompleteMissingMetadata?.(msg.realIndex)}
                                                     className="rounded-lg border border-[#d9c39d] bg-white px-3 py-1.5 font-semibold disabled:opacity-40">
-                                                    {metadataRepairing ? "补齐中…" : "补齐状态"}
+                                                    {metadataRepairing ? deepText(locale, "novel.ui.repairing") : deepText(locale, "novel.ui.repair")}
                                                 </button>
                                             </div>
                                         )}
@@ -666,8 +666,8 @@ export const NovelInterface = ({
                                                 onClick={() => void confirmNovelDraw(msg.realIndex)}
                                                 className="mt-5 flex w-full items-center gap-3 rounded-xl border border-[#d9bd91] bg-[#fff4de] px-4 py-3 text-left font-serif text-xs text-[#6f5637] shadow-[0_4px_18px_rgba(117,88,48,.09)] transition hover:border-[#b28b59] hover:bg-[#f8e9ce] disabled:opacity-50">
                                                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#dbc6a1] bg-[#f2e3c7] text-[#9b784a]"><Sparkles size={17}/></span>
-                                                <span className="min-w-0 flex-1"><span className="block font-sans text-[9px] font-bold tracking-[0.15em] text-[#a4875c]">TELA · CHAPTER ILLUSTRATION</span><span className="mt-1 block text-sm font-semibold">为这一章绘制插画</span></span>
-                                                <span className="ml-auto shrink-0 font-sans text-[11px] text-[#977750]">{drawingIndex === msg.realIndex ? '生成中…' : '点击生成'}</span>
+                                                <span className="min-w-0 flex-1"><span className="block font-sans text-[9px] font-bold tracking-[0.15em] text-[#a4875c]">TELA · CHAPTER ILLUSTRATION</span><span className="mt-1 block text-sm font-semibold">{deepText(locale, "novel.ui.drawChapter")}</span></span>
+                                                <span className="ml-auto shrink-0 font-sans text-[11px] text-[#977750]">{drawingIndex === msg.realIndex ? deepText(locale, "novel.ui.generating") : deepText(locale, "novel.ui.clickGenerate")}</span>
                                             </button>
                                         )}
                                         {debugMode && (msg.content.includes('<draw>') || msg.content.includes('<draw_log>')) && (
@@ -687,8 +687,8 @@ export const NovelInterface = ({
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#fdf6e3] via-[#fdf6e3] to-transparent p-4 pb-6 z-20">
                     <div className="max-w-2xl mx-auto">
                         {!novelWorldline && <div role="status" className={`mb-3 flex items-center justify-between gap-3 rounded-xl border ${theme.border} ${theme.inputBg} px-3 py-2 text-xs ${theme.text}`}>
-                            <span>请先设定世界线，才能开始或续写小说。</span>
-                            <button type="button" onClick={() => { setRightOpen(true); setWorldlineOpen(true); }} className={`shrink-0 rounded-lg border ${theme.border} px-3 py-1.5 font-semibold ${theme.hover}`}>设置世界线</button>
+                            <span>{deepText(locale, "novel.ui.needWorldline")}</span>
+                            <button type="button" onClick={() => { setRightOpen(true); setWorldlineOpen(true); }} className={`shrink-0 rounded-lg border ${theme.border} px-3 py-1.5 font-semibold ${theme.hover}`}>{deepText(locale, "novel.ui.setWorldline")}</button>
                         </div>}
                         <div className="flex items-end gap-2">
                         <button onClick={() => { const lastAssistIdx = currentSession.messages.map((m: any, i: number) => ({ ...m, i })).filter((m: any) => m.role === 'assistant').pop()?.i; if (lastAssistIdx) handleRegenerate(lastAssistIdx); }} disabled={isLoading || !novelWorldline} className={`p-3 mb-1 rounded-full ${theme.inputBg} backdrop-blur border ${theme.border} opacity-60 hover:opacity-100 hover:text-red-400 transition-all shadow-lg ${theme.subButton}`}><RefreshCw size={18} className={isLoading ? "animate-spin" : ""} /></button>
@@ -818,56 +818,56 @@ export const NovelInterface = ({
 
                                 <section className={`space-y-3 rounded-2xl border ${theme.border} ${theme.inputBg} p-4 shadow-sm`}>
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className={`text-xs font-bold ${theme.accent}`}>世界线 · WORLDLINE</span>
-                                        <span className={`text-[10px] ${theme.text} opacity-60`}>小说背景</span>
+                                        <span className={`text-xs font-bold ${theme.accent}`}>{deepText(locale, "novel.ui.worldline")} · WORLDLINE</span>
+                                        <span className={`text-[10px] ${theme.text} opacity-60`}>{deepText(locale, "novel.ui.background")}</span>
                                     </div>
                                     <p className={`text-[11px] leading-5 ${theme.text}`}>
-                                        {novelWorldline ? describeStoryWorldline({ ...novelWorldline, event:"" }, locale) : "尚未设定 · 请先选择世界观与时期"}
+                                        {novelWorldline ? describeStoryWorldline({ ...novelWorldline, event:"" }, locale) : deepText(locale, "novel.ui.worldlineMissing")}
                                     </p>
                                     <button type="button" onClick={() => setWorldlineOpen(true)} disabled={isLoading}
                                         className={`w-full rounded-xl border ${theme.border} px-3 py-2 text-xs font-semibold transition ${theme.hover} disabled:opacity-50`}>
-                                        {novelWorldline ? "编辑世界线" : "创建世界线"}
+                                        {novelWorldline ? deepText(locale, "novel.ui.editWorldline") : deepText(locale, "novel.ui.createWorldline")}
                                     </button>
                                 </section>
                                 <StoryCastPicker session={currentSession} worlds={storyWorlds}
                                     customCharacters={customCharacters} busy={isLoading}
                                     onApply={updateCast} mode="novel" tone="paper" />
                                 <section className={`rounded-2xl border ${theme.border} ${theme.inputBg} p-4 space-y-3`}>
-                                    <div className={`text-xs font-bold ${theme.accent}`}>故事身份 · STORY ROLE</div>
+                                    <div className={`text-xs font-bold ${theme.accent}`}>{deepText(locale, "novel.ui.role")} · STORY ROLE</div>
                                     <div className="grid grid-cols-2 gap-2 text-xs">
                                         <button type="button" disabled={isLoading || novelStarted}
                                             aria-pressed={novelRole === "observer"}
                                             onClick={() => updateNovelRole("observer")}
-                                            className={`rounded-xl border p-2.5 ${novelRole === "observer" ? theme.selectBorder + " " + theme.selectBg : theme.border} disabled:opacity-55`}>旁观模式</button>
+                                            className={`rounded-xl border p-2.5 ${novelRole === "observer" ? theme.selectBorder + " " + theme.selectBg : theme.border} disabled:opacity-55`}>{deepText(locale, "novel.ui.observer")}</button>
                                         <button type="button" disabled={isLoading || novelStarted || !canParticipate}
                                             aria-pressed={novelRole === "participant"}
-                                            title={!canParticipate ? "请先在 Charta 创建并启用当前世界观可用的自设" : ""}
+                                            title={!canParticipate ? deepText(locale, "novel.ui.selfRequired") : ""}
                                             onClick={() => updateNovelRole("participant")}
-                                            className={`rounded-xl border p-2.5 ${novelRole === "participant" ? theme.selectBorder + " " + theme.selectBg : theme.border} disabled:opacity-55`}>参与模式</button>
+                                            className={`rounded-xl border p-2.5 ${novelRole === "participant" ? theme.selectBorder + " " + theme.selectBg : theme.border} disabled:opacity-55`}>{deepText(locale, "novel.ui.participant")}</button>
                                     </div>
                                     {novelRole === "participant"
-                                        ? <p className={`text-[11px] leading-5 ${theme.text}`}>使用身份：<span className="font-semibold" style={{ color: novelSelf?.hex || "#799783" }}>{novelSelf ? selfName(novelSelf, locale) : "自设不存在，请检查 Charta"}</span></p>
-                                        : <p className={`text-[11px] leading-5 ${theme.text} opacity-65`}>旁观模式不注入用户自设身份。参与模式使用 Charta 当前启用的自设，不提供主视角选择。</p>}
-                                    {novelStarted && <p className={`text-[10px] ${theme.text} opacity-60`}>小说开始后故事身份保持固定。</p>}
+                                        ? <p className={`text-[11px] leading-5 ${theme.text}`}>{deepText(locale, "novel.ui.usingSelf")}<span className="font-semibold" style={{ color: novelSelf?.hex || "#799783" }}>{novelSelf ? selfName(novelSelf, locale) : deepText(locale, "novel.ui.selfUnavailable")}</span></p>
+                                        : <p className={`text-[11px] leading-5 ${theme.text} opacity-65`}>{deepText(locale, "novel.ui.observeHelp")}</p>}
+                                    {novelStarted && <p className={`text-[10px] ${theme.text} opacity-60`}>{deepText(locale, "novel.ui.roleLocked")}</p>}
                                 </section>
 
 
-                                <div><label className={`text-xs ${theme.text} opacity-70 font-bold mb-2 block uppercase`}>Quick Presets · 六种剧情方向</label><div className="grid grid-cols-2 gap-2">{PRESETS.map((p, i) => (<button key={i} type="button" disabled={isLoading || inputsLocked} onClick={() => { setEnvironment(p.environment); setEvent(p.event); setStyle(p.style); saveDraft({ environment:p.environment, event:p.event, style:p.style }); }} className={`px-3 py-2.5 rounded-xl text-left ${theme.inputBg} border ${theme.border} text-[11px] ${theme.text} hover:shadow-sm transition-all`}>{p.name}</button>))}</div></div>
+                                <div><label className={`text-xs ${theme.text} opacity-70 font-bold mb-2 block uppercase`}>Quick Presets · {deepText(locale, "novel.ui.presets")}</label><div className="grid grid-cols-2 gap-2">{PRESETS.map((p, i) => (<button key={i} type="button" disabled={isLoading || inputsLocked} onClick={() => { setEnvironment(p.environment); setEvent(p.event); setStyle(p.style); saveDraft({ environment:p.environment, event:p.event, style:p.style }); }} className={`px-3 py-2.5 rounded-xl text-left ${theme.inputBg} border ${theme.border} text-[11px] ${theme.text} hover:shadow-sm transition-all`}>{p.name}</button>))}</div></div>
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className={`text-[10px] ${theme.text} opacity-75`}>{hasNovelChapters ? "每章结束由 AI 自动更新环境、事件和下章阵容" : "第一章开始前请填写环境与当前事件"}</span>
-                                        {inputsLocked && <button type="button" onClick={allowSceneEdit} className={`shrink-0 rounded-lg border ${theme.border} px-2 py-1 text-[10px] font-semibold ${theme.hover}`}>确认后修改</button>}
+                                        <span className={`text-[10px] ${theme.text} opacity-75`}>{hasNovelChapters ? deepText(locale, "novel.ui.aiUpdates") : deepText(locale, "novel.ui.firstChapter")}</span>
+                                        {inputsLocked && <button type="button" onClick={allowSceneEdit} className={`shrink-0 rounded-lg border ${theme.border} px-2 py-1 text-[10px] font-semibold ${theme.hover}`}>{deepText(locale, "novel.ui.unlockEdit")}</button>}
                                         {manualStateEdit && <button type="button" disabled={isLoading || !environment.trim() || !event.trim()}
-                                            onClick={() => { saveDraft(); setManualStateEdit(false); showToast?.("环境与事件已保存并重新锁定。"); }}
-                                            className={`shrink-0 rounded-lg border ${theme.selectBorder} ${theme.selectBg} px-3 py-1 text-[10px] font-semibold ${theme.title} disabled:opacity-40`}>保存并锁定</button>}
+                                            onClick={() => { saveDraft(); setManualStateEdit(false); showToast?.(deepText(locale, "novel.ui.savedLock")); }}
+                                            className={`shrink-0 rounded-lg border ${theme.selectBorder} ${theme.selectBg} px-3 py-1 text-[10px] font-semibold ${theme.title} disabled:opacity-40`}>{deepText(locale, "novel.ui.saveLock")}</button>}
                                     </div>
-                                    <div><label className={`text-xs ${theme.text} opacity-80 font-bold mb-1 block`}>Environment · 环境 *</label><textarea required value={environment} readOnly={inputsLocked} onChange={e => setEnvironment(e.target.value)} onBlur={() => saveDraft()} placeholder="地点、天气、温度及周边环境" className={`w-full h-20 ${theme.inputBg} border ${theme.border} rounded p-2 text-xs ${theme.text} ${theme.focus} outline-none resize-y read-only:opacity-65`} /></div>
-                                    <div><label className={`text-xs ${theme.text} opacity-80 font-bold mb-1 block`}>Event · 当前事件 *</label><textarea required value={event} readOnly={inputsLocked} onChange={e => setEvent(e.target.value)} onBlur={() => saveDraft()} placeholder="当前正在发生的事情" className={`w-full h-20 ${theme.inputBg} border ${theme.border} rounded p-2 text-xs ${theme.text} ${theme.focus} outline-none resize-y read-only:opacity-65`} /></div>
-                                    <div><label className={`text-xs ${theme.text} opacity-70 font-bold mb-1 block`}>Style</label><input value={style} onChange={e => setStyle(e.target.value)} onBlur={() => saveDraft()} placeholder="默认正文 1000–2000 字；可在此自行指定字数" className={`w-full ${theme.inputBg} border ${theme.border} rounded p-2 text-xs ${theme.text} ${theme.focus} outline-none`} /></div>
+                                    <div><label className={`text-xs ${theme.text} opacity-80 font-bold mb-1 block`}>Environment · {deepText(locale, "novel.ui.environment")} *</label><textarea required value={environment} readOnly={inputsLocked} onChange={e => setEnvironment(e.target.value)} onBlur={() => saveDraft()} placeholder={deepText(locale, "novel.ui.environmentHint")} className={`w-full h-20 ${theme.inputBg} border ${theme.border} rounded p-2 text-xs ${theme.text} ${theme.focus} outline-none resize-y read-only:opacity-65`} /></div>
+                                    <div><label className={`text-xs ${theme.text} opacity-80 font-bold mb-1 block`}>Event · {deepText(locale, "novel.ui.event")} *</label><textarea required value={event} readOnly={inputsLocked} onChange={e => setEvent(e.target.value)} onBlur={() => saveDraft()} placeholder={deepText(locale, "novel.ui.eventHint")} className={`w-full h-20 ${theme.inputBg} border ${theme.border} rounded p-2 text-xs ${theme.text} ${theme.focus} outline-none resize-y read-only:opacity-65`} /></div>
+                                    <div><label className={`text-xs ${theme.text} opacity-70 font-bold mb-1 block`}>Style</label><input value={style} onChange={e => setStyle(e.target.value)} onBlur={() => saveDraft()} placeholder={deepText(locale, "novel.ui.styleHint")} className={`w-full ${theme.inputBg} border ${theme.border} rounded p-2 text-xs ${theme.text} ${theme.focus} outline-none`} /></div>
                                 </div>
 
-                                <button onClick={() => handleGenerate('new')} disabled={isLoading || !novelWorldline} className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg ${theme.button}`}><Sparkles size={16} /> 编织新篇章</button>
+                                <button onClick={() => handleGenerate('new')} disabled={isLoading || !novelWorldline} className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg ${theme.button}`}><Sparkles size={16} /> {deepText(locale, "novel.ui.newChapter")}</button>
                             </div>
                         </div>
                     </motion.div>
