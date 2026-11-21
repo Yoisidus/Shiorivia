@@ -1215,7 +1215,7 @@ export const useChatEngine = ({
         if (isLoading) return;
         const modelToUse = (config.customModelId || config.selectedModel || "").trim();
         if (!modelToUse) { showToast("请先选择模型。"); return; }
-        const previous = target.storyStateBefore?.fields || {};
+        const previous = target.storyStateBefore?.fields;
         const controller = new AbortController();
         abortControllerRef.current = controller;
         setStoryStateRepairing(true);
@@ -1223,8 +1223,8 @@ export const useChatEngine = ({
         try {
             const prompt = [
                 "仅补齐这一轮已经完成的故事正文的 game_state，禁止续写或修改剧情。",
-                "此前自身状态: " + JSON.stringify(previous.protagonist ?? currentSession.protagonist ?? null).slice(0, 2400),
-                "此前其他角色状态: " + JSON.stringify(previous.charStatus ?? currentSession.charStatus ?? []).slice(0, 4000),
+                "此前自身状态: " + JSON.stringify(previous?.protagonist ?? currentSession.protagonist ?? null).slice(0, 2400),
+                "此前其他角色状态: " + JSON.stringify(previous?.charStatus ?? currentSession.charStatus ?? []).slice(0, 4000),
                 "世界线: " + JSON.stringify(currentSession.storyWorldline),
                 "已完成正文:\n" + String(target.content).slice(-14000),
             ].join("\n\n");
@@ -1268,7 +1268,7 @@ export const useChatEngine = ({
             }
             const repaired: any = state;
             const worldline = parseStoryWorldline(currentSession.storyWorldline);
-            const allowedChars = [...CHARACTERS, ...customCharacters].filter((char: any) =>
+            const allowedChars: any[] = [...CHARACTERS, ...customCharacters].filter((char: any) =>
                 worldline && storyCastAllowed(char, worldline));
             const allowed = new Set(allowedChars.map((char: any) => char.id));
             const stage = selectStoryCastIds(repaired.sceneCastIds, allowed);
