@@ -848,7 +848,7 @@ export const NovelInterface = ({
                     setPendingNovelChoice(null);
                     if (choice && !isLoading) handleGenerate("continue", choice);
                 }} />
-            <StoryWorldlineFateModal elevated isOpen={worldlineOpen}
+            <StoryWorldlineFateModal tone="novel" elevated isOpen={worldlineOpen}
                 value={novelWorldline ? { ...novelWorldline, event:"" } : undefined}
                 worlds={storyWorlds}
                 onSave={updateWorldline}
