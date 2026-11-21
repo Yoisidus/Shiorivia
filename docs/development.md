@@ -52,7 +52,7 @@ The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint 
 
 ### Unified dialogs / 统一弹窗
 
-Standard alerts, destructive confirmations, text input prompts and Officina code-edit review are managed by `DialogProvider` and `useAppDialog` under `src/context/DialogContext.tsx`. All six spaces receive their own color and visual identity (Officina, Via Lata, Umbra, Tela, VIAE and Charta). Native `alert`, `confirm` and `prompt` calls have been replaced with awaitable in-app dialogs. IDE edit review shows code snippets by file and line, and the server rechecks versions before writing.
+Standard alerts, destructive confirmations, text input prompts and Officina code-edit review are managed by `DialogProvider` and `useAppDialog` under `src/context/DialogContext.tsx`. All six spaces receive their own color and visual identity (Officina, Via Lata, Umbra, Tela, VIAE and Charta). Native `alert`, `confirm` and `prompt` calls have been replaced with awaitable in-app dialogs. The dialog host portals to `document.body` above full-screen layouts, accepts at most one request at a time (no backlog), and resolves close/escape/cancel consistently. Manual Save To Disk is single-flight from its confirmation through the disk request, so repeated taps cannot enqueue extra confirmations. IDE edit review shows code snippets by file and line, and the server rechecks versions before writing.
 
 Complex feature-specific editors (for example novel archives, worldline editors and Memory Vault) retain their specialized interfaces; the shared manager handles their simple confirmation and notification steps rather than forcing these editors into a generic text prompt.
 
