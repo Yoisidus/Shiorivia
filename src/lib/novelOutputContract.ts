@@ -38,10 +38,11 @@ STRICT ORDER — FOLLOW ON EVERY CHAPTER, EVEN CONTINUATIONS:
 5. Immediately after the complete chapter prose, emit exactly ONE private <turn_memory> record with this JSON shape:
 <turn_memory>{"stm":"concise true summary of this chapter","ltm":${seventhTurn ? '"updated nonempty consolidated long-term memory"' : "null"}}</turn_memory>
 6. LAST, emit exactly ONE complete <novel_state> JSON object, with NO text after its closing tag:
-<novel_state>{"environment":"nonempty current setting at chapter end","event":"nonempty current scene event at chapter end","nextSceneCastIds":[],"choices":{"fun":"distinct plausible next plot development","rational":"grounded next plot development with consequences","radical":"bold but believable next plot development"},"danmaku":[]}</novel_state>
+<novel_state>{"era":"current canon ERA","period":"current canon PERIOD","environment":"nonempty current setting at chapter end","event":"nonempty current scene event at chapter end","nextSceneCastIds":[],"choices":{"fun":"distinct plausible next plot development","rational":"grounded next plot development with consequences","radical":"bold but believable next plot development"},"danmaku":[]}</novel_state>
 
-NOVEL_STATE — ALL FIVE KEYS REQUIRED:
-- environment and event: concise, truthful, nonempty UI-language strings describing the scene AT THE END of this chapter, not the whole plot. Do not change the locked WORLD/ERA/PERIOD/AU baseline.
+NOVEL_STATE — ALL SEVEN KEYS REQUIRED:
+- era and period: the current original-timeline stage labels, or a LATER exact ERA/PERIOD pair from the ordered canonical stages injected in the worldline instructions, ONLY when the actual chapter has advanced time. Never move backward, invent stages, alter WORLD or change AU chronology/baselines. The app validates forward changes. If no progression occurs, repeat the established current ERA/PERIOD.
+- environment and event: concise, truthful, nonempty UI-language strings describing the scene AT THE END of this chapter, not the whole plot. The WORLD and AU baseline remain fixed.
 - nextSceneCastIds: ALWAYS [] (legacy archive field). A separate cast-lookup call chooses every later chapter's active cast; never forecast or pin it here.
 - choices: ALWAYS exactly three meaningful UI-language proposals, each a concrete potential DEVELOPMENT of the novel's next scene, not a command to the reader or an order that the participant self must act. Write these as AUTHORIAL STORY PREMISES: new situations, discoveries, character initiatives, changes of pace or tension, and realistic consequences. The self is an ordinary fictional character and need not initiate any choice. Do not frame choices as "you do X", "the player should X", or three versions of controlling the self. If a decision belongs to a character, leave room for their natural agency.
   - fun: a playful or unexpected, plausible narrative turn.
