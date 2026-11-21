@@ -48,7 +48,13 @@ The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint 
 - Via Lata's **故事手记** and Umbra's **聊天笔记** each edit their own session worldbook. The legacy global worldbook is no longer shown or injected into AI prompts for either mode.
 - Officina's **会话指南** replaces the old global Guide and injects development guidance only for the current engineering session. New sessions start empty; the old global value is retained solely for legacy archive compatibility.
 - Tela's outline is labeled **SESSION SETTING** because it is stored on the current novel session, not globally.
-- Editing a session note uses a local draft. Pressing **保存设定** commits it to session state and shows a native browser **保存成功** alert; closing without saving discards the draft. **Save To Disk** remains a separate manual full-snapshot action, with native confirmation and outcome alerts. Previously archived global data is not deleted or silently migrated to a particular session.
+- Editing a session note uses a local draft. Pressing **保存设定** commits it to session state and shows an in-app themed **保存成功** dialog; closing without saving discards the draft. **Save To Disk** remains a separate manual full-snapshot action, with themed confirmation and outcome dialogs. Previously archived global data is not deleted or silently migrated to a particular session.
+
+### Unified dialogs / 统一弹窗
+
+Standard alerts, destructive confirmations, text input prompts and Officina code-edit review are managed by `DialogProvider` and `useAppDialog` under `src/context/DialogContext.tsx`. All six spaces receive their own color and visual identity (Officina, Via Lata, Umbra, Tela, VIAE and Charta). Native `alert`, `confirm` and `prompt` calls have been replaced with awaitable in-app dialogs. IDE edit review shows code snippets by file and line, and the server rechecks versions before writing.
+
+Complex feature-specific editors (for example novel archives, worldline editors and Memory Vault) retain their specialized interfaces; the shared manager handles their simple confirmation and notification steps rather than forcing these editors into a generic text prompt.
 
 ### AI request and response diagnostics / AI 请求与原文调试
 
