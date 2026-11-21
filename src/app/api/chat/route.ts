@@ -6,7 +6,7 @@ import { GEMINI_NARRATIVE_STYLE_PROMPT, shouldApplyGeminiNarrativeStyle } from "
 import { storyOutputContract } from "../../../lib/storyOutputContract";
 import { storyColorRenderingInstruction } from "../../../lib/storyColorRendering";
 import { storyTurnMemoryInstruction } from "../../../lib/storyTurnMemory";
-import { novelTurnMemoryInstruction } from "../../../lib/novelTurnMemory";
+import { novelOutputContract } from "../../../lib/novelOutputContract";
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
 import { inspectIdeProject } from "../../../lib/ideInspection";
@@ -274,18 +274,7 @@ ${novelWorldline.kind === "au" ? `Canonical baseline (character knowledge cutoff
 Use this worldline as the novel's established background. Do not replace it with another era or invent knowledge from future events.
 [END STORY WORLDLINE]
 
-[MANDATORY FORMATTING RULES]:
-1. **METADATA — EVERY CHAPTER, NO EXCEPTIONS**: The FIRST LINE of EVERY response, including Chapter 2 and every continuation, MUST be exactly <meta title="NOVEL_TITLE" chapter="CHAPTER_TITLE" /> with real, non-empty titles in the UI language. Use the novel's established overall title for NOVEL_TITLE. Read the previous chapter's title in the conversation: if this chapter stays in essentially the same scene/theme, you MAY reuse that CHAPTER_TITLE; when the chapter's main event, focus or location materially shifts, write a distinct, meaningful new CHAPTER_TITLE. Do NOT omit the tag just because the novel is continuing. Output <meta> ONCE at the start, never after the prose.
-2. **ILLUSTRATION**: ${imageToolSelected ? "The image-generation tool was SELECTED for this turn. Only when an illustration would genuinely improve the scene may you output ONE valid JSON <draw>...</draw> tag using the provided visualizer protocol." : "Image generation is DISABLED. Do NOT output <draw>, <draw_log>, image descriptions intended as tool commands, image JSON or illustration instructions."}
-3. **Music**: ${autoDjEnabled ? 'Auto DJ is enabled: use only an exact song title/artist from the supplied playlist, and output <audio>{"name":"Song Title","artist":"Artist"}</audio> ONLY when the scene genuinely matches; omit <audio> when no suitable song exists.' : "Do not output audio control tags."}
-4. **NOVEL STATE — REQUIRED**: Write the literary chapter FIRST. Then output exactly one <turn_memory> record as instructed by TELA CHAPTER MEMORY below, and FINALLY output ONE complete <novel_state> JSON object as the very LAST output block. Do not emit separate <novel_choices> or <novel_danmaku> tags.
-<novel_state>{"environment":"current location, weather, temperature and significant surroundings at this chapter's end","event":"what is happening NOW at this chapter's endpoint","nextSceneCastIds":[],"choices":{"fun":"playful but plausible next action","rational":"thoughtful consequential next action","radical":"bold but believable next action"},"danmaku":[]}</novel_state>
-- All FIVE keys must appear: environment and event (nonempty strings in UI language), nextSceneCastIds (always [] for old archive compatibility; future chapters select their own casts), choices (object with exactly three meaningful, concrete developments with keys fun, rational, radical), danmaku (an array of short, fictional reader reactions, or [] if disabled).
-- Each choices VALUE must be an interesting, grounded prospective NEXT action/event in the active UI language. fun is playful/unexpected but plausible, rational is strategically grounded, radical is bold/risky but psychologically credible. Avoid OOC character acts, unwarranted decisions on behalf of the participant self and future-canon spoilers.
-- ${danmakuEnabled ? `Generate exactly ${danmakuCount} short, diverse, funny fictional audience reactions inside novel_state.danmaku. Focus on specific events in this chapter; no spoilers or invented canon. These are not lines of dialogue.` : "Danmaku disabled: novel_state.danmaku MUST be []. Do not create fake comments." }
-- The selected worldline WORLD / ERA / PERIOD / AU baseline is immutable and must never be modified by the generated novel_state.
-- The novel_state is machine-readable metadata, never part of chapter prose; preserve proper JSON escaping. The supplied cast profiles are for THIS chapter only.
-[SYSTEM]: EXECUTE NOVEL MODE. BEGIN WITH <meta>, WRITE ACTUAL LITERARY FICTION, THEN <turn_memory>, THEN <novel_state>. The novel_state.choices and novel_state.danmaku contain all extra chapter metadata; NEVER emit standalone novel_choices or novel_danmaku blocks.
+[END TELA NARRATIVE SETTINGS]
 `;
 
       const novelParticipant = body.storyRole === "participant"
@@ -294,8 +283,8 @@ Use this worldline as the novel's established background. Do not replace it with
         return Response.json({ error: "参与模式需要一个已启用的 Charta 自设" }, { status: 400 });
       }
       finalSystemPrompt += novelParticipant
-        ? "\n[NOVEL STORY ROLE — PARTICIPANT]\nThe selected Charta self is a FULLY ACTIVE fictional character with their own initiative, speech, observations, emotions, actions and credible reactions. Write the novel in normal literary form; the self is not a director addressing the AI. When another character shows the self a phone, asks something, approaches them or initiates interaction, narrate the self's natural response and consequent back-and-forth IN THE CHAPTER, not only in plot-choice suggestions. You are the novelist controlling all in-scene characters (including the self), within their established personalities, motives, agency and knowledge. Never write a succession of one-sided prompts directed toward a silent self; give the self dialogue, actions and interiority where appropriate. Treat the user-authored self like any other ordinary fictional character participating in the world: a natural speaking, thinking, acting member of the cast, not a special assistant-facing user, player prompt, narrator proxy or silent blank slate. Every spoken line and private thought attributed to the self MUST be wrapped in their saved theme hex using the identical {{#RRGGBB|spoken or thought text}} rendering protocol as other cast dialogue; never use an uncolored line for the self. The three optional next-scene suggestions guide only the larger direction of future plot; they are NOT required to authorize ordinary speech, reactions, or scene progression. Avoid puppeteering the self into implausible, out-of-character, irreversible major decisions. Do not create a separate unnamed user character or add the self to the cast IDs.\n[END NOVEL STORY ROLE]"
-        : "\n[NOVEL STORY ROLE — OBSERVER]\nThe user is an outside author/director, NOT a character in the fiction. Do not assume the user has a name, persona or POV. Follow director instructions as writing guidance, not dialogue within the story.\n[END NOVEL STORY ROLE]";
+        ? "\n[NOVEL PARTICIPANT — ORDINARY FICTIONAL CHARACTER]\nThe Charta self is a fully active, ordinary in-world fictional character, not an assistant-facing user, player cursor, or permanently central POV. Write their speech, thoughts, decisions, responses, strengths and flaws as naturally as those of the other characters, grounded in the provided profile and current scene. The novelist may follow ANY appropriate character or change focalization as the story needs: the self need not be in every scene or initiate every plot development. When another character addresses the self, show an organic response when appropriate; do not leave them silent waiting for an external player command. Keep the self's established agency and knowledge; do not force implausible, irreversible major decisions or invent a second user character. Their dialogue and private thoughts must use the saved self-color according to the existing {{HEX|text}} rendering format. The self does not occupy an eligible cast-tool ID slot.\n[END NOVEL PARTICIPANT]"
+        : "\n[NOVEL OBSERVER]\nThe user directs the fiction from outside it, not as an in-world character. Do not invent a user persona or force a fixed POV. Treat director instructions as prose guidance, never as fictional spoken dialogue.\n[END NOVEL OBSERVER]";
       if (novelParticipant && body.novelSelf !== null && body.novelSelf !== undefined) {
         const rawSelf = body.novelSelf;
         if (!rawSelf || typeof rawSelf !== "object" || Array.isArray(rawSelf)
@@ -331,9 +320,9 @@ Use this worldline as the novel's established background. Do not replace it with
             genderCustom: typeof rawSelf.genderCustom === "string" ? rawSelf.genderCustom : undefined,
             ...extras,
           }, period, selfStages);
-          finalSystemPrompt += "\n\n[NOVEL PROTAGONIST — user-authored character data]\n"
-            + selfLore + "\n[END NOVEL PROTAGONIST]\n"
-            + "Use this selected Charta self as an ordinary in-world character and central viewpoint, not an external user or blank player avatar. They are NOT an additional cast ID. Do not override the user's explicit director choices or invent an unrelated protagonist. CRITICAL: render their dialogue and inner thoughts with {{HEX|text}} using exactly this self's saved theme color: "
+          finalSystemPrompt += "\n\n[NOVEL PARTICIPANT CHARACTER DATA — supplied by Charta]\n"
+            + selfLore + "\n[END NOVEL PARTICIPANT CHARACTER DATA]\n"
+            + "Treat the self as an ordinary member of the fictional ensemble. Their presence does not mandate a fixed central viewpoint or participation in every scene, nor are they an extra cast-tool ID. Respect their relationships, period-limited knowledge, agency and authored identity. For their dialogue and private thoughts use {{HEX|text}} with the saved theme color: "
             + (typeof rawSelf.hex === "string" && /^#[0-9a-fA-F]{6}$/.test(rawSelf.hex) ? rawSelf.hex : "#799783")
             + ". This color protocol applies to every speaking turn and thought by the self, just as it does to other cast members.";
         } catch {
@@ -341,10 +330,6 @@ Use this worldline as the novel's established background. Do not replace it with
         }
       }
 
-      finalSystemPrompt += "\n" + novelTurnMemoryInstruction({
-        previousStm: String(stm || ""), previousLtm: String(ltm || ""),
-        turnCount: Number(body.storyMemoryTurnCount) || 0,
-      });
       if (autoDjEnabled) finalSystemPrompt += buildMusicMenu() || "\n[AUTO DJ] The playlist is empty. Do not output music configuration or audio tags.\n";
 
     } else if (memoryMode === "lime") { // Persisted VIAE mode ID, kept for older saves.
@@ -882,7 +867,7 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
             : loreForBangDreamPeriod(LORE_LIBRARY[char.id] || "", origin === BANG_DREAM_WORLD_ID ? originPeriod : null);
           return [`[CAST PROFILE] ID=${char.id}; PUBLIC_ID=${"characterCode" in char ? char.characterCode : char.id}; NAME=${char.name}; WORLD=${source ? ("worldName" in source ? source.worldName : source.name) : worldline.worldName}\n${bio || "(No biography provided; do not invent established facts.)"}\n[END CAST PROFILE]`];
         }).join("\n\n");
-        finalSystemPrompt += `\n\n[STORY CAST — turn-specific context]\nEligible roster (IDs/names only):\n${roster || "(empty)"}\nFULL profiles for THIS ${memoryMode === "novel" ? "CHAPTER" : "response"}: ${JSON.stringify(chosen)}\n${foreignWorldNotes ? `[ORIGINAL WORLDS]\n${foreignWorldNotes}\n[END ORIGINAL WORLDS]\n` : ""}${profiles || (memoryMode === "novel" ? "(The cast lookup chose no characters for this chapter. Do not invent canonical biographies.)" : "(The cast lookup chose no characters for this turn. Do not invent canonical biographies.)")}\nThe resolved cast applies to THIS response only, not the next one. The next response will independently run cast lookup again. Any nextSceneCastIds field is historical protocol data, not a cast selection command. Use only supplied profiles as authoritative characterization. Respect the selected timeline or AU baseline: character knowledge, names and relationships cannot include future information even when evergreen editorial notes mention later arcs. For AU, retain the selected baseline as a starting point; later canon events are not automatically destined to recur. Do not invent a foreign-world crossing without explicit permission.\n[END STORY CAST]`;
+        finalSystemPrompt += `\n\n[STORY CAST — turn-specific context]\nELIGIBLE ROSTER — candidate IDs/names, NOT chapter participants or full profiles:\n${roster || "(empty)"}\nACTIVE ${memoryMode === "novel" ? "CHAPTER" : "TURN"} CAST — only these selected IDs have full lore for this response: ${JSON.stringify(chosen)}\n${foreignWorldNotes ? `[ORIGINAL WORLDS]\n${foreignWorldNotes}\n[END ORIGINAL WORLDS]\n` : ""}${profiles || (memoryMode === "novel" ? "(The cast lookup chose no characters for this chapter. Do not invent canonical biographies.)" : "(The cast lookup chose no characters for this turn. Do not invent canonical biographies.)")}\nThe eligible roster contains potential future cast, not guaranteed on-stage characters. Only ACTIVE CAST profiles grant authoritative full biographies this turn; the display color map is styling data and does not itself authorize new cast members or invent missing lore. The resolved cast applies to THIS response only, not the next one. The next response will independently run cast lookup again. Any nextSceneCastIds field is historical protocol data, not a cast selection command. Use only supplied profiles as authoritative characterization. Respect the selected timeline or AU baseline: character knowledge, names and relationships cannot include future information even when evergreen editorial notes mention later arcs. For AU, retain the selected baseline as a starting point; later canon events are not automatically destined to recur. Do not invent a foreign-world crossing without explicit permission.\n[END STORY CAST]`;
       }
     }
     // Unselected Charta profiles must not leak into other spaces. Their lore is
@@ -890,7 +875,7 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
     // Via Lata already has its complete thinking/title/prose/state order
     // in STORY RESPONSE ORDER and the inline title contract above.
     if (body.stateRepair !== true && body.novelStateRepair !== true
-        && ["infinite", "chat", "novel"].includes(memoryMode)) {
+        && ["infinite", "chat"].includes(memoryMode)) {
       const review = body.titleManuallyEdited !== true && shouldReviewInlineTitle(body.titleReviewTurn);
       finalSystemPrompt += "\n\n[FINAL OUTPUT METADATA CHECK]\n"
         + (review
@@ -903,6 +888,18 @@ Never put session_title, turn_memory or game_state inside <thinking>, and never 
           ? "\nEvery novel chapter MUST start with complete <meta title=\"...\" chapter=\"...\" /> metadata and a chapter-specific title, even when no session-title review is due."
           : "")
         + "\n[END FINAL OUTPUT METADATA CHECK]";
+    }
+
+    // All Tela machine-tag ordering lives in ONE contract, appended after
+    // lore, title context, style extension and eligible/active cast details.
+    if (memoryMode === "novel" && !independentRepair) {
+      finalSystemPrompt += "\n\n" + novelOutputContract({
+        reviewSessionTitle: body.titleManuallyEdited !== true
+          && shouldReviewInlineTitle(body.titleReviewTurn),
+        danmakuEnabled, danmakuCount, imageToolSelected, autoDjEnabled,
+        previousStm: String(stm || ""), previousLtm: String(ltm || ""),
+        memoryTurnCount: Number(body.storyMemoryTurnCount) || 0,
+      });
     }
 
     if (memoryMode === "infinite" && typeof body.engineeringProjectRoot === "string"
