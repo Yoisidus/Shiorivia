@@ -125,7 +125,7 @@ const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, the
             {options.length > 0 && (
                 <div className={`grid grid-cols-1 gap-3 mt-10 pt-8 border-t ${theme.border}`}>
                     <div className={`text-xs font-mono ${theme.accent} tracking-widest uppercase mb-2 opacity-70`}>
-                        {locale === "en" ? "Next possibilities" : locale === "ja" ? "次の展開" : locale === "ko" ? "다음 전개" : locale === "zh-TW" ? "後續發展" : "后续发展"}
+                        {deepText(locale, "novel.ui.nextPossibilities")}
                     </div>
                     {options.map((opt, i) => (
                         <div key={i} className={`rounded-xl border ${theme.border} ${theme.inputBg} overflow-hidden`}>
@@ -247,7 +247,7 @@ export const NovelInterface = ({
         setEnvironment(draft?.environment || currentSession?.novelState?.environment || draft?.scenario || "");
         setEvent(draft?.event || currentSession?.novelState?.event || draft?.action || "");
         setManualStateEdit(false);
-        setStyle(draft?.style || "温馨、细腻、富有生活感");
+        setStyle(draft?.style || deepText(locale, "novel.ui.styleDefault"));
         setOutline(currentSession?.localWorldInfo || draft?.outline || "");
         // Legacy themes are displayed as parchment without modifying old archives.
     }, [currentSession?.id]);
