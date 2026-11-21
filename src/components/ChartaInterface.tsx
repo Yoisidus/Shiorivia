@@ -4,6 +4,7 @@ import { useCallback, useRef, useState, type ChangeEvent } from "react";
 import { ArrowLeft, ChevronDown, Download, FilePlus2, Palette, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME } from "../lib/storyWorldline";
 import { useLanguage } from "../context/LanguageContext";
+import { useAppDialog } from "../context/DialogContext";
 import { chartaText } from "../lib/chartaText";
 import {
   CHARTA_LANGUAGES, CHARTA_PRESET_AVATARS, decodeChartaImport, encodeChartaExport,
@@ -62,6 +63,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
   storageError: string;
 }) {
   const { locale } = useLanguage();
+  const dialog = useAppDialog();
   type CabinetKind = "characters" | "self" | "worlds";
   const [section, setSection] = useState<CabinetKind>(initialSection);
   const [cabinetHome, setCabinetHome] = useState(true);
@@ -85,8 +87,8 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
   const portraitRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const update = (next: Draft) => { setDraft(next); setDirty(true); setMessage(""); };
-  const select = (next: Draft | null) => {
-    if (dirty && !window.confirm(txt("unsaved"))) return;
+  const select = async (next: Draft | null) => {
+    if (dirty && !await dialog.confirm(txt("unsaved"))) return;
     setDraft(next); setDirty(false); setShowAdd(false); setMessage("");
   };
   const start = () => select(newDraft(locale));
@@ -223,7 +225,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
   const deleteDraft = async () => {
     if (!draft || busy || !characters.some(c => c.id === draft.id)) return;
     if (usedIds.includes(draft.id)) { setMessage(txt("inUse")); return; }
-    if (window.confirm(txt("confirmDelete"))) {
+    if (await dialog.confirm(txt("confirmDelete"))) {
       setBusy(true);
       try { if (await remove(draft.id)) { setDraft(null); setDirty(false); setMessage(txt("deleted")); } }
       finally { setBusy(false); }
@@ -235,8 +237,8 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
     if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,3}$/.test(lang) || lang in draft.names || Object.keys(draft.names).length >= 12) { setMessage(txt("noOther")); return; }
     update({ ...draft, names: { ...draft.names, [lang]: "" } }); setShowAdd(false); setCustomLang("");
   };
-  const chooseArchive = (kind: "characters" | "self" | "worlds", id: string | null) => {
-    if ((dirty || childDirty) && !window.confirm("有尚未保存的档案修改，确定切换吗？")) return;
+  const chooseArchive = async (kind: "characters" | "self" | "worlds", id: string | null) => {
+    if ((dirty || childDirty) && !await dialog.confirm("有尚未保存的档案修改，确定切换吗？")) return;
     setSection(kind); setCabinetSelection({ kind, id }); setChildDirty(false); setCabinetHome(false); setImportMenuOpen(false);
     if (kind === "characters") {
       const item = id ? characters.find(character => character.id === id) : null;
@@ -247,9 +249,9 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
       setDirty(false);
     }
   };
-  const closeArchive = () => {
+  const closeArchive = async () => {
     if (!cabinetHome) {
-      if ((dirty || childDirty) && !window.confirm("有尚未保存的档案修改，确定返回 Charta 主界面吗？")) return;
+      if ((dirty || childDirty) && !await dialog.confirm("有尚未保存的档案修改，确定返回 Charta 主界面吗？")) return;
       setCabinetHome(true);
       setDraft(null); setDirty(false); setChildDirty(false); setMessage("");
       setCabinetSelection({ kind: section, id: null });
