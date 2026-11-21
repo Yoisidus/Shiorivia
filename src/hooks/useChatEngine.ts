@@ -10,6 +10,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { asChartaSelfPromptData, selfName } from "../lib/chartaSelf";
 import { asChartaPromptData } from "../lib/charta";
 import { parseStoryWorldline, enabledWorldIds, advanceWorldlineFromState } from "../lib/storyWorldline";
+import { applyWorldlineAdvance, stripWorldlineAdvance } from "../lib/worldlineAdvanceProtocol";
 import { extractNovelState, stripNovelState } from "../lib/novelState";
 import { snapshotNovelState, restoreNovelState } from "../lib/novelStateRecovery";
 import { stripNovelSuggestions } from "../lib/novelSuggestions";
@@ -277,12 +278,15 @@ export const useChatEngine = ({
                     ...s, messages: [...msgs, { role: "assistant", content: extractInlineTitle(
                         currentSession.memoryMode === "sliding"
                             ? stripStoryThinking(fullText).replace(/<thinking\b[^>]*>[\s\S]*$/i, "")
-                            : fullText
+                            : currentSession.memoryMode === "chat" ? stripWorldlineAdvance(fullText) : fullText
                     ).text.replace(/<turn_memory\s*>[\s\S]*?<\/turn_memory\s*>\s*/gi, "").replace(/<turn_memory\b[\s\S]*$/i, ""), modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }]
                 } : s));
             }
 
             
+            const chatWorldlineAdvance = currentSession.memoryMode === "chat"
+                ? applyWorldlineAdvance(parseStoryWorldline(currentSession.storyWorldline), fullText) : null;
+            if (currentSession.memoryMode === "chat") fullText = stripWorldlineAdvance(fullText);
             if (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel") fullText = stripStoryThinking(fullText);
             const titleFromSameGeneration = extractInlineTitle(fullText);
             fullText = titleFromSameGeneration.text;
@@ -306,6 +310,8 @@ export const useChatEngine = ({
                 // Character Chat preserves distinct speaker IDs and memory ownership.
                 setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? {
                     ...s,
+                    ...(chatWorldlineAdvance && s.storyWorldline
+                        ? { storyWorldline: advanceWorldlineFromState(s.storyWorldline, chatWorldlineAdvance) } : {}),
                     messages: [...msgs, { role: "assistant", content: fullText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }],
                     updatedAt: Date.now(),
                 } : s));
