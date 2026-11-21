@@ -26,6 +26,7 @@ import { cleanDrawTag } from "../lib/parseDraw";
 import { MemoryVaultModal } from "./MemoryVaultModal";
 import { parseLocalMemoryEntries } from "../lib/localMemory";
 import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 import { characterDisplayName } from "../lib/characterNames";
 import { localText } from "../lib/i18nLocal";
 import { deepText } from "../lib/i18nDeep";
@@ -142,7 +143,7 @@ const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, the
                             </button>
                             <div className={`border-t ${theme.border} px-3 py-2 flex justify-end`}>
                                 <button type="button" disabled={disabled} onClick={() => onOptionInsert(opt.text)}
-                                    className={`rounded-lg border ${theme.border} px-3 py-1.5 text-[11px] font-semibold ${theme.accent} ${theme.hover} disabled:opacity-40`}>填入输入框</button>
+                                    className={`rounded-lg border ${theme.border} px-3 py-1.5 text-[11px] font-semibold ${theme.accent} ${theme.hover} disabled:opacity-40`}>{deepText(locale, "novel.suggestion.insert")}</button>
                             </div>
                         </div>
                     ))}
@@ -177,22 +178,22 @@ export const NovelInterface = ({
     const theme = THEMES.paper;
 
     const confirmStopGeneration = async () => {
-        if (await dialog.confirm("确认暂停小说章节生成吗？当前章节可能尚未完成。", { destructive: true })) stopGeneration();
+        if (await dialog.confirm(deepText(locale, "novel.suggestion.stopAsk"), { destructive: true })) stopGeneration();
     };
     const confirmNovelSuggestion = async (text: string, mode: "send" | "insert") => {
         if (isLoading || !text.trim()) return;
         const accepted = await dialog.confirm(
-            mode === "send" ? "确认直接采用并发送这条剧情指引吗？" : "确认将这条剧情指引填入导演输入框吗？",
-            { title: mode === "send" ? "TELA · 确认发送" : "TELA · 确认填入",
-              confirmLabel: mode === "send" ? "确认发送" : "确认填入", tone: "tela", preview: text },
+            mode === "send" ? deepText(locale, "novel.suggestion.sendAsk") : deepText(locale, "novel.suggestion.insertAsk"),
+            { title: mode === "send" ? `TELA · ${deepText(locale, "novel.suggestion.sendTitle")}` : `TELA · ${deepText(locale, "novel.suggestion.insertTitle")}`,
+              confirmLabel: mode === "send" ? deepText(locale, "story.suggestion.sendConfirm") : deepText(locale, "story.suggestion.insertConfirm"), tone: "tela", preview: text },
         );
         if (!accepted || isLoading) return;
         if (mode === "send") {
-            dialog.notify("已采纳剧情指引，正在生成下一章。", { type: "success", tone: "tela" });
+            dialog.notify(deepText(locale, "novel.suggestion.sent"), { type: "success", tone: "tela" });
             void handleGenerate("continue", text);
         } else {
             setDirectorInput(text);
-            dialog.notify("剧情指引已填入导演输入框，可以继续修改。", { type: "success", tone: "tela" });
+            dialog.notify(deepText(locale, "novel.suggestion.inserted"), { type: "success", tone: "tela" });
         }
     };
     const [showFullPlayer, setShowFullPlayer] = useState(false);
