@@ -33,9 +33,11 @@ This applies to **seemoon1/Shiorivia** (Local Edition), not Shiorivia_Cloud.
 ## VIAE English prompt and inline memories
 
 - VIAE's default system prompt is written in English for both Semita and Compitum. Character phone messages remain in the selected UI language, with authentic individual voices. The JSON `<viae_chat>[{"charId":"...","text":"..."}]</viae_chat>` protocol is unchanged; older `<lime_chat>` archives remain readable. Observer scene directions never become messages on the characters' phones, while participant messages use the selected in-world phone viewpoint.
-- Each road stores STM/LTM independently in the existing `limeGroups[].stm`, `ltm` and `turnCount` fields. The current model response appends one private `<turn_memory>` after the visible `<viae_chat>` and optional `<worldline_update>`; chat bubbles never display this metadata.
-- Six complete interactions add STM entries, and the seventh consolidates them plus the prior LTM into one updated LTM without a second model call. The legacy `/api/summarize` path is a fallback only when the inline metadata is missing or the seventh-turn LTM is invalid. Failed macro summaries retain STM instead of resetting the count; slow fallback requests cannot overwrite changed memory or newer chat turns. Regeneration does not append a duplicate memory entry.
+- Each road stores STM/LTM independently in existing `limeGroups[].stm`, `ltm` and `turnCount`. The new model output sequence is `<viae_chat>` → `<turn_memory>` → optional `<worldline_update>` **last**. Chat bubbles never display either private metadata block; if the canon ERA/PERIOD changes, the change must move forward in the original stage order.
+- Six complete interactions add STM entries; the seventh consolidates them plus the prior LTM. There is now **NO automatic summarize fallback**: malformed chat JSON, missing STM or missing seventh-turn LTM flags the affected reply for a **manual confirmed 补齐状态** call to the active provider/model. During repair, the input is disabled, with success/failure notifications. Only the last reply of the same road may be updated; other paths and valid existing memory remain unchanged. Regeneration does not append a duplicate memory entry.
 - VIAE retains fixed-member lore injection and the user-selected shared context budget. The shared presets are now 64K, 128K, 256K (default), 512K and 1024K; the actual model/provider's supported context size still applies. No automatic truncation of a member's biography is introduced by this feature.
+
+- VIAE now provides a visible **保存到本地** button in its left sidebar, calling the shared manual disk-sync workflow. VIAE data is included in its original Local session storage structure, not a separate export.
 
 ## Novel behavior
 
