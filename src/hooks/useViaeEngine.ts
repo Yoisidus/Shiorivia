@@ -143,7 +143,8 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
       patchGroup(groupId, group => {
         const currentWorldline = viaeWorldline(group);
         const advanced = applyWorldlineAdvance(currentWorldline, rawOutput);
-        const nextWorldline = advanced && advanced.period !== currentWorldline.period ? advanced : currentWorldline;
+        const nextWorldline = advanced && (advanced.era !== currentWorldline.era || advanced.period !== currentWorldline.period)
+          ? advanced : currentWorldline;
         const unchanged = (group.stm || "") === originalStm && (group.ltm || "") === originalLtm;
         return {
           ...group,
