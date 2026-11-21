@@ -23,7 +23,7 @@ This feature belongs to **Shiorivia local**. It does not update Shiorivia_Cloud.
 ## Localized timeline-stage annotations and forward progression
 
 - Charta World now stores an **optional** per-stage `descriptions` object, keyed by exact UI languages `zh-CN`, `zh-TW`, `en`, `ja`, `ko`. Each description is up to 500 characters; none is required. A missing translation is hidden, not replaced with another language.
-- The existing ordered canonical `canonTimeline[]` is the source of truth for whether a move is forward. Original-era/period saves can advance to the same or a later stage after the user unlocks chronology, but never go backward. Established main-world identity and AU baseline still cannot be replaced.
+- The existing ordered canonical `canonTimeline[]` is the source of truth for whether an **original-canon** move is forward. Canon saves can advance to the same or a later stage after unlock, never backward. AU creative ERA/PERIOD are independent freeform user-controlled text and may be freely edited after unlocking, but AI must repeat the saved strings unchanged. Established main-world identity and original-canon AU baseline still cannot be replaced.
 - Built-in BanG Dream periods reuse existing `timeline.*` localized descriptions; custom Charta-world annotations are stored alongside `era` and `period`, preserving previously saved world JSON.
 
 ## AU in story worldline
