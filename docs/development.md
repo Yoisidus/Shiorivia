@@ -51,6 +51,15 @@ The legacy `next.config.mjs` still suppresses some build-time TypeScript/ESLint 
 - Via Lata adopts rose cast/worldline accents; Tela keeps its parchment/brown palette, including worldline and cast dialogs. Neither alters worldline validation or historical archive fields.
 - This is a dev-first Local workflow: manual `npm run dev` smoke checking is preferred during active feature work. The following TypeScript/build commands remain optional diagnostic tools; no new regression scripts are required for this feature.
 
+### November 2026 Local UI and cast reliability / 本地功能调整
+
+- **Umbra worldline theme** uses its distinct mint/green palette from both the left chat sidebar and shared worldline editor, rather than the Via Lata rose palette.
+- **Tela memory** is now opened from the top toolbar, alongside compact STM/LTM record counts; the original editable memory vault and saved formats are unchanged. The right-side memory preview is removed.
+- **Tela entrance/exit** uses a local CSS parchment-scroll unroll/re-roll effect (desktop and mobile), controlled by the existing optional transition preference. The original curtain effect remains available from Developer preview.
+- **Story suggestions** now ask confirmation for both clicking a suggested development to send immediately and pressing **填入输入框**. The managed dialog keeps the Via Lata palette and allows cancellation without changing the message/input.
+- **Cast selection robustness:** each planning call must return the COMPLETE cast for the current turn, including unchanged characters rather than a delta of new arrivals. The currently selected observer POV is mandatory in the model-selected cast; it consumes one of the six slots. The current cast is passed to the planner as continuity context, not as a permanent lock. Compatible JSON formatting differences are parsed. Missing/malformed cast output, planning model failures or incompatible IDs fall back to the last eligible cast plus required first-turn pins/POV, avoiding a preventable 500. Profile eligibility and the worldline remain server-enforced.
+- **Story relationship metrics** are now distinct: `affection` = 好感度, `Possessiveness` = 独占欲, `Obsession` = 病态程度, `Lust` = 情欲/sexual desire (not emotional intimacy). The generated JSON uses `Lust` instead of `Intimacy`. The UI and update logic read legacy `Intimacy` values when `Lust` is absent; saves are not destructively rewritten. The prompt does not equate desire with consent, affection, trust or actual acts. The update engine still smooths sudden changes for continuity.
+
 ### Session-specific notes / 会话设定
 
 - Via Lata's **故事手记** and Umbra's **聊天笔记** each edit their own session worldbook. The legacy global worldbook is no longer shown or injected into AI prompts for either mode.
