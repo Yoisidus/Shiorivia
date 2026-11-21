@@ -34,6 +34,7 @@ import { DEFAULT_SYNC_PREFERENCES, readLocalSyncPreferences } from "../lib/local
 import { DEFAULT_IMAGE_SETTINGS, capabilityFor, type ImageSettings, type ProviderCapability } from "../lib/imageSettings";
 import { DEFAULT_WEB_TOOL_CONFIG, normalizeWebToolConfig, normalizeProviderAliases, type WebToolConfig } from "../lib/webToolSettings";
 import { useLanguage } from "../context/LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 import { defaultSessionTitle, sessionGreeting, officinaUnassignedWelcome, umbraUnassignedWelcome } from "../lib/sessionTitles";
 import { isEngineeringCharacterLocked } from "../lib/engineeringSession";
 import { canExtendWorldline } from "../lib/worldlineLock";
@@ -204,7 +205,7 @@ export default function Home() {
         let active = true;
         fetch('/api/providers', { cache: 'no-store' }).then(r => r.json()).then(data => {
             if (active && Array.isArray(data.providers)) setAllProviders(data.providers);
-        }).catch(() => ui.showToast('无法加载供应商配置，请检查本地服务。'));
+        }).catch(() => ui.showToast(deepText(locale, "app.providerLoadFailed")));
         return () => { active = false; };
     }, []);
     useEffect(() => {
@@ -250,11 +251,11 @@ export default function Home() {
                     musicControl: Boolean(env.hasMusic),
                 };
                 if (!available[key]) {
-                    ui.showToast("请先配置对应的本地服务或 API 密钥。");
+                    ui.showToast(deepText(locale, "app.providerMissing"));
                     return;
                 }
             } catch {
-                ui.showToast("无法验证本地服务配置。");
+                ui.showToast(deepText(locale, "app.providerValidationFailed"));
                 return;
             }
         }
@@ -279,7 +280,7 @@ export default function Home() {
     const changeStoryRole = (role: "observer" | "participant") => {
         if (!currentSessionId || currentSession?.memoryMode !== "sliding") return;
         if (currentSession.messages.some(message => message.role === "user")) return;
-        if (role === "participant" && !selfLibrary.activeSelf) { ui.showToast("请先在 Charta 创建并启用自设"); return; }
+        if (role === "participant" && !selfLibrary.activeSelf) { ui.showToast(deepText(locale, "app.storyNeedSelf")); return; }
         cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? {
             ...s, storyRole: role, storySelfId: role === "participant" ? selfLibrary.activeId : null,
              storyPovId: null, storyPovLocked: false, protagonist: undefined, charStatus: undefined, sceneCastIds: [],
@@ -410,7 +411,7 @@ export default function Home() {
     const saveChatWorldline = (next: import("../lib/storyWorldline").StoryWorldline) => {
         if (currentSession?.memoryMode !== "chat") return;
         if (!canExtendWorldline(currentSession.storyWorldline, next)) {
-            ui.showToast("已保存的主世界线不可更改；附属世界观只能追加。");
+            ui.showToast(deepText(locale, "app.worldlineLocked"));
             return;
         }
         cloud.setSessions(prev => prev.map(s => s.id === currentSessionId ? {
@@ -430,7 +431,7 @@ export default function Home() {
         const charName = charta.characters.some(c => c.id === charId) ? nameForCharta(charta.characters.find(c => c.id === charId)!, locale) : characterDisplayName(charId, CHARACTERS.find(c => c.id === charId)?.name, locale);
 
         let initContent = "";
-        if (nextMode === 'infinite') initContent = "欢迎来到 Shiorivia。请从右侧栏选择一位角色工程师，再开始合作。";
+        if (nextMode === 'infinite') initContent = deepText(locale, "app.officinaWelcome");
         if (nextMode === 'chat') initContent = umbraUnassignedWelcome(locale);
 
         const initialMessages: any[] = [];
@@ -480,7 +481,7 @@ export default function Home() {
 
     const deleteSession = async (e: any, id: string) => {
         e.stopPropagation();
-        if (!await dialog.confirm("删除这个会话？此操作不可撤销。", { destructive: true })) return;
+        if (!await dialog.confirm(deepText(locale, "app.deleteSessionAsk"), { destructive: true })) return;
 
         const remainingSessions = cloud.sessions.filter(s => s.id !== id);
 
@@ -531,9 +532,9 @@ export default function Home() {
             nextCharId = "";
 
             if (config.engineeringTransition) ui.setEffect("math");
-            ui.showToast("已创建新的工程会话");
+            ui.showToast(deepText(locale, "app.engineeringCreated"));
         } else {
-            ui.showToast("会话已删除");
+            ui.showToast(deepText(locale, "app.sessionDeleted"));
         }
 
         if (nextSessionId !== currentSessionId) {
@@ -770,7 +771,7 @@ export default function Home() {
                     cloud.setSessions(prev => [imported, ...prev]);
                     setCurrentSessionId(importedId);
                     setActiveCharacterId(imported.characterId || "mutsu");
-                    ui.showToast("📖 小说已作为新会话导入");
+                    ui.showToast(deepText(locale, "app.novelImported"));
                 }}
                 handleSend={engine.handleSend}
                 isLoading={engine.isLoading}
@@ -934,7 +935,7 @@ export default function Home() {
                     sessions={cloud.sessions} currentSessionId={currentSessionId} setCurrentSessionId={setCurrentSessionId}
                     createFolder={() => cloud.setFolders(prev => [...prev, { id: Date.now().toString(), name: "New Folder", isExpanded: true }])}
                     toggleFolder={(id: string) => cloud.setFolders(prev => prev.map(f => f.id === id ? { ...f, isExpanded: !f.isExpanded } : f))}
-                    deleteFolder={async (e: any, id: string) => { e.stopPropagation(); if (await dialog.confirm("删除这个会话文件夹？", { destructive: true })) cloud.setFolders(prev => prev.filter(f => f.id !== id)) }}
+                    deleteFolder={async (e: any, id: string) => { e.stopPropagation(); if (await dialog.confirm(deepText(locale, "app.deleteFolderAsk"), { destructive: true })) cloud.setFolders(prev => prev.filter(f => f.id !== id)) }}
                     createNewSession={createNewSession}
                     deleteSession={deleteSession}
 
@@ -942,8 +943,8 @@ export default function Home() {
                     editingSessionId={editingSessionId} setEditingSessionId={setEditingSessionId}
                     tempTitle={tempTitle} setTempTitle={setTempTitle}
                     activeMenuSessionId={activeMenuSessionId} setActiveMenuSessionId={setActiveMenuSessionId}
-                    updateSessionTitle={(id: string, t: string) => { cloud.setSessions(prev => prev.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false, updatedAt: Date.now() } : s)); setEditingSessionId(null); ui.showToast("会话标题已更新"); }}
-                    moveSessionToFolder={(sid: string, fid: string | null) => { cloud.setSessions(prev => prev.map(s => s.id === sid ? { ...s, folderId: fid, updatedAt: Date.now() } : s)); setActiveMenuSessionId(null); ui.showToast("会话已移动"); }}
+                    updateSessionTitle={(id: string, t: string) => { cloud.setSessions(prev => prev.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false, updatedAt: Date.now() } : s)); setEditingSessionId(null); ui.showToast(deepText(locale, "app.sessionRenamed")); }}
+                    moveSessionToFolder={(sid: string, fid: string | null) => { cloud.setSessions(prev => prev.map(s => s.id === sid ? { ...s, folderId: fid, updatedAt: Date.now() } : s)); setActiveMenuSessionId(null); ui.showToast(deepText(locale, "app.sessionMoved")); }}
                     onBindEngineeringProject={(sid: string, project: string) => cloud.setSessions(prev => prev.map(s => s.id === sid && s.memoryMode === "infinite" ? { ...s, engineeringProjectRoot: project, updatedAt: Date.now() } : s))}
 
                     handleExportData={() => { const d = { sessions: cloud.sessions, folders: cloud.folders, globalWorldInfo: cloud.globalWorldInfo, bgImage: cloud.bgImage }; const b = new Blob([JSON.stringify(d)], { type: "application/json" }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "backup.json"; a.click(); }}
@@ -988,7 +989,7 @@ export default function Home() {
                     onOpenSettings={() => setShowSettingsCenter(true)}
                     onOpenMemory={() => currentSession?.memoryMode === "infinite"
                         ? undefined : currentSession?.memoryMode === "chat" && !currentSession.characterId
-                        ? ui.showToast("请先在 Umbra 选择一位角色，再查看其独立记忆。") : setShowMemoryVault(true)}
+                        ? ui.showToast(deepText(locale, "app.umbraNeedCharacter")) : setShowMemoryVault(true)}
                     leftSidebarOpen={ui.leftSidebarOpen} setLeftSidebarOpen={ui.setLeftSidebarOpen}
                     rightSidebarOpen={ui.rightSidebarOpen} setRightSidebarOpen={ui.setRightSidebarOpen}
                     setShowLocalWorld={ui.setShowLocalWorld}
@@ -1071,14 +1072,14 @@ export default function Home() {
                     currentCharacter={dynamicCharacter} currentSession={currentSession}
                     onOpenMemory={() => currentSession?.memoryMode === "infinite"
                         ? undefined : currentSession?.memoryMode === "chat" && !currentSession.characterId
-                        ? ui.showToast("请先在 Umbra 选择一位角色，再查看其独立记忆。") : setShowMemoryVault(true)}
+                        ? ui.showToast(deepText(locale, "app.umbraNeedCharacter")) : setShowMemoryVault(true)}
                     activeCharacterId={activeCharacterId} setActiveCharacterId={setActiveCharacterId}
                     createNewSession={createNewSession} handleSend={engine.handleSend} setSessions={cloud.setSessions} currentSessionId={currentSessionId}
                     voiceVariant={voiceVariant} onRepoUpdate={engine.handleRepoUpdate}
                     onCharSwitch={(id: string) => {
                         if (engine.isLoading) return;
                         if (currentSession?.memoryMode === "infinite" && isEngineeringCharacterLocked(currentSession)) {
-                            ui.showToast("当前工程会话已绑定角色；请创建新工程会话以选择其他角色。");
+                            ui.showToast(deepText(locale, "app.engineerLocked"));
                             return;
                         }
                         setActiveCharacterId(id);
@@ -1111,13 +1112,13 @@ export default function Home() {
                 }}
             />
             <WorldInfoModal isOpen={ui.showLocalWorld} onClose={() => ui.setShowLocalWorld(false)}
-                title={currentSession?.memoryMode === "infinite" ? "Officina · 会话工程指南"
-                    : currentSession?.memoryMode === "sliding" ? "Via Lata · 故事手记" : "Umbra · 聊天笔记"}
+                title={currentSession?.memoryMode === "infinite" ? `Officina · ${deepText(locale, "app.guideTitle")}`
+                    : currentSession?.memoryMode === "sliding" ? `Via Lata · ${deepText(locale, "app.storyNotesTitle")}` : `Umbra · ${deepText(locale, "app.chatNotesTitle")}`}
                 subtitle={currentSession?.memoryMode === "infinite"
-                    ? "记录当前工程会话的项目规则、约定与开发目标。不会影响其他工程会话。"
+                    ? deepText(locale, "app.guideSubtitle")
                     : currentSession?.memoryMode === "sliding"
-                    ? "补充这段故事独有的情节背景、世界规则与叙事约定。"
-                    : "记录这段聊天独有的背景、交流约定和其他补充设定。"}
+                    ? deepText(locale, "app.storyNotesSubtitle")
+                    : deepText(locale, "app.chatNotesSubtitle")}
                 tone={currentSession?.memoryMode === "infinite" ? "engineering"
                     : currentSession?.memoryMode === "sliding" ? "story" : "chat"}
                 content={currentSession?.localWorldInfo || ""}
