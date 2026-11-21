@@ -200,6 +200,8 @@ export function worldlinePeriodFor(worldline: StoryWorldline, worldId: string | 
 }
 
 /** An existing legacy timeline is never silently discarded or rewritten. */
-export function describeStoryWorldline(value: StoryWorldline): string {
-  return `${value.worldName} · ${value.kind === "canon" ? "原作" : "AU"} · ${value.era} / ${value.period}${value.kind === "au" && value.basePeriod ? ` · 基准：${value.baseEra || ""} / ${value.basePeriod}` : ""}${value.event ? ` · ${value.event}` : ""}`;
+export function describeStoryWorldline(value: StoryWorldline, locale?: string): string {
+  const stage = value.canonTimeline.find(item => item.era === value.era && item.period === value.period);
+  const description = locale ? timelineStageDescription(stage, locale) : "";
+  return `${value.worldName} · ${value.kind === "canon" ? "原作" : "AU"} · ${value.era} / ${value.period}${description ? ` · ${description}` : ""}${value.kind === "au" && value.basePeriod ? ` · 基准：${value.baseEra || ""} / ${value.basePeriod}` : ""}${value.event ? ` · ${value.event}` : ""}`;
 }
