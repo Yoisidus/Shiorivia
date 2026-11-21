@@ -518,9 +518,9 @@ export default function Home() {
             nextCharId = "";
 
             if (config.engineeringTransition) ui.setEffect("math");
-            ui.showToast("♻️ System Reset");
+            ui.showToast("已创建新的工程会话");
         } else {
-            ui.showToast("🗑️ Timeline Deleted");
+            ui.showToast("会话已删除");
         }
 
         if (nextSessionId !== currentSessionId) {
@@ -776,7 +776,7 @@ export default function Home() {
                 setSessions={cloud.setSessions}
                 onExit={() => { setShowModeHub(true); triggerCurtain(); }}
                 onOpenSettings={() => setShowSettingsCenter(true)}
-                updateSessionTitle={(id: string, t: string) => cloud.setSessions(p => p.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false } : s))}
+                updateSessionTitle={(id: string, t: string) => cloud.setSessions(p => p.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false, updatedAt: Date.now() } : s))}
                 deleteMessage={engine.handleDeleteMessage}
                 updateSessionInfo={(id: string, up: any) => cloud.setSessions(p => p.map(s => s.id === id ? { ...s, ...up } : s))}
             />
@@ -906,8 +906,8 @@ export default function Home() {
                     editingSessionId={editingSessionId} setEditingSessionId={setEditingSessionId}
                     tempTitle={tempTitle} setTempTitle={setTempTitle}
                     activeMenuSessionId={activeMenuSessionId} setActiveMenuSessionId={setActiveMenuSessionId}
-                    updateSessionTitle={(id: string, t: string) => { cloud.setSessions(prev => prev.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false } : s)); setEditingSessionId(null) }}
-                    moveSessionToFolder={(sid: string, fid: string | null) => { cloud.setSessions(prev => prev.map(s => s.id === sid ? { ...s, folderId: fid } : s)); setActiveMenuSessionId(null) }}
+                    updateSessionTitle={(id: string, t: string) => { cloud.setSessions(prev => prev.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false, updatedAt: Date.now() } : s)); setEditingSessionId(null); ui.showToast("会话标题已更新"); }}
+                    moveSessionToFolder={(sid: string, fid: string | null) => { cloud.setSessions(prev => prev.map(s => s.id === sid ? { ...s, folderId: fid, updatedAt: Date.now() } : s)); setActiveMenuSessionId(null); ui.showToast("会话已移动"); }}
                     onBindEngineeringProject={(sid: string, project: string) => cloud.setSessions(prev => prev.map(s => s.id === sid && s.memoryMode === "infinite" ? { ...s, engineeringProjectRoot: project, updatedAt: Date.now() } : s))}
 
                     handleExportData={() => { const d = { sessions: cloud.sessions, folders: cloud.folders, globalWorldInfo: cloud.globalWorldInfo, bgImage: cloud.bgImage }; const b = new Blob([JSON.stringify(d)], { type: "application/json" }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "backup.json"; a.click(); }}
@@ -1103,7 +1103,7 @@ export default function Home() {
                 onLoadSession={(sess: any) => {
                     cloud.setSessions(prev => {
                         const idx = prev.findIndex(s => s.id === sess.id);
-                        return idx !== -1 ? prev.map((s, i) => i === idx ? sess : s) : [sess, ...prev];
+                        return idx !== -1 ? prev.map((s, i) => i === idx ? { ...sess, updatedAt: Date.now() } : s) : [{ ...sess, updatedAt: Date.now() }, ...prev];
                     });
                     setCurrentSessionId(sess.id);
                     ui.showToast(`Loaded: ${sess.title}`);
