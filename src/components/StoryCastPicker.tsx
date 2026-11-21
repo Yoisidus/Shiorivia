@@ -12,6 +12,7 @@ import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME, parseStoryWorldline } from 
 import { MAX_STORY_CAST, selectStoryCastIds, storyCastAllowed, storyCastOrigin } from "../lib/storyCast";
 import type { Session } from "../types";
 import { useLanguage } from "../context/LanguageContext";
+import { useAppDialog } from "../context/DialogContext";
 
 type CastOption = { id: string; name: string; origin: string | null; color: string };
 
@@ -25,6 +26,7 @@ export function StoryCastPicker({ session, worlds, customCharacters, busy, onApp
   tone?: "sage" | "paper";
 }) {
   const { locale } = useLanguage();
+  const dialog = useAppDialog();
   const [open, setOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<string[]>([]);
   const world = parseStoryWorldline(session.storyWorldline);
@@ -55,9 +57,9 @@ export function StoryCastPicker({ session, worlds, customCharacters, busy, onApp
     setDraftIds(current => current.includes(id) ? current.filter(item => item !== id)
       : current.length < MAX_STORY_CAST ? [...current, id] : current);
   };
-  const apply = () => {
+  const apply = async () => {
     const selected = selectStoryCastIds(draftIds, allowedIds);
-    if (started && !window.confirm(mode === "novel" ? "小说已开始，确定覆盖 AI 预测的下一章登场角色吗？" : "故事已开始。确认手动覆盖 AI 对下一轮登场角色的预选吗？")) return;
+    if (started && !await dialog.confirm(mode === "novel" ? "小说已开始，确定覆盖 AI 预测的下一章登场角色吗？" : "故事已开始。确认手动覆盖 AI 对下一轮登场角色的预选吗？")) return;
     onApply(selected, world?.crossWorld?.enabled === true);
     setOpen(false);
   };
