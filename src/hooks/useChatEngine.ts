@@ -204,7 +204,7 @@ export const useChatEngine = ({
                         && config.imageGen === true,
                     danmakuEnabled: ["sliding", "novel"].includes(currentSession.memoryMode) && config.danmakuEnabled === true,
                     danmakuCount: Math.min(24, Math.max(1, Math.round(config.danmakuCount || 8))),
-                    storyMemoryTurnCount: currentSession.memoryMode === "sliding" ? currentSession.turnCount || 0 : undefined,
+                    storyMemoryTurnCount: ["sliding", "novel"].includes(currentSession.memoryMode) ? currentSession.turnCount || 0 : undefined,
                     charStatus: currentSession.charStatus,
                     codeRepository: currentSession.engineeringProjectRoot ? undefined : currentSession.codeRepository,
                     engineeringProjectRoot: currentSession.memoryMode === "infinite" ? currentSession.engineeringProjectRoot || "" : "",
@@ -435,7 +435,11 @@ export const useChatEngine = ({
             let novelState = currentSession.memoryMode === "novel" ? extractNovelState(fullText) : null;
             let novelDanmaku: string[] = [];
             if (currentSession.memoryMode === "novel" && config.danmakuEnabled === true) {
-                const match = fullText.match(/<novel_danmaku\s*>([\s\S]*?)<\/novel_danmaku\s*>/i);
+                // New chapters embed danmaku in novel_state. Read older standalone
+                // novel_danmaku blocks only for archived/older provider replies.
+                novelDanmaku = Array.isArray(novelState?.danmaku)
+                    ? novelState.danmaku.slice(0, Math.min(24, Math.max(1, config.danmakuCount || 8))) : [];
+                const match = novelDanmaku.length ? null : fullText.match(/<novel_danmaku\s*>([\s\S]*?)<\/novel_danmaku\s*>/i);
                 if (match) {
                     try {
                         const parsed: unknown = JSON.parse(match[1]);
@@ -740,13 +744,14 @@ export const useChatEngine = ({
             }
 
 
-            const inlineStoryMemory = currentSession.memoryMode === "sliding"
+            const inlineStoryMemory = ["sliding", "novel"].includes(currentSession.memoryMode)
                 ? parseStoryTurnMemory(currentText) : null;
             if (storyProtocolMissing && currentSession.memoryMode === "sliding") {
                 // The user sees fiction, not a broken trailing JSON block.
                 currentText = storyProseWithoutState(currentText);
             }
-            if (currentSession.memoryMode === "sliding") currentText = stripStoryTurnMemory(currentText);
+            if (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel")
+                currentText = stripStoryTurnMemory(currentText);
 
             // Keep IDE result metadata separate from the model's prose.
             const ideEditedFiles: { path: string; operations: number; added: number; removed: number }[] = [];
@@ -943,9 +948,9 @@ export const useChatEngine = ({
                     } : s));
                 }
             }
-            if (currentSession.memoryMode === "sliding" && !storyProtocolMissing && inlineStoryMemory?.stm) {
+            if (["sliding", "novel"].includes(currentSession.memoryMode) && !storyProtocolMissing && inlineStoryMemory?.stm) {
                 setSessions((prev: Session[]) => prev.map(session => {
-                    if (session.id !== currentSessionId || session.memoryMode !== "sliding"
+                    if (session.id !== currentSessionId || session.memoryMode !== currentSession.memoryMode
                         || !session.messages.some(message => message.storyGenerationId === generationId)) return session;
                     const count = Math.max(0, session.turnCount || 0);
                     const existing = parseLocalMemoryEntries(session.stm);
@@ -961,7 +966,7 @@ export const useChatEngine = ({
             // A nonconforming seventh-turn LTM never causes silent memory loss.
             // Use the older summarizer only as an exceptional fallback, while
             // preserving all seven captured STM records until consolidation works.
-            if (currentSession.memoryMode === "sliding" && !storyProtocolMissing
+            if (["sliding", "novel"].includes(currentSession.memoryMode) && !storyProtocolMissing
                 && inlineStoryMemory?.stm && (currentSession.turnCount || 0) >= 6
                 && !inlineStoryMemory.ltm) {
                 void (async () => {
@@ -982,7 +987,7 @@ export const useChatEngine = ({
                         const consolidated = typeof result?.summary === "string" ? result.summary.trim() : "";
                         if (!consolidated) throw new Error("Empty LTM fallback");
                         setSessions((prev: Session[]) => prev.map(session =>
-                            session.id === currentSessionId && session.memoryMode === "sliding"
+                            session.id === currentSessionId && session.memoryMode === currentSession.memoryMode
                             && session.messages.some(message => message.storyGenerationId === generationId)
                             && session.turnCount === 7 && session.stm === records
                                 ? { ...session, stm: "", ltm: consolidated,
@@ -994,7 +999,7 @@ export const useChatEngine = ({
                     }
                 })();
             }
-            if ((currentSession.memoryMode === 'sliding' && !storyProtocolMissing && !inlineStoryMemory?.stm) || currentSession.memoryMode === 'novel') {
+            if (["sliding", "novel"].includes(currentSession.memoryMode) && !storyProtocolMissing && !inlineStoryMemory?.stm) {
                 const textToSummarize = currentSession.memoryMode === 'novel' ? stripNovelSuggestions(currentText) : `User: ${txt}\nAI: ${currentText}\n`;
                 const summarizeMode = currentSession.memoryMode === 'novel' ? 'novel_chapter' : 'micro';
 
