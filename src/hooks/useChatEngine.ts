@@ -611,12 +611,10 @@ export const useChatEngine = ({
                         const catalog = [...CHARACTERS, ...customCharacters.map((c: any) => ({ id: c.id, name: c.names?.[locale] || c.names?.[c.primaryLanguage] || c.id, worldId: c.worldId }))]
                             .filter(char => worldline && storyCastAllowed(char, worldline));
                         const knownCast = new Set(catalog.map(c => c.id));
-                        capturedState.nextSceneCastIds = resolvedTurnCast !== null
-                            ? selectStoryCastIds(resolvedTurnCast, knownCast)
-                            : selectStoryCastIds(
-                                Array.isArray(capturedState.nextSceneCastIds) ? capturedState.nextSceneCastIds : capturedState.sceneCastIds,
-                                knownCast,
-                            );
+                        // Deprecated nextSceneCastIds is a wire-compatibility field;
+                        // the next generation always runs an independent cast lookup.
+                        // Its value must never be mistaken for the CURRENT cast.
+                        capturedState.nextSceneCastIds = [];
                         const rawIds = Array.isArray(capturedState.sceneCastIds)
                             ? capturedState.sceneCastIds.filter((id: unknown) => typeof id === "string" && knownCast.has(id as string)) : [];
                         const normalizedProse = currentText.replace(/\s+/g, "");
@@ -932,7 +930,7 @@ export const useChatEngine = ({
                             charStatus: capturedState.character,
                             ...(s.memoryMode === "sliding" ? {
                                 sceneCastIds: capturedState.sceneCastIds || [],
-                                storyNextCastIds: capturedState.nextSceneCastIds || [],
+                                storyNextCastIds: resolvedTurnCast ?? s.storyNextCastIds ?? [],
                             } : {}),
                             plotSuggestions: capturedState.suggestions,
                             lastDanmaku: config.danmakuEnabled && Array.isArray(capturedState.danmaku)
