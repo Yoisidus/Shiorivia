@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, BookOpen, Code2, GitCompareArrows, MessageCircle, PenLine, Route, X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export type DialogTone = "officina" | "story" | "umbra" | "tela" | "viae" | "charta";
 export type DialogOptions = { title?: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; tone?: DialogTone };
@@ -41,25 +42,34 @@ export function useAppDialog(): DialogApi {
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [tone, setTone] = useState<DialogTone>("officina");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [active, setActive] = useState<DialogRequest | null>(null);
   const [input, setInput] = useState("");
   const activeRef = useRef<DialogRequest | null>(null);
-  const waiting = useRef<DialogRequest[]>([]);
   const nextId = useRef(0);
 
+  // A native confirm blocks additional clicks. Our managed dialogs must provide
+  // the same single-flight behavior: NEVER queue requests behind an open dialog.
+  // Requests arriving while another dialog is visible are cancelled immediately.
+  // Returning a shared Promise instead would run duplicated destructive callbacks.
   const enqueue = useCallback((kind: DialogKind, message: string, options: DialogOptions = {}, initial?: string, files?: IdeDiffFile[]) =>
     new Promise<DialogResponse>(resolve => {
+      if (activeRef.current) {
+        resolve(kind === "prompt" ? null : false);
+        return;
+      }
       const item: DialogRequest = { id: ++nextId.current, kind, message, options, initial, files, resolve };
-      if (activeRef.current) waiting.current.push(item);
-      else { activeRef.current = item; setActive(item); }
+      activeRef.current = item;
+      setActive(item);
     }), []);
 
   const finish = useCallback((accept: boolean, responseText?: string) => {
     const current = activeRef.current;
     if (!current) return;
-    const next = waiting.current.shift() || null;
-    activeRef.current = next;
-    setActive(next);
+    // Clear synchronously: double-click/Enter/Escape must not resolve twice.
+    activeRef.current = null;
+    setActive(null);
     current.resolve(current.kind === "prompt" ? (accept ? responseText ?? "" : null) : accept);
   }, []);
 
@@ -84,8 +94,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); event.stopImmediatePropagation(); finish(false); }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [active, finish]);
 
   const currentTone = active?.options.tone || tone;
@@ -97,9 +107,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   return (
     <DialogContext.Provider value={api}>
       {children}
-      {active && (
-        <div className="fixed inset-0 z-[20000] flex items-center justify-center bg-[#070c19]/75 p-3 backdrop-blur-[6px] sm:p-6"
-          onMouseDown={event => { if (event.target === event.currentTarget && active.kind !== "alert") finish(false); }}>
+      {mounted && active && createPortal(
+        <div className="fixed inset-0 flex items-center justify-center bg-[#070c19]/75 p-3 backdrop-blur-[6px] sm:p-6"
+          style={{ zIndex: 2147483647, pointerEvents: "auto" }}
+          onMouseDown={event => { if (event.target === event.currentTarget) finish(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="shiorivia-dialog-title"
             className={`flex w-full flex-col overflow-hidden rounded-2xl border shadow-[0_35px_100px_rgba(0,0,0,.4)] ${theme.frame} ${active.kind === "review" ? "max-w-5xl max-h-[92dvh]" : "max-w-lg max-h-[90dvh]"}`}>
             <header className={`flex shrink-0 items-center justify-between gap-4 border-b px-5 py-4 ${theme.header}`}>
@@ -155,7 +166,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               </button>
             </footer>
           </section>
-        </div>
+        </div>,
+        document.body
       )}
     </DialogContext.Provider>
   );
