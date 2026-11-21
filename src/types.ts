@@ -100,6 +100,8 @@ export type ViaeMessage = {
   modelName?: string;
   /** Private metadata or chat envelope incomplete; manual recovery available. */
   metadataRepairMissing?: boolean;
+  /** Distinguish a missing STM/LTM from a broken VIAE chat envelope. */
+  memoryRepairMissing?: boolean;
 };
 
 export type ViaeConversation = {
