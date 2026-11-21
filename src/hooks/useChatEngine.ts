@@ -386,7 +386,7 @@ export const useChatEngine = ({
             }
             // Some providers occasionally omit or truncate the trailing novel_state.
             // Recover only the state, never regenerate and replace the chapter itself.
-            if (currentSession.memoryMode === "novel" && !extractNovelState(fullText)) {
+            if (currentSession.memoryMode === "novel" && (!extractNovelState(fullText) || !extractNovelState(fullText)?.choices)) {
                 try {
                     const worldline = parseStoryWorldline(currentSession.storyWorldline);
                     const knownCast = [...CHARACTERS, ...customCharacters].filter((character: any) =>
