@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Brain, Check, ChevronRight, Compass, Copy,
   GitMerge, MapPin, Pencil, RotateCcw, Route, Search,
-  Send, Settings2, Sparkles, Square, Trash2, Users, Volume2, X,
+  Send, Settings2, Sparkles, Square, Trash2, Users, Volume2, X, Save, AlertTriangle,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { ViaeConversation, Session } from "../types";
@@ -79,6 +79,8 @@ interface ViaeProps {
   activeSelf?: ChartaSelf | null;
   onExit: () => void;
   onSettings: () => void;
+  onManualSync?: () => void;
+  syncStatus?: string;
   providers: PublicLocalProvider[];
   provider: string;
   onProviderChange: (next: string) => void;
@@ -92,10 +94,10 @@ interface ViaeProps {
   contextWindowTokens?: number;
 }
 
-export function ViaeInterface({ session, updateSession, characters, customCharacters = [], worlds = [], activeSelf = null, onExit, onSettings, providers, provider, onProviderChange, model, customModel, onModelChange, onCustomModelChange, notify, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = DEFAULT_CONTEXT_WINDOW_TOKENS }: ViaeProps) {
+export function ViaeInterface({ session, updateSession, characters, customCharacters = [], worlds = [], activeSelf = null, onExit, onSettings, onManualSync, syncStatus, providers, provider, onProviderChange, model, customModel, onModelChange, onCustomModelChange, notify, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = DEFAULT_CONTEXT_WINDOW_TOKENS }: ViaeProps) {
   const { locale } = useLanguage();
   const dialog = useAppDialog();
-  const { activeGroup, input, setInput, isLoading, send, stop, deleteMessage } = useViaeEngine({
+  const { activeGroup, input, setInput, isLoading, send, stop, deleteMessage, repairMessage } = useViaeEngine({
     session, updateSession, provider, model: customModel.trim() || model, notify, customCharacters, activeSelf, terminalRequestLogEnabled, terminalLogEnabled, contextWindowTokens,
   });
   const confirmStopGeneration = async () => {
@@ -292,6 +294,9 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
           <button type="button" onClick={onExit} title={deepText(locale, "viae.choosePath")} aria-label={deepText(locale, "viae.choosePath")} className="rounded-xl p-2 text-[#586d81] transition hover:bg-[#f2f5f7]"><ArrowLeft size={18}/></button>
           <button type="button" onClick={() => chooseGroup(null)} title="VIAE · 道路总览" aria-label="VIAE · 道路总览" className="rounded-xl transition hover:ring-2 hover:ring-[#e5d5b4]"><img src="/shiorivia-app-icon.png" alt="Shiorivia" className="h-10 w-10 rounded-xl object-cover"/></button>
           <div className="min-w-0 flex-1"><h1 className="font-semibold tracking-[0.18em] text-[#162942]">VIAE</h1><p className="text-[10px] tracking-wide text-[#8994a1]">SHIORIVIA · CHARACTER MESSAGING</p></div>
+          <button type="button" onClick={onManualSync} disabled={!onManualSync || isLoading || syncStatus === "syncing"}
+            title="将全部 Local 会话和 VIAE 道路写入本地磁盘" aria-label="保存到本地"
+            className="rounded-xl p-2 text-[#718095] transition hover:bg-[#f3f5f7] disabled:opacity-40"><Save size={18}/></button>
           <button type="button" onClick={onSettings} title={deepText(locale, "common.settings")} aria-label={deepText(locale, "common.settings")} className="rounded-xl p-2 text-[#718095] hover:bg-[#f3f5f7]"><Settings2 size={18}/></button>
         </div>
         <div className="px-5 pb-3 pt-6">
@@ -438,6 +443,14 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                       <div className="min-w-0"><div className={`mb-1 flex items-center gap-2 text-[10px] text-[#93a0ac] ${isOutgoing ? "justify-end" : ""}`}><span>{isUser ? "你" : char?.name || (partial ? "正在回复" : "Viae")}</span><span>{time(message.createdAt)}</span></div><div className={`prose prose-sm max-w-none break-words rounded-2xl border px-4 py-3 text-[13px] leading-6 shadow-[0_3px_12px_rgba(24,42,63,0.03)] ${isOutgoing ? "prose-invert border-[#1b324f] bg-[#1a314f] text-white" : "border-[#e8ecef] bg-white text-[#2b4058]"}`}>{isUser ? content : <ReactMarkdown>{content || (partial ? "角色正在回复…" : "")}</ReactMarkdown>}</div></div>
                     </div>;
                   })}
+                  {!isUser && message.metadataRepairMissing && index === activeGroup.messages.length - 1 && (
+                    <div role="status" className="ml-0 flex max-w-xl items-center gap-3 rounded-xl border border-[#d8c49d] bg-[#fffaef] px-3 py-2.5 text-xs text-[#796039] sm:ml-11">
+                      <AlertTriangle size={15} className="shrink-0"/>
+                      <span className="flex-1">本轮消息或记忆状态不完整。</span>
+                      <button type="button" disabled={isLoading} onClick={() => void repairMessage(index)}
+                        className="rounded-lg border border-[#d8c49d] bg-white px-3 py-1.5 font-semibold disabled:opacity-40">{isLoading ? "补齐中…" : "补齐状态"}</button>
+                    </div>
+                  )}
                   <div className={`flex items-center gap-3 text-[#9ca7b5] opacity-70 transition group-hover:opacity-100 ${isDirection ? "justify-center" : isUser ? "pr-1" : "pl-11"}`}>
                     {/* TTS is paused while provider adapters are being redesigned. */}
                     {!isUser && !isLoading && index === activeGroup.messages.length - 1 && <button type="button" onClick={() => void send(true)} title={deepText(locale, "common.retry")} aria-label={deepText(locale, "common.retry")}><RotateCcw size={14}/></button>}
@@ -448,7 +461,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
               })}
               <div ref={bottom}/>
             </section>
-            <form onSubmit={e => { e.preventDefault(); void send(); }} className="border-t border-[#e9ecef] bg-white px-4 py-4 sm:px-7"><div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-[#e1e7eb] bg-[#fdfdfc] px-3 py-2 transition focus-within:border-[#bba573] focus-within:shadow-[0_0_0_3px_rgba(187,165,115,0.09)]"><textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} rows={2} placeholder={isObserving ? "输入场外剧情提示（角色不会直接回复你）…" : activeGroup.type === "direct" ? "在小径上说点什么…" : "在路口留下你的消息…"} className="min-h-11 max-h-36 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[#243850] outline-none placeholder:text-[#a1adb7]"/><button type={isLoading ? "button" : "submit"} disabled={!isLoading && (!input.trim() || !providerConfigured)} onClick={isLoading ? () => void confirmStopGeneration() : undefined} aria-label={isLoading ? "停止生成" : "发送消息"} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-40 ${isLoading ? "bg-rose-500" : "bg-[#172d49] hover:bg-[#274461]"}`}>{isLoading ? <Square size={17}/> : <Send size={17}/>}</button></div><p className="mx-auto mt-2 max-w-3xl truncate text-[10px] text-[#9aa6b1]">{providerConfigured ? `${providers.find(p => p.id === provider)?.label || provider} · ${customModel.trim() || model}` : "请先在设置中配置 API 供应商"} · {isObserving ? "旁观剧情提示" : "参与消息"} · Enter 发送 / Shift+Enter 换行</p></form>
+            <form onSubmit={e => { e.preventDefault(); void send(); }} className="border-t border-[#e9ecef] bg-white px-4 py-4 sm:px-7"><div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-[#e1e7eb] bg-[#fdfdfc] px-3 py-2 transition focus-within:border-[#bba573] focus-within:shadow-[0_0_0_3px_rgba(187,165,115,0.09)]"><textarea disabled={isLoading} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} rows={2} placeholder={isObserving ? "输入场外剧情提示（角色不会直接回复你）…" : activeGroup.type === "direct" ? "在小径上说点什么…" : "在路口留下你的消息…"} className="min-h-11 max-h-36 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[#243850] outline-none placeholder:text-[#a1adb7]"/><button type={isLoading ? "button" : "submit"} disabled={!isLoading && (!input.trim() || !providerConfigured)} onClick={isLoading ? () => void confirmStopGeneration() : undefined} aria-label={isLoading ? "停止生成" : "发送消息"} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-40 ${isLoading ? "bg-rose-500" : "bg-[#172d49] hover:bg-[#274461]"}`}>{isLoading ? <Square size={17}/> : <Send size={17}/>}</button></div><p className="mx-auto mt-2 max-w-3xl truncate text-[10px] text-[#9aa6b1]">{providerConfigured ? `${providers.find(p => p.id === provider)?.label || provider} · ${customModel.trim() || model}` : "请先在设置中配置 API 供应商"} · {isObserving ? "旁观剧情提示" : "参与消息"} · Enter 发送 / Shift+Enter 换行</p></form>
             <MemoryVaultModal open={openMemory} onClose={() => setOpenMemory(false)} sessionId={`${session.id}:${activeGroup.id}`} stm={activeGroup.stm} ltm={activeGroup.ltm} tone="viae" onSave={({ stm, ltm }) => { updateGroup(activeGroup.id, g => ({ ...g, stm, ltm, turnCount: stm.split(/\n/).filter(Boolean).length, updatedAt: Date.now() })); notify("Viae Memory Vault 已保存"); }}/>
           </>
         ) : (
