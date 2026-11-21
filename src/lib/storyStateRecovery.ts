@@ -120,6 +120,8 @@ export function normalizeStoryProtocol(value: unknown): unknown {
       if (typeof entry.bodyState !== "string" && typeof entry.status === "string") {
         entry.bodyState = entry.status;
       }
+      if (typeof entry.Lust !== "number" && typeof entry.Intimacy === "number"
+          && Number.isFinite(entry.Intimacy)) entry.Lust = entry.Intimacy;
       if (typeof entry.affection !== "number" && typeof entry.favorability === "number"
           && Number.isFinite(entry.favorability)) {
         entry.affection = entry.favorability;
