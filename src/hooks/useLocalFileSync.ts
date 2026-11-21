@@ -59,7 +59,10 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
             const res = await fetch("/api/local/sync", { cache: "no-store" });
             if (!res.ok) throw new Error(`Local sync read failed: ${res.status}`);
             const { data: serverData, lastModified } = await res.json();
-            const serverSnapshot = serverData ? serialize(serverData) : "";
+            const serverSnapshot = serverData ? serialize({
+                sessions: serverData.sessions || [], folders: serverData.folders || [],
+                globalWorldInfo: serverData.globalWorldInfo || "", bgImage: serverData.bgImage || null,
+            }) : serialize({ sessions: [], folders: [], globalWorldInfo: "", bgImage: null });
 
             if (mode === 'force_pull' || !initLoaded) {
                 console.log(`[Sync] Force Pull Executing...`);
