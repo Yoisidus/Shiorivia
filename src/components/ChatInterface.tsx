@@ -624,7 +624,7 @@ export const ChatInterface = ({
                                             ? currentSession.memoryMode === "infinite"
                                                 ? <div className="officina-response whitespace-pre-wrap break-words">
                                                     <ReactMarkdown components={{
-                                                        strong: ({ children }) => <strong className="font-extrabold text-[#183f70]">{children}</strong>,
+                                                        strong: ({ children }) => <strong className="font-extrabold text-[#17212b]">{children}</strong>,
                                                         p: ({ children }) => <p className="my-1.5 whitespace-pre-wrap">{children}</p>,
                                                         pre: ({ children }) => <pre className="my-3 max-w-full overflow-x-auto rounded-xl border border-[#ceddf0] bg-[#f0f6fd] px-3 py-3 text-[12px] leading-5 text-[#254060] whitespace-pre">{children}</pre>,
                                                         code: ({ className, children }) => <code className={className ? `font-mono ${className}` : "rounded bg-[#eaf2fb] px-1 py-0.5 font-mono text-[12px] text-[#28518a]"}>{children}</code>,
