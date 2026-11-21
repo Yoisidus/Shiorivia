@@ -149,59 +149,16 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         };
       });
 
-      // Normally memory arrives inside the same model response. No additional
-      // summarizer request is needed unless the protocol was omitted, or a
-      // seventh-turn consolidation lacked its LTM.
-      const needFallback = !regenerate &&
-        (!inlineMemory?.stm || (parseLocalMemoryEntries(originalStm).length >= LOCAL_STM_SLOTS && !inlineMemory.ltm));
-      if (needFallback) {
-        try {
-          let summary = inlineMemory?.stm?.trim() || "";
-          if (!summary) {
-            const memo = await fetch("/api/summarize", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              signal: controller.signal,
-              body: JSON.stringify({
-                text: (activeGroup.pov === "outsider" ? "Scene direction: " : "User: ") +
-                  (text || "(regenerated reply)") + "\nViae: " + fullText,
-                mode: "micro", provider, model, uiLanguage: locale,
-              }),
-            });
-            if (!memo.ok) throw new Error("Viae micro-memory unavailable");
-            const data = await memo.json();
-            summary = typeof data.summary === "string" ? data.summary.trim() : "";
-          }
-          if (summary) {
-            const batch = [...parseLocalMemoryEntries(originalStm), "• " + summary];
-            let consolidated = "";
-            if (batch.length > LOCAL_STM_SLOTS) {
-              const macro = await fetch("/api/summarize", {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                signal: controller.signal,
-                body: JSON.stringify({
-                  text: formatLocalMemoryEntries(batch), previousLtm: originalLtm,
-                  mode: "macro", provider, model, uiLanguage: locale,
-                }),
-              });
-              if (macro.ok) {
-                const data = await macro.json();
-                consolidated = typeof data.summary === "string" ? data.summary.trim() : "";
-              }
-            }
-            patchGroup(groupId, group => {
-              // Never overwrite a different generation, manual edits or newer
-              // memories while a delayed compatibility summary finishes.
-              if (group.messages[group.messages.length - 1]?.id !== requestId) return group;
-              const expectedStm = inlineApplied?.stm ?? originalStm;
-              if ((group.stm || "") !== expectedStm || (group.ltm || "") !== originalLtm) return group;
-              if (consolidated) return { ...group, stm: "", ltm: consolidated, turnCount: 0 };
-              if (inlineApplied) return group; // Preserve seventh STM if macro fails.
-              return { ...group, stm: formatLocalMemoryEntries(batch), turnCount: batch.length };
-            });
-          }
-        } catch (error) {
-          if (!controller.signal.aborted) console.warn("Viae memory fallback skipped:", error);
-        }
+      // No automatic summarize: any missing memory or invalid chat envelope
+      // remains recoverable via the explicit manual repair button.
+      const completeChat = /<viae_chat\s*>[\s\S]*?<\/viae_chat\s*>/i.test(fullText);
+      const memoryMissing = !regenerate && (!inlineMemory?.stm ||
+        (parseLocalMemoryEntries(originalStm).length >= LOCAL_STM_SLOTS && !inlineMemory.ltm));
+      const needsRepair = memoryMissing || !completeChat;
+      if (needsRepair) {
+        patchGroup(groupId, group => ({ ...group, messages: group.messages.map(m =>
+          m.id === requestId ? { ...m, metadataRepairMissing: true } : m) }));
+        notify?.("本轮 VIAE 状态不完整，可点击「补齐状态」。");
       }
     } catch (error) {
       if (controller.signal.aborted) {
