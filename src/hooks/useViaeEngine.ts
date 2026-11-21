@@ -36,6 +36,8 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
   const busyRef = useRef(false);
   useEffect(() => () => abortRef.current?.abort(), []);
   const activeGroup = (session.limeGroups || []).find(g => g.id === session.limeGroupId);
+  const activeGroupRef = useRef<ViaeConversation | undefined>(undefined);
+  activeGroupRef.current = activeGroup;
 
   const patchGroup = (id: string, mapper: (group: ViaeConversation) => ViaeConversation) => {
     updateSession(current => ({
@@ -272,7 +274,14 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         }
         restoredChat = "<viae_chat>" + JSON.stringify(items) + "</viae_chat>";
       }
-      let applied = false;
+      const latest = activeGroupRef.current;
+      if (latest?.id !== activeGroup.id || index !== latest.messages.length - 1
+          || latest.messages[index]?.id !== target.id
+          || latest.messages[index]?.content !== target.content
+          || !latest.messages[index]?.metadataRepairMissing
+          || (latest.stm || "") !== previous.stm || (latest.ltm || "") !== previous.ltm) {
+        throw new Error("道路会话已改变，过期的补齐结果已丢弃");
+      }
       patchGroup(activeGroup.id, group => {
         const live = group.messages[index];
         if (index !== group.messages.length - 1 || live?.id !== target.id ||
@@ -280,7 +289,6 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
             (group.stm || "") !== previous.stm || (group.ltm || "") !== previous.ltm) return group;
         const memory = repairedMemory ? nextConversationMemory(previous, repairedMemory) : null;
         if (repairMemory && !memory) return group;
-        applied = true;
         return {
           ...group,
           ...(memory ? { stm: memory.stm, ltm: memory.ltm, turnCount: memory.turnCount } : {}),
@@ -289,8 +297,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
             ? { ...msg, content: restoredChat, metadataRepairMissing: false, memoryRepairMissing: false } : msg),
         };
       });
-      dialog.notify(applied ? "VIAE 状态补齐成功。" : "会话已变化，未覆盖当前状态。",
-        { tone: "viae", type: applied ? "success" : "error" });
+      dialog.notify("VIAE 状态补齐成功。", { tone: "viae", type: "success" });
     } catch (error) {
       if (!controller.signal.aborted) dialog.notify("VIAE 状态补齐失败：" +
         (error instanceof Error ? error.message : String(error)), { tone: "viae", type: "error" });
