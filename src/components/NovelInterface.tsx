@@ -57,14 +57,7 @@ const THEMES = {
     }
 };
 
-const PRESETS = [
-    { name: "放学闲谈 · 日常", environment: "放学后的街角", event: "围绕一件微不足道的小事拌嘴、闲聊，发展自然的关系互动", style: "轻快、生活感、自然幽默、群像互动" },
-    { name: "周末小冒险 · 日常", environment: "休息日的街道与小店", event: "一次随性的外出计划带来意外的小发现", style: "明朗、轻松、富有生活气息、节奏活泼" },
-    { name: "未寄出的信 · 哀伤", environment: "傍晚的房间", event: "某件旧物勾起遗憾，让人物小心触碰未说出口的话", style: "哀而不伤、克制留白、怀念与遗憾" },
-    { name: "雨后告别 · 哀伤", environment: "雨停后的车站", event: "一段关系正面临分别，人物必须面对现实而非仓促和解", style: "低回、细腻、真实而有余韵" },
-    { name: "秘密的重量 · 重力", environment: "深夜的排练室", event: "一个被长期掩藏的秘密将各人的信任推向临界点", style: "高压心理博弈、复杂动机、情绪拉扯" },
-    { name: "命运岔路 · 重力", environment: "人生的重大抉择之前", event: "无法两全的选择迫使角色承担后果，避免轻易的圆满结局", style: "沉重、充满张力、因果清晰、保留人物缺点" },
-];
+const PRESETS = [0, 1, 2, 3, 4, 5] as const;
 
 const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, theme, selfColors = {}, locale = "zh-CN", disabled = false, suggestionsOverride }: any) => {
     let clean = cleanDrawTag(stripNovelState(content)) 
@@ -170,6 +163,12 @@ export const NovelInterface = ({
     storyWorlds = [], customCharacters = [], customSelves = [], activeNovelSelf = null, onOpenCharta,
 }: any) => {
     const { locale } = useLanguage();
+    const localizedPresets = PRESETS.map(i => ({
+        name: deepText(locale, `novel.preset.${i}.name`),
+        environment: deepText(locale, `novel.preset.${i}.environment`),
+        event: deepText(locale, `novel.preset.${i}.event`),
+        style: deepText(locale, `novel.preset.${i}.style`),
+    }));
     const dialog = useAppDialog();
     const [leftOpen, setLeftOpen] = useState(true);
     const [rightOpen, setRightOpen] = useState(true);
@@ -852,7 +851,7 @@ export const NovelInterface = ({
                                 </section>
 
 
-                                <div><label className={`text-xs ${theme.text} opacity-70 font-bold mb-2 block uppercase`}>Quick Presets · {deepText(locale, "novel.ui.presets")}</label><div className="grid grid-cols-2 gap-2">{PRESETS.map((p, i) => (<button key={i} type="button" disabled={isLoading || inputsLocked} onClick={() => { setEnvironment(p.environment); setEvent(p.event); setStyle(p.style); saveDraft({ environment:p.environment, event:p.event, style:p.style }); }} className={`px-3 py-2.5 rounded-xl text-left ${theme.inputBg} border ${theme.border} text-[11px] ${theme.text} hover:shadow-sm transition-all`}>{p.name}</button>))}</div></div>
+                                <div><label className={`text-xs ${theme.text} opacity-70 font-bold mb-2 block uppercase`}>Quick Presets · {deepText(locale, "novel.ui.presets")}</label><div className="grid grid-cols-2 gap-2">{localizedPresets.map((p, i) => (<button key={i} type="button" disabled={isLoading || inputsLocked} onClick={() => { setEnvironment(p.environment); setEvent(p.event); setStyle(p.style); saveDraft({ environment:p.environment, event:p.event, style:p.style }); }} className={`px-3 py-2.5 rounded-xl text-left ${theme.inputBg} border ${theme.border} text-[11px] ${theme.text} hover:shadow-sm transition-all`}>{p.name}</button>))}</div></div>
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between gap-2">
