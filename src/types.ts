@@ -16,6 +16,8 @@ export type Message = {
   novelStateBefore?: NovelStateSnapshot;
   storyGenerationId?: string;
   storyProtocolMissing?: boolean;
+  /** Pending inline memory retained when game_state needs manual completion. */
+  storyPendingMemory?: { stm: string; ltm: string | null };
   /** Officina: the assistant forgot to include the expected code artifact. */
   engineeringOutputIncomplete?: boolean;
   /** Applied IDE line edits: persisted result cards, not part of message prose. */
