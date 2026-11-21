@@ -35,8 +35,12 @@ export function extractInlineTitle(text: string): { text: string; title: string 
       // Metadata belongs at the start (or after novel <meta>). Never remove
       // a literal XML example embedded in a source file or normal prose.
       const prefix = source.slice(0, index).trim();
-      const afterNovelMeta = /^<meta\s+title=["'][^"']+["']\s+chapter=["'][^"']+["']\s*\/\s*>$/i.test(prefix);
-      if (index > 500 || (prefix.length > 0 && !afterNovelMeta)) return match;
+      // Via Lata emits a closed <thinking> block before title metadata.
+      // Strip ONLY an anchored complete prefix; never interpret arbitrary
+      // inline tag examples, code samples or ordinary prose as a title.
+      const afterThinking = prefix.replace(/^<thinking\b[^>]*>[\s\S]*?<\/thinking\s*>/i, "").trim();
+      const afterNovelMeta = /^<meta\s+title=["'][^"']+["']\s+chapter=["'][^"']+["']\s*\/\s*>$/i.test(afterThinking);
+      if (index > 16000 || (afterThinking.length > 0 && !afterNovelMeta)) return match;
       if (candidate === null) {
         const value = raw.trim().replace(/[<>\r\n]/g, " ").trim();
         candidate = value && value.length <= 100 && !/^KEEP$/i.test(value) ? value : "";
