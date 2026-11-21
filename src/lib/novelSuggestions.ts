@@ -19,6 +19,18 @@ export function parseNovelSuggestions(value: unknown): NovelSuggestions | null {
 }
 
 export function extractNovelSuggestions(text: string): NovelSuggestions | null {
+  // New chapters keep choices in novel_state; historical chapters still have
+  // standalone novel_choices or the three old text option lines.
+  let stateChoices: NovelSuggestions | null = null;
+  for (const match of text.matchAll(/<novel_state\s*>([\s\S]*?)<\/novel_state\s*>/gi)) {
+    try {
+      const state: unknown = JSON.parse(match[1]);
+      if (state && typeof state === "object" && !Array.isArray(state)) {
+        stateChoices = parseNovelSuggestions((state as { choices?: unknown }).choices) || stateChoices;
+      }
+    } catch { /* Ignore malformed unfinished state tags. */ }
+  }
+  if (stateChoices) return stateChoices;
   let found: NovelSuggestions | null = null;
   for (const match of text.matchAll(BLOCK)) {
     try {
