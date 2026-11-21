@@ -102,6 +102,16 @@ export type ViaeMessage = {
   metadataRepairMissing?: boolean;
   /** Distinguish a missing STM/LTM from a broken VIAE chat envelope. */
   memoryRepairMissing?: boolean;
+  /** Snapshot before this AI turn: allows safe refresh and manual message edits. */
+  viaeTurnBefore?: {
+    stm: string;
+    ltm: string;
+    turnCount: number;
+    storyWorldline?: StoryWorldline;
+    timeline: string;
+  };
+  /** The immediately preceding user message was edited; refresh the stale reply. */
+  needsRegeneration?: boolean;
 };
 
 export type ViaeConversation = {
