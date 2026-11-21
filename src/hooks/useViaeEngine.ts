@@ -7,6 +7,8 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAppDialog } from "../context/DialogContext";
 import { asChartaPromptData, type ChartaCharacter } from "../lib/charta";
 import { asChartaSelfPromptData, type ChartaSelf } from "../lib/chartaSelf";
+import { viaeWorldline } from "../lib/viaeWorldline";
+import { applyWorldlineAdvance, stripWorldlineAdvance } from "../lib/worldlineAdvanceProtocol";
 
 const newId = () => typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -113,18 +115,27 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         const { done, value } = await reader.read();
         if (done) break;
         fullText += decoder.decode(value, { stream: true });
-        const currentText = fullText;
+        const currentText = stripWorldlineAdvance(fullText);
         patchGroup(groupId, group => ({
           ...group,
           messages: group.messages.map(message => message.id === requestId ? { ...message, content: currentText } : message),
         }));
       }
       fullText += decoder.decode();
+      const rawOutput = fullText;
+      fullText = stripWorldlineAdvance(fullText);
       if (!fullText.trim()) throw new Error("模型没有返回内容");
-      patchGroup(groupId, group => ({
-        ...group,
-        messages: group.messages.map(message => message.id === requestId ? { ...message, content: fullText } : message),
-      }));
+      patchGroup(groupId, group => {
+        const currentWorldline = viaeWorldline(group);
+        const advanced = applyWorldlineAdvance(currentWorldline, rawOutput);
+        const nextWorldline = advanced && advanced.period !== currentWorldline.period ? advanced : currentWorldline;
+        return {
+          ...group,
+          storyWorldline: nextWorldline,
+          timeline: nextWorldline.kind === "canon" ? nextWorldline.period.replace(/^T-/, "") : "AU",
+          messages: group.messages.map(message => message.id === requestId ? { ...message, content: fullText } : message),
+        };
+      });
 
       // Memory is per LIME conversation. A failure to summarize never loses chat messages.
       // Do not append a duplicate memory slot when replacing the last answer.
