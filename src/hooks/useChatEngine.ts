@@ -762,6 +762,8 @@ export const useChatEngine = ({
             }
 
 
+            // Keep IDE result metadata separate from the model's prose.
+            const ideEditedFiles: { path: string; operations: number; added: number; removed: number }[] = [];
             // Model-authored local edits are compact line operations, not complete files.
             // The server validates every anchor; a preview and browser confirmation
             // precede any write. Never send patch operations outside the bound project.
@@ -792,9 +794,18 @@ export const useChatEngine = ({
                                     path: file.path, version: file.version, edits: file.edits,
                                 });
                                 applied.push(file.path);
+                                let added = 0;
+                                let removed = 0;
+                                for (const edit of file.edits) {
+                                    const originalLines = edit.expected.split("\n").length;
+                                    const newLines = edit.text?.split("\n").length || 0;
+                                    if (edit.op === "replace") { added += newLines; removed += originalLines; }
+                                    else if (edit.op === "delete") removed += originalLines;
+                                    else added += newLines;
+                                }
+                                ideEditedFiles.push({ path: file.path, operations: file.edits.length, added, removed });
                             }
                             showToast(`已局部修改 ${applied.length} 个 IDE 文件`);
-                            currentText += `\n\n**IDE 局部修改成功：** ${applied.join(", ")}`;
                         } catch (editError: any) {
                             currentText += `\n\n**IDE 局部修改未全部应用：** 已修改 ${applied.join(", ") || "无"}；${editError.message}`;
                             await dialog.alert(`IDE 局部编辑失败：${editError.message}`);
@@ -892,7 +903,7 @@ export const useChatEngine = ({
                         ...s,
                         ...(s.memoryMode === "infinite" && outputProject
                             ? { engineeringProjectRoot: outputProject } : {}),
-                        messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing }],
+                        messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing, ...(ideEditedFiles.length ? { ideEditedFiles } : {}) }],
                         codeRepository: updatedRepo,
                         ...(s.memoryMode === "novel" && novelState ? {
                             novelState,
