@@ -400,7 +400,7 @@ export const NovelInterface = ({
     const handleGenerate = async (type: 'new' | 'continue', optionText?: string) => {
         if (isLoading) return;
         if (!activeModel.trim()) {
-            void dialog.alert("请先选择当前供应商的模型，确认后再编织篇章。");
+            dialog.notify("请先选择当前供应商的模型，确认后再编织篇章。");
             return;
         }
         if (!novelWorldline) {
