@@ -37,6 +37,7 @@ export const useChatEngine = ({
     const dialog = useAppDialog();
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [storyStateRepairing, setStoryStateRepairing] = useState(false);
     const [selectedFile, setSelectedFile] = useState<{ url: string, type: 'image' | 'video' | 'text', name: string } | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const [pendingStoryRegeneration, setPendingStoryRegeneration] = useState<{ sessionId: string; messagesLength: number } | null>(null);
@@ -249,6 +250,17 @@ export const useChatEngine = ({
             }
 
             if (!res.ok) throw new Error((await res.json()).error);
+            // A server-side cast tool selects the profiles before narrative generation.
+            const castHeader = res.headers.get("X-Shiorivia-Cast");
+            let resolvedTurnCast: string[] | null = null;
+            if (castHeader && (currentSession.memoryMode === "sliding" || currentSession.memoryMode === "novel")) {
+                try {
+                    const parsed: unknown = JSON.parse(castHeader);
+                    if (Array.isArray(parsed) && parsed.every(id => typeof id === "string")) {
+                        resolvedTurnCast = parsed;
+                    }
+                } catch { /* Older backend: retain the previous cast fields. */ }
+            }
             if (!res.body) throw new Error("No response body");
 
             const reader = res.body.getReader();
@@ -367,63 +379,10 @@ export const useChatEngine = ({
                 } catch (error) { console.warn("Rejected story state JSON (repair if needed):", error); }
             }
             if (currentSession.memoryMode === "sliding" && !validGameJson) {
-                try {
-                    const repairPrompt = [
-                        "请仅根据下面已生成的故事正文恢复 <game_state> JSON，不要续写剧情。",
-                        `此前自身状态: ${JSON.stringify(currentSession.protagonist || null).slice(0, 2400)}`,
-                        `此前角色状态: ${JSON.stringify(currentSession.charStatus || []).slice(0, 4000)}`,
-                        `世界线: ${JSON.stringify(currentSession.storyWorldline)}`,
-                        `故事片段（末尾）:\n${fullText.slice(-10000)}`,
-                    ].join("\n\n");
-                    const repairResponse = await fetch("/api/chat", {
-                        method: "POST", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            stateRepair: true, memoryMode: "sliding", model: modelToUse,
-                            provider: apiProvider, uiLanguage: locale,
-                            debugRequestPayload: config.terminalRequestLog === true,
-                            debugFullOutput: config.terminalLog === true,
-                            storyRole, storyPovId: currentSession.storyPovId,
-                            storyNextCastIds: currentSession.storyNextCastIds ?? currentSession.sceneCastIds ?? [],
-                            storyAllowCrossWorld: currentSession.storyAllowCrossWorld === true,
-                            storyCastWorlds: storyWorlds.map((world: any) => ({ id: world.id, name: world.name, description: world.description, canonTimeline: world.canonTimeline })),
-                            storySelf: selectedSelf ? asChartaSelfPromptData(selectedSelf) : null,
-                            danmakuEnabled: config.danmakuEnabled === true,
-                            danmakuCount: Math.min(24, Math.max(1, Math.round(config.danmakuCount || 8))),
-                            storyWorldline: currentSession.storyWorldline,
-                            customCharacters: customCharacters.map(asChartaPromptData),
-                            messages: [{ role: "user", content: repairPrompt }],
-                        }),
-                        signal: abortControllerRef.current?.signal,
-                    });
-                    if (!repairResponse.ok || !repairResponse.body) throw new Error("State repair unavailable");
-                    const repairReader = repairResponse.body.getReader();
-                    const repairDecoder = new TextDecoder();
-                    let repairText = "";
-                    while (repairText.length < 25000) {
-                        const { value, done } = await repairReader.read();
-                        if (done) break;
-                        repairText += repairDecoder.decode(value, { stream: true });
-                    }
-                    repairText += repairDecoder.decode();
-                    const match = repairText.match(/<game_state>([\s\S]*?)<\/game_state>/i);
-                    if (!match) throw new Error("State repair returned no game_state");
-                    const recovered = normalizeStoryProtocol(JSON.parse(match[1]));
-                    if (!isUsableStoryProtocol(recovered)) {
-                        throw new Error("State repair returned incomplete fields: " + storyProtocolIssues(recovered).join("; "));
-                    }
-                    // State recovery cannot replace user-visible prose. A literal
-                    // <game_state> mentioned in <thinking> is NOT the state anchor.
-                    const preservedProse = storyProseWithoutState(fullText);
-                    fullText = `${preservedProse}\n\n<game_state>${JSON.stringify(recovered)}</game_state>`;
-                } catch (error) {
-                    console.warn("Story state recovery skipped:", error);
-                }
-                const finalGameBlock = lastStoryGameState(fullText);
-                try {
-                    const state = finalGameBlock ? normalizeStoryProtocol(JSON.parse(finalGameBlock.json)) : null;
-                    storyProtocolMissing = !isUsableStoryProtocol(state);
-                } catch { storyProtocolMissing = true; }
-                if (storyProtocolMissing) showToast("本轮故事没有返回完整状态；已保留正文和上一轮状态，建议重试本轮。");
+                // Preserve prose and the previous valid state. Manual completion is
+                // available on this assistant bubble; it never runs invisibly.
+                storyProtocolMissing = true;
+                showToast("本轮故事状态不完整；可以点击消息下方的「补齐状态」。");
             }
             // Some providers occasionally omit or truncate the trailing novel_state.
             // Recover only the state, never regenerate and replace the chapter itself.
@@ -497,7 +456,7 @@ export const useChatEngine = ({
                     ).map((char: any) => char.id as string));
                     novelState = {
                         ...novelState,
-                        nextSceneCastIds: selectStoryCastIds(novelState.nextSceneCastIds, allowed),
+                        nextSceneCastIds: selectStoryCastIds(resolvedTurnCast ?? novelState.nextSceneCastIds, allowed),
                     };
                 }
                 currentText = stripNovelState(currentText);
@@ -642,10 +601,12 @@ export const useChatEngine = ({
                         const catalog = [...CHARACTERS, ...customCharacters.map((c: any) => ({ id: c.id, name: c.names?.[locale] || c.names?.[c.primaryLanguage] || c.id, worldId: c.worldId }))]
                             .filter(char => worldline && storyCastAllowed(char, worldline));
                         const knownCast = new Set(catalog.map(c => c.id));
-                        capturedState.nextSceneCastIds = selectStoryCastIds(
-                            Array.isArray(capturedState.nextSceneCastIds) ? capturedState.nextSceneCastIds : capturedState.sceneCastIds,
-                            knownCast,
-                        );
+                        capturedState.nextSceneCastIds = resolvedTurnCast !== null
+                            ? selectStoryCastIds(resolvedTurnCast, knownCast)
+                            : selectStoryCastIds(
+                                Array.isArray(capturedState.nextSceneCastIds) ? capturedState.nextSceneCastIds : capturedState.sceneCastIds,
+                                knownCast,
+                            );
                         const rawIds = Array.isArray(capturedState.sceneCastIds)
                             ? capturedState.sceneCastIds.filter((id: unknown) => typeof id === "string" && knownCast.has(id as string)) : [];
                         const normalizedProse = currentText.replace(/\s+/g, "");
@@ -927,6 +888,7 @@ export const useChatEngine = ({
                         messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing, ...(ideEditedFiles.length ? { ideEditedFiles } : {}) }],
                         codeRepository: updatedRepo,
                         ...(s.memoryMode === "novel" ? { lastDanmaku: config.danmakuEnabled ? novelDanmaku : [] } : {}),
+                        ...(s.memoryMode === "sliding" && resolvedTurnCast ? { storyNextCastIds: resolvedTurnCast } : {}),
                         ...(s.memoryMode === "novel" && novelState ? {
                             novelState,
                             storyNextCastIds: novelState.nextSceneCastIds,
@@ -1015,8 +977,7 @@ export const useChatEngine = ({
                         setSessions((prev: Session[]) => prev.map(session =>
                             session.id === currentSessionId && session.memoryMode === "sliding"
                             && session.messages.some(message => message.storyGenerationId === generationId)
-                            && (session.turnCount || 0) >= 7
-                            && parseLocalMemoryEntries(session.stm).some(entry => entry.includes(inlineStoryMemory.stm))
+                            && session.turnCount === 7 && session.stm === records
                                 ? { ...session, stm: "", ltm: consolidated,
                                     stmBackup: session.stm, turnCount: 0, updatedAt: Date.now() }
                                 : session));
@@ -1052,11 +1013,11 @@ export const useChatEngine = ({
                                         body: JSON.stringify({ text: newStm, previousLtm: s.ltm, mode: 'macro', provider: apiProvider, model: modelToUse, uiLanguage: locale })
                                     }).then(r => r.json()).then(macroData => {
                                         if (macroData.summary) {
-                                            setSessions((inner: any) => inner.map((innerS: any) => innerS.id === currentSessionId && ((innerS.memoryMode !== "sliding" && innerS.memoryMode !== "novel") || innerS.messages.some((message: any) => message.storyGenerationId === generationId)) ? { ...innerS, ltm: macroData.summary, stm: "", turnCount: 0 } : innerS));
+                                            setSessions((inner: any) => inner.map((innerS: any) => innerS.id === currentSessionId && ((innerS.memoryMode !== "sliding" && innerS.memoryMode !== "novel") || innerS.messages.some((message: any) => message.storyGenerationId === generationId)) && innerS.stm === newStm && innerS.turnCount === newCount ? { ...innerS, ltm: macroData.summary, stm: "", turnCount: 0 } : innerS));
                                             showToast("✨ Memory Consolidated");
                                         }
                                     });
-                                    return { ...s, stm: newStm, stmBackup: s.stm, turnCount: 0 };
+                                    return { ...s, stm: newStm, stmBackup: s.stm, turnCount: newCount };
                                 }
                                 return { ...s, stm: newStm, stmBackup: s.stm, turnCount: newCount };
                             }
