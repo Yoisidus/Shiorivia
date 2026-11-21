@@ -20,6 +20,12 @@ This feature belongs to **Shiorivia local**. It does not update Shiorivia_Cloud.
 - Only the current turn's model-selected cast (up to six) receives full character biographies in Story/Tela. Optional user pins are honored on the first turn only.
 - BanG Dream built-in characters continue using the existing four-part `lore_library.ts` and `loreTimeline.ts` approach. Their writing is untouched by this feature.
 
+## Localized timeline-stage annotations and forward progression
+
+- Charta World now stores an **optional** per-stage `descriptions` object, keyed by exact UI languages `zh-CN`, `zh-TW`, `en`, `ja`, `ko`. Each description is up to 500 characters; none is required. A missing translation is hidden, not replaced with another language.
+- The existing ordered canonical `canonTimeline[]` is the source of truth for whether a move is forward. Original-era/period saves can advance to the same or a later stage after the user unlocks chronology, but never go backward. Established main-world identity and AU baseline still cannot be replaced.
+- Built-in BanG Dream periods reuse existing `timeline.*` localized descriptions; custom Charta-world annotations are stored alongside `era` and `period`, preserving previously saved world JSON.
+
 ## AU in story worldline
 
 The story worldline distinguishes **AU current ERA / PERIOD** from mandatory **baseline ERA / PERIOD**.
