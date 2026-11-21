@@ -97,11 +97,53 @@ interface ViaeProps {
 export function ViaeInterface({ session, updateSession, characters, customCharacters = [], worlds = [], activeSelf = null, onExit, onSettings, onManualSync, syncStatus, providers, provider, onProviderChange, model, customModel, onModelChange, onCustomModelChange, notify, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = DEFAULT_CONTEXT_WINDOW_TOKENS }: ViaeProps) {
   const { locale } = useLanguage();
   const dialog = useAppDialog();
-  const { activeGroup, input, setInput, isLoading, send, stop, deleteMessage, repairMessage } = useViaeEngine({
+  const { activeGroup, input, setInput, isLoading, send, stop, deleteMessage, editMessage, repairMessage } = useViaeEngine({
     session, updateSession, provider, model: customModel.trim() || model, notify, customCharacters, activeSelf, terminalRequestLogEnabled, terminalLogEnabled, contextWindowTokens,
   });
   const confirmStopGeneration = async () => {
     if (await dialog.confirm("确认暂停 VIAE 当前回复吗？正在生成的消息可能不完整。", { destructive: true })) stop();
+  };
+  const [editingBubble, setEditingBubble] = useState<{ id: string; index: number; segment: number | null; draft: string } | null>(null);
+  const startBubbleEdit = (messageId: string, index: number, segment: number | null, draft: string) => {
+    if (isLoading) return;
+    setEditingBubble({ id: messageId, index, segment, draft });
+  };
+  const confirmBubbleEdit = async () => {
+    if (!editingBubble || isLoading || !activeGroup) return;
+    const edit = editingBubble;
+    const target = activeGroup.messages[edit.index];
+    if (!target || target.id !== edit.id) { setEditingBubble(null); return; }
+    if (!edit.draft.trim()) {
+      dialog.notify("消息内容不能留空。", { type: "warning", tone: "viae" }); return;
+    }
+    if (edit.draft.trim().length > 5000) {
+      dialog.notify("消息内容不能超过 5000 字符。", { type: "warning", tone: "viae" }); return;
+    }
+    const historical = edit.index < activeGroup.messages.length - 2;
+    const accepted = await dialog.confirm(
+      historical
+        ? "确认修改这条历史消息吗？已有的后续回复和 STM/LTM 不会自动重新生成；如有出入，请手动校对记忆档案。"
+        : "确认保存这条消息的修改吗？原有记忆与时间线不会自动重写。如编辑了最新用户消息，可以在对应 AI 回复下点击刷新重新生成。",
+      { title: "VIAE · 编辑消息", tone: "viae", confirmLabel: "保存修改", preview: edit.draft.trim() },
+    );
+    if (!accepted || isLoading) return;
+    if (!activeGroup || activeGroup.messages[edit.index]?.id !== edit.id) return;
+    const saved = editMessage(edit.index, edit.draft, edit.segment ?? undefined);
+    if (saved) {
+      setEditingBubble(null);
+      dialog.notify("消息已修改，其他角色气泡保持不变。", { type: "success", tone: "viae" });
+    } else dialog.notify("保存失败：消息已变化或格式无法编辑。", { type: "error", tone: "viae" });
+  };
+  const confirmRefresh = async () => {
+    if (!activeGroup || isLoading) return;
+    const last = activeGroup.messages[activeGroup.messages.length - 1];
+    if (!last || last.role !== "assistant") return;
+    if (!await dialog.confirm("确定刷新当前最后一条 VIAE 回复吗？会替换原有角色消息，并从本轮生成前的记忆与时间线重新推演。旧存档缺少快照时会拒绝刷新，避免错误覆盖。",
+      { title: "VIAE · 刷新回复", tone: "viae", confirmLabel: "重新生成", destructive: true })) return;
+    if (!isLoading) {
+      setEditingBubble(null);
+      void send(true);
+    }
   };
   const [creating, setCreating] = useState(false);
   const [kind, setKind] = useState<"direct" | "group">("direct");
@@ -445,9 +487,32 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                     const isOutgoing = isUser || isPhoneOwner;
                     return <div key={i} className={`flex max-w-[94%] items-end gap-2 sm:max-w-[80%] ${isOutgoing ? "flex-row-reverse" : "flex-row"} ${isPhoneOwner ? "self-end" : ""}`}>
                       {!isUser && !isPhoneOwner && <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e1e7ea] bg-white text-lg">{char?.avatar || "✦"}</span>}
-                      <div className="min-w-0"><div className={`mb-1 flex items-center gap-2 text-[10px] text-[#93a0ac] ${isOutgoing ? "justify-end" : ""}`}><span>{isUser ? "你" : char?.name || (partial ? "正在回复" : "Viae")}</span><span>{time(message.createdAt)}</span></div><div className={`prose prose-sm max-w-none break-words rounded-2xl border px-4 py-3 text-[13px] leading-6 shadow-[0_3px_12px_rgba(24,42,63,0.03)] ${isOutgoing ? "prose-invert border-[#1b324f] bg-[#1a314f] text-white" : "border-[#e8ecef] bg-white text-[#2b4058]"}`}>{isUser ? content : <ReactMarkdown>{content || (partial ? "角色正在回复…" : "")}</ReactMarkdown>}</div></div>
+                      <div className="min-w-0"><div className={`mb-1 flex items-center gap-2 text-[10px] text-[#93a0ac] ${isOutgoing ? "justify-end" : ""}`}>
+                        <span>{isUser ? "你" : char?.name || (partial ? "正在回复" : "Viae")}</span>
+                        <span>{time(message.createdAt)}</span>
+                        {!isUser && !isLoading && <button type="button" title="编辑这条角色消息" aria-label={`编辑 ${char?.name || "角色"} 的消息`}
+                          onClick={() => startBubbleEdit(message.id, index, i, part.text)}
+                          className="rounded-md p-1 text-[#8f9eaf] transition hover:bg-[#f1f3f7] hover:text-[#536c91]"><Pencil size={12}/></button>}
+                      </div><div className={`prose prose-sm max-w-none break-words rounded-2xl border px-4 py-3 text-[13px] leading-6 shadow-[0_3px_12px_rgba(24,42,63,0.03)] ${isOutgoing ? "prose-invert border-[#1b324f] bg-[#1a314f] text-white" : "border-[#e8ecef] bg-white text-[#2b4058]"}`}>{isUser ? content : <ReactMarkdown>{content || (partial ? "角色正在回复…" : "")}</ReactMarkdown>}</div></div>
                     </div>;
                   })}
+                  {editingBubble?.id === message.id && editingBubble.index === index && (
+                    <div role="group" aria-label="编辑 VIAE 消息" className="w-full max-w-[94%] space-y-2 rounded-xl border border-[#cbd6e7] bg-[#f6f8fc] p-3 shadow-sm sm:max-w-[80%]">
+                      <p className="text-[10px] font-semibold tracking-wider text-[#62799a]">
+                        编辑{isUser ? (isDirection ? "剧情提示" : "你的消息") : "角色消息"}
+                      </p>
+                      <textarea autoFocus rows={3} maxLength={5000} disabled={isLoading}
+                        value={editingBubble.draft} onChange={event => setEditingBubble(prev => prev ? { ...prev, draft: event.target.value } : prev)}
+                        className="w-full resize-y rounded-lg border border-[#cbd6e4] bg-white px-3 py-2 text-sm text-[#203751] outline-none focus:border-[#9eaccc]"/>
+                      <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => setEditingBubble(null)}
+                          className="rounded-lg border border-[#d8e0eb] bg-white px-3 py-1.5 text-xs text-[#6c7d91]">取消</button>
+                        <button type="button" disabled={isLoading || !editingBubble.draft.trim()}
+                          onClick={() => void confirmBubbleEdit()}
+                          className="rounded-lg bg-[#637ba5] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">保存修改</button>
+                      </div>
+                    </div>
+                  )}
                   {!isUser && message.metadataRepairMissing && index === activeGroup.messages.length - 1 && (
                     <div role="status" className="ml-0 flex max-w-xl items-center gap-3 rounded-xl border border-[#d8c49d] bg-[#fffaef] px-3 py-2.5 text-xs text-[#796039] sm:ml-11">
                       <AlertTriangle size={15} className="shrink-0"/>
@@ -458,7 +523,9 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                   )}
                   <div className={`flex items-center gap-3 text-[#9ca7b5] opacity-70 transition group-hover:opacity-100 ${isDirection ? "justify-center" : isUser ? "pr-1" : "pl-11"}`}>
                     {/* TTS is paused while provider adapters are being redesigned. */}
-                    {!isUser && !isLoading && index === activeGroup.messages.length - 1 && <button type="button" onClick={() => void send(true)} title={deepText(locale, "common.retry")} aria-label={deepText(locale, "common.retry")}><RotateCcw size={14}/></button>}
+                    {!isUser && !isLoading && index === activeGroup.messages.length - 1 && <button type="button" onClick={() => void confirmRefresh()} title={deepText(locale, "common.retry")} aria-label={deepText(locale, "common.retry")}><RotateCcw size={14}/></button>}
+                    {isUser && !isLoading && <button type="button" onClick={() => startBubbleEdit(message.id, index, null, text)}
+                      title="编辑消息" aria-label="编辑这条消息"><Pencil size={14}/></button>}
                     <button type="button" onClick={() => { void navigator.clipboard.writeText(text); setCopyIndex(index); }} title={deepText(locale, "common.copy")} aria-label={deepText(locale, "common.copy")}>{copyIndex === index ? <Check size={14}/> : <Copy size={14}/>}</button>
                     {!isLoading && <button type="button" onClick={async () => { if (await dialog.confirm(deepText(locale, "viae.deleteMessage"))) deleteMessage(index); }} title={deepText(locale, "common.delete")} aria-label={deepText(locale, "common.delete")}><Trash2 size={14}/></button>}
                   </div>
