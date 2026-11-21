@@ -1,6 +1,7 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useAppDialog } from "../context/DialogContext";
 import { BookOpen, X, Edit2, Save } from "lucide-react";
 
 type WorldInfoModalProps = {
@@ -15,6 +16,7 @@ type WorldInfoModalProps = {
 
 /** Draft-first editor: closing without Save never mutates the session. */
 export const WorldInfoModal = ({ isOpen, onClose, title, subtitle, content, onSave, tone = "chat" }: WorldInfoModalProps) => {
+   const dialog = useAppDialog();
    const [draft, setDraft] = useState(content);
    useEffect(() => { if (isOpen) setDraft(content); }, [isOpen, content]);
    const accent = tone === "story"
@@ -24,7 +26,7 @@ export const WorldInfoModal = ({ isOpen, onClose, title, subtitle, content, onSa
       : { border: "border-emerald-200", background: "bg-emerald-50", text: "text-emerald-800", button: "bg-emerald-600 hover:bg-emerald-700", focus: "focus:ring-emerald-300" };
    const save = () => {
       onSave(draft);
-      window.alert("保存成功");
+      void dialog.alert("保存成功", { title: "会话设定已保存" });
       onClose();
    };
    return (
