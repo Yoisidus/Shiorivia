@@ -4,6 +4,8 @@ import { LORE_LIBRARY } from "../../../data/lore_library";
 import { loreForBangDreamPeriod } from "../../../lib/loreTimeline";
 import { GEMINI_NARRATIVE_STYLE_PROMPT, shouldApplyGeminiNarrativeStyle } from "../../../lib/geminiNarrativeStyle";
 import { storyOutputContract } from "../../../lib/storyOutputContract";
+import { storyColorRenderingInstruction } from "../../../lib/storyColorRendering";
+import { storyTurnMemoryInstruction } from "../../../lib/storyTurnMemory";
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
 import { inspectIdeProject } from "../../../lib/ideInspection";
@@ -216,12 +218,7 @@ export async function POST(req: Request) {
 `
       : "";
 
-    const COLOR_INSTRUCTION = `
-    [Text Rendering]:
-    1. Dialogue: {{HEX_CODE|“Content”}}
-    2. Thoughts: {{HEX_CODE|（Content）}}
-    [Color Map — enabled worlds only]: ${JSON.stringify(colorMapObj)}
-    `;
+    const colorInstruction = storyColorRenderingInstruction(colorMapObj);
 
     let knowledgeBlock = "";  
 
@@ -286,7 +283,7 @@ Worldline: ${JSON.stringify({ worldId: repairWorldline.worldId, era: repairWorld
 - Show rather than merely narrating that characters are sad, happy or conflicted; avoid generic filler, repetitive introspection and sterile step-by-step recap.
 - Produce polished continuous literary prose, not a screenplay, chat transcript, game master response, branching outline, checklist or analysis.
 [UI LANGUAGE — REQUIRED]: The current user-facing UI language is ${OUTPUT_LANGUAGE_NAME[normalizeLocale(body.uiLanguage)]}. Write the chapter, chapter title, all three suggestions and the text VALUES of novel_state.environment and novel_state.event in this language. Do NOT output English environment/event values just because protocol keys and system instructions are in English. Keep all JSON keys, machine tags, IDs and established proper names unchanged.
-${COLOR_INSTRUCTION}
+${colorInstruction}
 [Settings]: Outline: ${typeof nc.outline === "string" ? nc.outline.slice(0, 20000) : ""} | Environment: ${typeof (nc.environment ?? nc.scenario) === "string" ? String(nc.environment ?? nc.scenario).slice(0, 2000) : ""} | Event: ${typeof (nc.event ?? nc.action) === "string" ? String(nc.event ?? nc.action).slice(0, 2000) : ""} | Style: ${typeof nc.style === "string" ? nc.style.slice(0, 2000) : ""}
 [CHAPTER LENGTH]: ${typeof nc.style === "string" && /(?:\d+\s*[-–—~～至到]\s*\d+|\d+)\s*(?:字|汉字|中文字|words?)/i.test(nc.style) ? "Follow the user\'s explicit word-count instruction in Style; it overrides the default." : "Default: a substantive chapter (roughly 1000–2000 Chinese characters when writing Chinese, or a comparable length in the chosen language). Do not pad mechanically."}
 [STORY WORLDLINE — CANON OR AU]
@@ -666,17 +663,14 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
       // Keyword-only activation lost already-present characters and could not use
       // the built-in LORE_LIBRARY (CHAR_DATA does not contain full biographies).
 
-      if (ltm?.trim()) finalSystemPrompt += `[LTM]:\n${ltm}\n\n`;
-      if (stm?.trim()) finalSystemPrompt += `[STM]:\n${stm}\n\n`;
-
-
+      if (ltm?.trim()) finalSystemPrompt += `[LTM]:\n${ltm}\n`;
+      if (stm?.trim()) finalSystemPrompt += `[STM]:\n${stm}\n`;
 
       if (imageToolSelected) {
         finalSystemPrompt += `\n[IMAGE TOOL SELECTED] If a useful illustration is warranted, provide a valid <draw> JSON tag following the visualizer protocol. Do NOT add an imageGen property to game_state or any unrelated JSON.\n[Available Outfits]:\n${outfitList}\n`;
       }
 
-      finalSystemPrompt += `\n${PERSPECTIVE_RULES}\n`;
-      finalSystemPrompt += `\n${COLOR_INSTRUCTION}\n`;
+      finalSystemPrompt += PERSPECTIVE_RULES.trim() + "\n" + colorInstruction + "\n";
 
       if (imageToolSelected) finalSystemPrompt += VISUAL_INSTRUCTION;
 
@@ -735,13 +729,19 @@ Respect these exact selected ERA/PERIOD labels and this era's continuity; never 
 
       // One authoritative schema, instead of repeating JSON field rules across
       // narration, participation, timeline and suggestion sections.
+      finalSystemPrompt += "\n" + storyTurnMemoryInstruction({
+        previousStm: String(stm || ""), previousLtm: String(ltm || ""),
+        turnCount: Number(body.storyMemoryTurnCount) || 0,
+      });
       finalSystemPrompt += "\n" + storyOutputContract({ danmakuEnabled, danmakuCount, role: storyRole, hasPov: Boolean(povCharacter) });
       finalSystemPrompt += `
 [STORY RESPONSE ORDER]
 1. Start with a closed <thinking>...</thinking> block. This block is non-narrative and is removed from the reader-visible story.
 2. Immediately after </thinking>, when inline title review is due, output <session_title>NEW_TITLE_OR_KEEP</session_title>; otherwise OMIT that tag.
-3. Write the immersive prose, then finish with exactly one complete <game_state>...</game_state> block.
-Never put session_title or game_state inside <thinking>, and never copy historical [GALLERY] tags.
+3. Write the immersive story prose.
+4. Write exactly one <turn_memory>{"stm":"...","ltm":null}</turn_memory> as directed by the turn-memory instructions; on the seventh turn ltm must be updated text, not null.
+5. FINALLY write exactly one complete <game_state>...</game_state> block.
+Never put session_title, turn_memory or game_state inside <thinking>, and never copy historical [GALLERY] tags.
 [END STORY RESPONSE ORDER]
 `;
 
