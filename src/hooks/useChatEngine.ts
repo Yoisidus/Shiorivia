@@ -671,20 +671,20 @@ export const useChatEngine = ({
                                          affection: Number(prev?.affection) || 0,
                                          Possessiveness: Number(prev?.Possessiveness) || 0,
                                          Obsession: Number(prev?.Obsession) || 0,
-                                         Intimacy: Number(prev?.Intimacy) || 0,
+                                         Lust: Number(prev?.Lust ?? prev?.Intimacy) || 0,
                                      };
                                      // Missing score fields mean "unchanged", not 0.
                                      // A state-only extraction may supply favorability and trust,
                                      // but only favorability has a defined mapping to affection.
                                      const suggestedMetrics = Object.fromEntries(
-                                         (["affection", "Possessiveness", "Obsession", "Intimacy"] as const)
+                                         (["affection", "Possessiveness", "Obsession", "Lust"] as const)
                                              .map(key => [key, typeof stats[key] === "number" && Number.isFinite(stats[key])
                                                  ? stats[key] : previousMetrics[key]]),
                                      ) as typeof previousMetrics;
                                      const damped = calculateNewStats(previousMetrics, suggestedMetrics);
                                     const updated = { ...prev, ...stats,
                                         affection: damped.affection, Possessiveness: damped.Possessiveness,
-                                        Obsession: damped.Obsession, Intimacy: damped.Intimacy };
+                                        Obsession: damped.Obsession, Lust: damped.Lust };
                                     // Static biography and retired renderer fields are not relationship state.
                                     for (const key of ["age", "gender", "environment", "timeDesc", "live2d", "effect"]) delete updated[key];
                                     return updated;
@@ -1294,9 +1294,9 @@ export const useChatEngine = ({
                         && allowedChars.some((char: any) => char.id === entry.id || char.name === entry.name))
                     .map((entry: any) => {
                         const prior: any = oldStats.find((item: any) => item.id === entry.id || item.name === entry.name) || {};
-                        const metrics = ["affection", "Possessiveness", "Obsession", "Intimacy"] as const;
-                        const previousScores = Object.fromEntries(metrics.map(k => [k, Number(prior[k]) || 0])) as {
-                            affection: number; Possessiveness: number; Obsession: number; Intimacy: number;
+                        const metrics = ["affection", "Possessiveness", "Obsession", "Lust"] as const;
+                        const previousScores = Object.fromEntries(metrics.map(k => [k, Number(k === "Lust" ? (prior.Lust ?? prior.Intimacy) : prior[k]) || 0])) as {
+                            affection: number; Possessiveness: number; Obsession: number; Lust: number;
                         };
                         const proposed = Object.fromEntries(metrics.map(k => [k,
                             typeof entry[k] === "number" && Number.isFinite(entry[k]) ? entry[k] : previousScores[k]])) as typeof previousScores;
