@@ -810,7 +810,7 @@ export const NovelInterface = ({
                                         <span className={`text-[10px] ${theme.text} opacity-60`}>小说背景</span>
                                     </div>
                                     <p className={`text-[11px] leading-5 ${theme.text}`}>
-                                        {novelWorldline ? describeStoryWorldline({ ...novelWorldline, event:"" }) : "尚未设定 · 请先选择世界观与时期"}
+                                        {novelWorldline ? describeStoryWorldline({ ...novelWorldline, event:"" }, locale) : "尚未设定 · 请先选择世界观与时期"}
                                     </p>
                                     <button type="button" onClick={() => setWorldlineOpen(true)} disabled={isLoading}
                                         className={`w-full rounded-xl border ${theme.border} px-3 py-2 text-xs font-semibold transition ${theme.hover} disabled:opacity-50`}>
