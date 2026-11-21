@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     Book, Sparkles, Settings2, PanelRight, AlignLeft,
     LogOut, RefreshCw, X, Edit2, Trash2, Check, 
-    Save, ArrowUp, Sun, Moon, FileText, Square,
+    Save, ArrowUp, FileText, Square,
     AlertTriangle, HardDrive,
 } from "lucide-react";
 import { CHARACTERS, type NovelDraft } from "../types";
@@ -35,24 +35,6 @@ import { stripNovelState } from "../lib/novelState";
 import { extractNovelSuggestions, stripNovelSuggestions } from "../lib/novelSuggestions";
 
 const THEMES = {
-    sage: {
-        bg: "bg-[#f1f4ee]",
-        sidebar: "bg-[#e6ece3]",
-        accent: "text-[#486d5b]",
-        border: "border-[#cad7c9]",
-        text: "text-[#3b5146]",
-        title: "text-[#263e34]",
-        inputBg: "bg-[#fffefa]/95",
-        placeholder: "placeholder-[#758779]/70",
-        hover: "hover:bg-[#dce7da]",
-        prose: "",
-        button: "bg-[#385f50] hover:bg-[#294d40] text-[#fffdf6] shadow-[#385f50]/20",
-        subButton: "bg-[#e0e9df] text-[#3c6251] hover:bg-[#d4e3d4] hover:text-[#263e34]",
-        selectBorder: "border-[#638e75]",
-        selectBg: "bg-[#d9e9dc]",
-        selectDot: "bg-[#638e75]",
-        focus: "focus:border-[#638e75]"
-    },
     paper: {
         bg: "bg-[#fdf6e3]",
         sidebar: "bg-[#f5eecf]",
@@ -189,8 +171,7 @@ export const NovelInterface = ({
     const [rightOpen, setRightOpen] = useState(true);
     const [showMemoryVault, setShowMemoryVault] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [themeMode, setThemeMode] = useState<'sage' | 'paper'>('paper');
-    const theme = THEMES[themeMode];
+    const theme = THEMES.paper;
 
     const [showFullPlayer, setShowFullPlayer] = useState(false);
     const [worldlineOpen, setWorldlineOpen] = useState(false);
@@ -247,7 +228,7 @@ export const NovelInterface = ({
         setManualStateEdit(false);
         setStyle(draft?.style || "温馨、细腻、富有生活感");
         setOutline(currentSession?.localWorldInfo || draft?.outline || "");
-        setThemeMode(draft?.themeMode === "sage" ? "sage" : "paper");
+        // Legacy themes are displayed as parchment without modifying old archives.
     }, [currentSession?.id]);
     // AI state updates arrive after every chapter; reflect them in the editor.
     useEffect(() => {
@@ -393,7 +374,7 @@ export const NovelInterface = ({
     };
 
     useEffect(() => {
-        const color = themeMode === 'paper' ? '#fdf6e3' : '#edf2ea';
+        const color = '#fdf6e3';
 
         document.body.style.backgroundColor = color;
         document.documentElement.style.backgroundColor = color;
@@ -402,7 +383,7 @@ export const NovelInterface = ({
             document.body.style.backgroundColor = '';
             document.documentElement.style.backgroundColor = '';
         };
-    }, [themeMode]);
+    }, []);
 
     const handleOutlineChange = (val: string) => {
         setOutline(val);
@@ -474,7 +455,7 @@ export const NovelInterface = ({
 
     const saveDraft = (patch: Partial<NovelDraft> = {}) => {
         updateSessionInfo?.(currentSession.id, {
-            novelDraft: { selectedCharIds, selfId:novelRole === "participant" ? novelSelfId : null, environment, event, style, outline, themeMode, ...patch },
+            novelDraft: { selectedCharIds, selfId:novelRole === "participant" ? novelSelfId : null, environment, event, style, outline, ...patch, themeMode: "paper" },
             updatedAt: Date.now(),
         });
     };
@@ -491,7 +472,7 @@ export const NovelInterface = ({
             storySelfSnapshot: self,
             novelDraft: {
                 ...(currentSession.novelDraft || {}),
-                selectedCharIds, selfId: self?.id || null, environment, event, style, outline, themeMode,
+                selectedCharIds, selfId: self?.id || null, environment, event, style, outline, themeMode: "paper",
             },
             updatedAt: Date.now(),
         });
@@ -532,7 +513,7 @@ export const NovelInterface = ({
         setSelectedCharIds(ids);
         updateSessionInfo?.(currentSession.id, {
             storyNextCastIds: ids, storyAllowCrossWorld: allowCrossWorld,
-            novelDraft: { selectedCharIds: ids, selfId:novelRole === "participant" ? novelSelfId : null, environment, event, style, outline, themeMode },
+            novelDraft: { selectedCharIds: ids, selfId:novelRole === "participant" ? novelSelfId : null, environment, event, style, outline, themeMode: "paper" },
             updatedAt: Date.now(),
         });
     };
@@ -542,7 +523,7 @@ export const NovelInterface = ({
     return (
         <div
             className={`fixed inset-0 z-[500] ${theme.bg} ${theme.text} flex overflow-hidden font-serif transition-colors duration-500 h-[100dvh] w-screen overscroll-none`}
-            style={{ backgroundColor: themeMode === 'paper' ? '#fdf6e3' : '#f1f4ee' }}
+            style={{ backgroundColor: '#fdf6e3' }}
         >
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <AnimatePresence>
@@ -558,7 +539,7 @@ export const NovelInterface = ({
                         />
                     )}
                 </AnimatePresence>
-                <div className={`absolute inset-0 ${themeMode === 'sage' ? 'bg-[#f1f4ee]/85' : 'bg-white/60'}`}></div>
+                <div className="absolute inset-0 bg-[#fff8e8]/65"></div>
             </div>
             <AnimatePresence>
                 {leftOpen && (
@@ -616,17 +597,12 @@ export const NovelInterface = ({
                     </div>
                     <h1 className={`whitespace-nowrap text-sm font-semibold tracking-[0.24em] sm:text-base ${theme.title}`}>TELA</h1>
                     <div className="flex items-center justify-self-end gap-0.5 sm:gap-1">
-                        <button type="button" onClick={() => {
-                            const next = themeMode === 'sage' ? 'paper' : 'sage';
-                            setThemeMode(next);
-                            saveDraft({ themeMode: next });
-                        }} className={`rounded-lg p-2 transition-colors ${theme.accent} ${theme.hover}`} title={`切换小说主题（当前：${themeMode === 'sage' ? '鼠尾草' : '羊皮纸'}）`} aria-label="切换小说主题">{themeMode === 'sage' ? <Sun size={19} /> : <Moon size={19} />}</button>
                         <button type="button" onClick={onOpenSettings} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title="打开 Shiorivia 设置中心" aria-label="打开设置中心"><Settings2 size={19} /></button>
                         <button type="button" onClick={() => setRightOpen(!rightOpen)} className={`rounded-lg p-2 transition-colors ${theme.text} ${theme.hover}`} title="切换小说设定面板" aria-label="切换小说设定面板"><PanelRight size={19} /></button>
                     </div>
                 </div>
 
-                <div className="z-10"><MiniPlayer onExpand={() => setShowFullPlayer(true)} rightSidebarOpen={rightOpen} themeMode={themeMode === "sage" ? "sage" : "paper"} /></div>
+                <div className="z-10"><MiniPlayer onExpand={() => setShowFullPlayer(true)} rightSidebarOpen={rightOpen} themeMode="paper" /></div>
                 <ImageLightbox src={previewImage} onClose={() => setPreviewImage(null)} />
 
                 <div className="flex-1 overflow-y-auto p-6 md:p-16 scroll-smooth pb-32">
@@ -667,7 +643,7 @@ export const NovelInterface = ({
                     </div>
                 </div>
 
-                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t ${themeMode === 'sage' ? 'from-[#f1f4ee] via-[#f1f4ee]' : 'from-[#fdf6e3] via-[#fdf6e3]'} to-transparent p-4 pb-6 z-20`}>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#fdf6e3] via-[#fdf6e3] to-transparent p-4 pb-6 z-20">
                     <div className="max-w-2xl mx-auto">
                         {!novelWorldline && <div role="status" className={`mb-3 flex items-center justify-between gap-3 rounded-xl border ${theme.border} ${theme.inputBg} px-3 py-2 text-xs ${theme.text}`}>
                             <span>请先设定世界线，才能开始或续写小说。</span>
@@ -729,7 +705,7 @@ export const NovelInterface = ({
                                 <div><div className={`text-[10px] font-bold ${theme.text} opacity-50 uppercase tracking-widest mb-1`}>TELA · CREATION</div><h2 className={`text-xl font-serif ${theme.title}`}>{deepText(locale, "novel.controls")}</h2></div>{isMobile && <button onClick={() => setRightOpen(false)} className={`${theme.text} hover:${theme.accent}`}><X /></button>}</div>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin">
-                                <MemoryPreviewButton stm={currentSession.stm} ltm={currentSession.ltm} onOpen={() => setShowMemoryVault(true)} tone={themeMode === "sage" ? "novel-sage" : "novel-paper"} />
+                                <MemoryPreviewButton stm={currentSession.stm} ltm={currentSession.ltm} onOpen={() => setShowMemoryVault(true)} tone="novel-paper" />
 
                                 <div>
                                     <label className={`text-xs ${theme.accent} font-bold mb-2 block flex items-center gap-2`}><FileText size={14} /> SESSION SETTING · {deepText(locale, "novel.outline")}</label>
@@ -794,13 +770,11 @@ export const NovelInterface = ({
 
                                 <NovelArchiveActions
                                     session={currentSession}
-                                    draft={{ selectedCharIds, selfId:novelRole === "participant" ? novelSelfId : null, environment, event, style, outline, themeMode }}
+                                    draft={{ selectedCharIds, selfId:novelRole === "participant" ? novelSelfId : null, environment, event, style, outline, themeMode: "paper" }}
                                     onImport={onImportNovelSession}
                                     disabled={isLoading}
-                                    tone={themeMode}
-                                    className={themeMode === "paper"
-                                      ? "rounded-2xl border-2 border-[#c5a97a] bg-[#fffaf0] p-4 text-[#67533a] shadow-[0_6px_22px_rgba(121,89,45,.12)]"
-                                      : "rounded-2xl border-2 border-[#9db7a3] bg-[#fbfdfa] p-4 text-[#405e4a] shadow-[0_6px_22px_rgba(52,92,62,.13)]"}
+                                    tone="paper"
+                                    className="rounded-2xl border-2 border-[#c5a97a] bg-[#fffaf0] p-4 text-[#67533a] shadow-[0_6px_22px_rgba(121,89,45,.12)]"
                                 />
 
                                 <section className={`space-y-3 rounded-2xl border ${theme.border} ${theme.inputBg} p-4 shadow-sm`}>
@@ -818,7 +792,7 @@ export const NovelInterface = ({
                                 </section>
                                 <StoryCastPicker session={currentSession} worlds={storyWorlds}
                                     customCharacters={customCharacters} busy={isLoading}
-                                    onApply={updateCast} mode="novel" tone={themeMode} />
+                                    onApply={updateCast} mode="novel" tone="paper" />
                                 <section className={`rounded-2xl border ${theme.border} ${theme.inputBg} p-4 space-y-3`}>
                                     <div className={`text-xs font-bold ${theme.accent}`}>故事身份 · STORY ROLE</div>
                                     <div className="grid grid-cols-2 gap-2 text-xs">
@@ -889,7 +863,7 @@ export const NovelInterface = ({
                 sessionId={currentSession.id}
                 stm={currentSession.stm}
                 ltm={currentSession.ltm}
-                tone={themeMode === "sage" ? "novel-sage" : "novel-paper"}
+                tone="novel-paper"
                 onSave={({ stm, ltm }) => updateSessionInfo(currentSession.id, {
                     stm, ltm, turnCount: stm.split(/\n/).filter(Boolean).length, updatedAt: Date.now(),
                 })}
