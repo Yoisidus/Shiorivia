@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, BookOpen, CheckCircle2, Code2, GitCompareArrows, MessageCircle, PenLine, Route, X } from "lucide-react";
+import { AlertTriangle, BookOpen, Code2, GitCompareArrows, MessageCircle, PenLine, Route, X } from "lucide-react";
 
 export type DialogTone = "officina" | "story" | "umbra" | "tela" | "viae" | "charta";
 export type DialogOptions = { title?: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; tone?: DialogTone };
@@ -64,7 +64,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
   const api = useMemo<DialogApi>(() => ({
     alert: async (message, options) => { await enqueue("alert", message, options); },
-    confirm: async (message, options) => (await enqueue("confirm", message, options)) === true,
+    confirm: async (message, options) => (await enqueue("confirm", message, {
+      destructive: /删除|覆盖|放弃|清除|丢失|无法撤销|不可撤销|移除|delete|overwrite/i.test(message),
+      ...options,
+    })) === true,
     prompt: async (message, initial = "", options) => {
       const result = await enqueue("prompt", message, options, initial);
       return typeof result === "string" ? result : null;
@@ -77,7 +80,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!active) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); finish(false); }
+      if (event.key === "Escape") { event.preventDefault(); event.stopImmediatePropagation(); finish(false); }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -96,10 +99,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-[5000] flex items-center justify-center bg-[#070c19]/75 p-3 backdrop-blur-[6px] sm:p-6"
           onMouseDown={event => { if (event.target === event.currentTarget && active.kind !== "alert") finish(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="shiorivia-dialog-title"
-            className={`flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border shadow-[0_35px_100px_rgba(0,0,0,.4)] ${theme.frame} ${active.kind === "review" ? "max-w-[1024px] max-h-[92dvh]" : "max-h-[90dvh]"}`}>
+            className={`flex w-full flex-col overflow-hidden rounded-2xl border shadow-[0_35px_100px_rgba(0,0,0,.4)] ${theme.frame} ${active.kind === "review" ? "max-w-5xl max-h-[92dvh]" : "max-w-lg max-h-[90dvh]"}`}>
             <header className={`flex shrink-0 items-center justify-between gap-4 border-b px-5 py-4 ${theme.header}`}>
               <div className="flex min-w-0 items-center gap-3">
-                <div className={`rounded-xl border p-2 ${theme.accent}`}><Icon size={18} className={theme.ink}/></div>
+                <div className={`rounded-xl border p-2 ${theme.accent}`}>{active.options.destructive ? <AlertTriangle size={18} className="text-rose-500"/> : <Icon size={18} className={theme.ink}/>}</div>
                 <div className="min-w-0">
                   <p className={`text-[10px] font-bold tracking-[0.19em] ${theme.ink}`}>{theme.title} · {theme.kicker}</p>
                   <h2 id="shiorivia-dialog-title" className="mt-1 text-base font-semibold">{active.options.title || (active.kind === "alert" ? "提示" : active.kind === "prompt" ? "输入内容" : active.kind === "review" ? "审阅代码修改" : "操作确认")}</h2>
@@ -130,7 +133,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                               {edit.op === "insert_before" ? "在行前插入" : edit.op === "insert_after" ? "在行后插入" : edit.op === "replace" ? "替换" : "删除"}
                               {" · L"}{edit.startLine}{edit.endLine && edit.endLine !== edit.startLine ? `–${edit.endLine}` : ""}
                             </div>
-                            <pre className="overflow-x-auto whitespace-pre p-3 font-mono text-xs leading-5 text-[#f2b6bf] bg-[#291b2b]">{edit.expected.split("\n").map((line, i) => <span key={i} className="block">- {line || " "}</span>)}</pre>
+                            <pre className={`overflow-x-auto whitespace-pre p-3 font-mono text-xs leading-5 ${edit.op.startsWith("insert_") ? "bg-[#18253c] text-[#b6c9e6]" : "bg-[#291b2b] text-[#f2b6bf]"}`}>{edit.expected.split("\n").map((line, i) => <span key={i} className="block">{edit.op.startsWith("insert_") ? "  " : "- "}{line || " "}</span>)}</pre>
                             {edit.text !== undefined && <pre className="overflow-x-auto whitespace-pre border-t border-[#314c43] bg-[#142b2a] p-3 font-mono text-xs leading-5 text-[#abefca]">{edit.text.split("\n").map((line, i) => <span key={i} className="block">+ {line || " "}</span>)}</pre>}
                             {(edit.op === "insert_before" || edit.op === "insert_after") && <div className="bg-[#17233a] px-3 py-1 text-[10px] text-[#a6b9dc]">红色行是定位锚点，不会被删除。</div>}
                           </div>
