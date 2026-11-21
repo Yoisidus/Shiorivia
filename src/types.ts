@@ -14,6 +14,10 @@ export type Message = {
   storyStateBefore?: StoryStateSnapshot;
   /** Tela pre-chapter checkpoint; preserved in JSON archives for deletion and regeneration. */
   novelStateBefore?: NovelStateSnapshot;
+  /** The generated chapter's choices are saved per message because state tags
+   * are stripped from the reader-visible prose. Old archives still use legacy tags. */
+  novelChoices?: { fun: string; rational: string; radical: string };
+  novelDanmaku?: string[];
   storyGenerationId?: string;
   storyProtocolMissing?: boolean;
   /** Pending inline memory retained when game_state needs manual completion. */
