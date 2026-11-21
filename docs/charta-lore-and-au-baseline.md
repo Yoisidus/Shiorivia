@@ -17,7 +17,7 @@ This feature belongs to **Shiorivia local**. It does not update Shiorivia_Cloud.
 - Stable identity, the introductory biography, personality, AI portrayal guidelines, unscoped relationship notes and unscoped experiences are always sent for selected cast members.
 - Scoped relationships and experiences first become available in their **start** period, and remain available as memories in **every later** period. The selected end period describes the authored range, **not** a forgetting date.
 - No worldline selected in standalone chat / VIAE means all Charta entries are available; in story mode, unrecognized foreign-origin periods fail closed and omit time-scoped Charta entries.
-- Only the selected next-turn cast, maximum six, receives full character biographies in story mode.
+- Only the current turn's model-selected cast (up to six) receives full character biographies in Story/Tela. Optional user pins are honored on the first turn only.
 - BanG Dream built-in characters continue using the existing four-part `lore_library.ts` and `loreTimeline.ts` approach. Their writing is untouched by this feature.
 
 ## AU in story worldline
