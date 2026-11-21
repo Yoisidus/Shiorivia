@@ -47,11 +47,13 @@ import { ChartaInterface } from "../components/ChartaInterface";
 import { StaticPortraitStage } from "../components/StaticPortraitStage";
 import { useUI } from "../hooks/useUI";
 import { useFileHandler } from "../hooks/useFileHandler";
+import { useAppDialog, type DialogTone } from "../context/DialogContext";
 
 const Live2DStage = dynamic(() => import("../components/Live2DStage").then(m => m.Live2DStage), { ssr: false });
 
 export default function Home() {
     const { locale } = useLanguage();
+    const dialog = useAppDialog();
     const [currentSessionId, setCurrentSessionId] = useState<string>("");
     const [activeCharacterId, setActiveCharacterId] = useState("sakiko");
     const [voiceVariant, setVoiceVariant] = useState("black");
@@ -246,6 +248,13 @@ export default function Home() {
     };
 
     const currentSession = cloud.sessions.find(s => s.id === currentSessionId);
+    useEffect(() => {
+        const tone: DialogTone = showCharta ? "charta" : currentSession?.memoryMode === "sliding" ? "story"
+            : currentSession?.memoryMode === "chat" ? "umbra" : currentSession?.memoryMode === "novel" ? "tela"
+            : currentSession?.memoryMode === "lime" ? "viae" : "officina";
+        dialog.setTone(tone);
+    }, [showCharta, currentSession?.memoryMode, dialog]);
+
 
     // Switching sessions must also restore the character on the Live2D stage.
     useEffect(() => {
