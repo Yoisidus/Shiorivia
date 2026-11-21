@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { CHARACTERS, Session } from "../types";
 import { formatLocalMemoryEntries, parseLocalMemoryEntries, LOCAL_STM_SLOTS } from "../lib/localMemory";
+import { parseStoryTurnMemory, stripStoryTurnMemory } from "../lib/storyTurnMemory";
 import { calculateNewStats } from "../lib/emotionalEngine";
 import { uploadImageToCloud } from "../lib/cloudUtils";
 import { buildDrawRequest } from "../lib/drawRequest";
@@ -202,6 +203,7 @@ export const useChatEngine = ({
                         && config.imageGen === true,
                     danmakuEnabled: ["sliding", "novel"].includes(currentSession.memoryMode) && config.danmakuEnabled === true,
                     danmakuCount: Math.min(24, Math.max(1, Math.round(config.danmakuCount || 8))),
+                    storyMemoryTurnCount: currentSession.memoryMode === "sliding" ? currentSession.turnCount || 0 : undefined,
                     charStatus: currentSession.charStatus,
                     codeRepository: currentSession.engineeringProjectRoot ? undefined : currentSession.codeRepository,
                     engineeringProjectRoot: currentSession.memoryMode === "infinite" ? currentSession.engineeringProjectRoot || "" : "",
@@ -264,7 +266,7 @@ export const useChatEngine = ({
                         currentSession.memoryMode === "sliding"
                             ? stripStoryThinking(fullText).replace(/<thinking\b[^>]*>[\s\S]*$/i, "")
                             : fullText
-                    ).text, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }]
+                    ).text.replace(/<turn_memory\s*>[\s\S]*?<\/turn_memory\s*>\s*/gi, "").replace(/<turn_memory\b[\s\S]*$/i, ""), modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }]
                 } : s));
             }
 
@@ -777,6 +779,10 @@ export const useChatEngine = ({
             }
 
 
+            const inlineStoryMemory = currentSession.memoryMode === "sliding" && !storyProtocolMissing
+                ? parseStoryTurnMemory(currentText) : null;
+            if (currentSession.memoryMode === "sliding") currentText = stripStoryTurnMemory(currentText);
+
             // Keep IDE result metadata separate from the model's prose.
             const ideEditedFiles: { path: string; operations: number; added: number; removed: number }[] = [];
             // Model-authored local edits are compact line operations, not complete files.
@@ -968,7 +974,22 @@ export const useChatEngine = ({
                     } : s));
                 }
             }
-            if ((currentSession.memoryMode === 'sliding' && !storyProtocolMissing) || currentSession.memoryMode === 'novel') {
+            if (currentSession.memoryMode === "sliding" && !storyProtocolMissing && inlineStoryMemory?.stm) {
+                setSessions((prev: Session[]) => prev.map(session => {
+                    if (session.id !== currentSessionId || session.memoryMode !== "sliding"
+                        || !session.messages.some(message => message.storyGenerationId === generationId)) return session;
+                    const count = Math.max(0, session.turnCount || 0);
+                    const existing = parseLocalMemoryEntries(session.stm);
+                    const nextRecord = "• " + inlineStoryMemory.stm;
+                    if (count >= 6 && inlineStoryMemory.ltm) {
+                        return { ...session, stm: "", ltm: inlineStoryMemory.ltm, stmBackup: session.stm, turnCount: 0, updatedAt: Date.now() };
+                    }
+                    // A missing consolidation never destroys earlier STM.
+                    return { ...session, stm: formatLocalMemoryEntries([...existing, nextRecord]),
+                        stmBackup: session.stm, turnCount: count + 1, updatedAt: Date.now() };
+                }));
+            }
+            if ((currentSession.memoryMode === 'sliding' && !storyProtocolMissing && !inlineStoryMemory?.stm) || currentSession.memoryMode === 'novel') {
                 const textToSummarize = currentSession.memoryMode === 'novel' ? stripNovelSuggestions(currentText) : `User: ${txt}\nAI: ${currentText}\n`;
                 const summarizeMode = currentSession.memoryMode === 'novel' ? 'novel_chapter' : 'micro';
 
