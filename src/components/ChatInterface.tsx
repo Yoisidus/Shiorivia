@@ -22,7 +22,7 @@ import { MusicPlayerModal } from "./MusicPlayerModalV2";
 import { useMusic } from "../context/MusicContext"; 
 import ReactMarkdown from "react-markdown";
 import { smartColorize } from "../lib/textFormatter";
-import { normalizeOfficinaDisplay } from "../lib/engineeringDisplay";
+import { formatOfficinaStreamingDisplay } from "../lib/engineeringDisplay";
 import { cleanDrawTag } from "../lib/parseDraw";
 import { IllustratedImage, ImageLightbox } from "./IllustrationImage";
 
@@ -629,7 +629,7 @@ export const ChatInterface = ({
                                                         pre: ({ children }) => <pre className="my-3 max-w-full overflow-x-auto rounded-xl border border-[#ceddf0] bg-[#f0f6fd] px-3 py-3 text-[12px] leading-5 text-[#254060] whitespace-pre">{children}</pre>,
                                                         code: ({ className, children }) => <code className={className ? `font-mono ${className}` : "rounded bg-[#eaf2fb] px-1 py-0.5 font-mono text-[12px] text-[#28518a]"}>{children}</code>,
                                                         img: ({ src, alt }) => src ? <IllustratedImage src={src} alt={alt || "图片"} onOpen={setPreviewImage} className="my-2" /> : null,
-                                                    }}>{normalizeOfficinaDisplay(cleanDrawTag(answer))}</ReactMarkdown>
+                                                    }}>{formatOfficinaStreamingDisplay(cleanDrawTag(answer))}</ReactMarkdown>
                                                 </div>
                                                 : renderContent(answer, setPreviewImage, selfColors)
                                             : <div className="whitespace-pre-wrap">{answer}</div>}
