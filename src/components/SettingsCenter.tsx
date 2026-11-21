@@ -26,6 +26,12 @@ type Props = {
   onToggle: (key: SettingKey) => void;
   debugMode: boolean;
   onToggleDebug: () => void;
+  debugDrawTagsEnabled: boolean;
+  onToggleDebugDrawTags: () => void;
+  danmakuEnabled: boolean;
+  onToggleDanmaku: () => void;
+  danmakuCount: number;
+  onDanmakuCountChange: (count: number) => void;
   terminalRequestLogEnabled: boolean;
   onToggleTerminalRequestLog: () => void;
   terminalLogEnabled: boolean;
@@ -106,7 +112,7 @@ function SwitchRow({ title, description, checked, onClick, icon: Icon }: {
   );
 }
 
-export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, contextWindowTokens, onContextWindowChange, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, webToolConfig, onWebToolConfigChange, providerAliases, onProviderAliasChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
+export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, debugDrawTagsEnabled, onToggleDebugDrawTags, danmakuEnabled, onToggleDanmaku, danmakuCount, onDanmakuCountChange, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, contextWindowTokens, onContextWindowChange, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, webToolConfig, onWebToolConfigChange, providerAliases, onProviderAliasChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
   const dialog = useAppDialog();
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const { refreshLibrary, allTracks } = useMusic();
@@ -242,7 +248,19 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   ))}
                 </div>
                 <p className="mb-6 text-xs leading-6 text-slate-500">{t("settings.providers.description")}</p>
-                <SectionTitle>{t("settings.extensions")}</SectionTitle>
+                <SectionTitle>通用模型</SectionTitle>
+                <p className="mb-5 text-xs leading-5 text-slate-500">当前供应商与模型选择由各模式共用，下方扩展能力独立开启。</p>
+                <SectionTitle>扩展能力 · EXTENSIONS</SectionTitle>
+                {(activeMode === "sliding" || activeMode === "novel") && <>
+                  <SwitchRow title="趣味弹幕" description="默认关闭。开启后 AI 为本轮故事或小说生成有趣、贴合场景的虚拟观众弹幕，不参与剧情或角色对话。" checked={danmakuEnabled} onClick={onToggleDanmaku} icon={Sparkles} />
+                  {danmakuEnabled && <div className="mb-4 flex items-center gap-4 rounded-xl border border-amber-200 bg-[#fffaf0] p-4">
+                    <label htmlFor="danmaku-count" className="min-w-0 flex-1 text-xs font-medium text-[#745a3d]">每轮弹幕数量（1–24 条）</label>
+                    <input id="danmaku-count" aria-label="弹幕数量" type="number" min={1} max={24} step={1}
+                      value={danmakuCount}
+                      onChange={event => onDanmakuCountChange(Math.max(1, Math.min(24, Math.round(Number(event.target.value) || 1))))}
+                      className="w-20 rounded-lg border border-[#e0cba9] bg-white px-3 py-2 text-center text-sm text-[#745a3d]" />
+                  </div>}
+                </>}
                 {(activeMode === "sliding" || activeMode === "novel") && <SwitchRow
                   title="文风优化"
                   description="参考 Gemini 与日轻文风优化叙事节奏。作用于 Via Lata 故事正文及 Tela 小说正文，不改变角色设定、世界线、状态 JSON、修复请求或摘要；默认关闭。"
@@ -298,7 +316,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 </>}
                 {(["sliding", "novel", "infinite", "chat"].includes(activeMode)) && <>
                 <SwitchRow title={t("settings.imageGen")} description={t("settings.imageGen.description")} checked={values.imageGen} onClick={() => onToggle("imageGen")} icon={ImageIcon} />
-                <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                {values.imageGen && <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
                   <p className="text-xs font-semibold tracking-wide text-slate-700">Image Studio · 生图设置</p>
                   <label className="block text-xs text-slate-600">图像供应商<select value={imageSettings.provider} onChange={e => onImageSettingsChange({provider: e.target.value})} className="mt-1 block w-full rounded-lg border bg-white p-2 text-sm">
                     <option value="comfyui">ComfyUI · Local</option>
@@ -314,7 +332,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                   </div>
                   </div>}
                   <p className="text-[11px] leading-5 text-slate-500">ComfyUI 从 API 工作流读取模型、CLIP、KSampler 和尺寸；Shiorivia 只填入 {"{{SHIORIVIA_SCENE}}"}。保存至 data_storage/comfyui-workflow.json。</p>
-                </div>
+                </div>}
                 </>}
               </section>
             )}
@@ -345,8 +363,11 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 <p className="mb-8 text-sm text-slate-400">{t("settings.developer.description")}</p>
                 <SectionTitle>{t("settings.debugging")}</SectionTitle>
                 <SwitchRow title="Debug Mode" description={t("settings.debug.description")} checked={debugMode} onClick={onToggleDebug} icon={Bug} />
+                {debugMode && <>
+                <SwitchRow title="显示生图协议标签" description="在故事、小说或工程回复中显示生图指令与请求参数。只用于调试，不影响生图功能本身。" checked={debugDrawTagsEnabled} onClick={onToggleDebugDrawTags} icon={ImageIcon} />
                 <SwitchRow title="终端输出发送给 AI 的完整请求" description="默认关闭；在 Node.js 终端查看最终 System Prompt、对话内容及模型参数（不含 API Key）。可能包含私密设定、对话和图片数据。" checked={terminalRequestLogEnabled} onClick={onToggleTerminalRequestLog} icon={Bug} />
                 <SwitchRow title="终端输出 AI 完整原文" description="默认关闭；开启后在运行 Shiorivia 的终端打印模型的完整流式原文（包括隐藏标签与状态 JSON）。可能包含私人对话，请勿分享终端日志。" checked={terminalLogEnabled} onClick={onToggleTerminalLog} icon={Bug} />
+                </>}
                 <SwitchRow title={t("settings.transition")} description={t("settings.transition.description")} checked={engineeringTransitionEnabled} onClick={onToggleEngineeringTransition} icon={Sparkles} />
                 <SwitchRow title="Tela 幕布转场" description="进入或退出小说模式时播放幕布动画。默认开启，关闭后直接切换界面。" checked={curtainTransitionEnabled} onClick={onToggleCurtainTransition} icon={Sparkles} />
                 <SectionTitle>{t("settings.preview")}</SectionTitle>
