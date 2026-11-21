@@ -251,13 +251,19 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 <SectionTitle>扩展能力 · EXTENSIONS</SectionTitle>
                 {(activeMode === "sliding" || activeMode === "novel") && <>
                   <SwitchRow title="趣味弹幕" description="默认关闭。开启后 AI 为本轮故事或小说生成有趣、贴合场景的虚拟观众弹幕，不参与剧情或角色对话。" checked={danmakuEnabled} onClick={onToggleDanmaku} icon={Sparkles} />
-                  {danmakuEnabled && <div className="mb-4 flex items-center gap-4 rounded-xl border border-amber-200 bg-[#fffaf0] p-4">
-                    <label htmlFor="danmaku-count" className="min-w-0 flex-1 text-xs font-medium text-[#745a3d]">每轮弹幕数量（1–24 条）</label>
-                    <input id="danmaku-count" aria-label="弹幕数量" type="number" min={1} max={24} step={1}
+                  {danmakuEnabled && <div className="mb-4 rounded-xl border border-amber-200 bg-[#fffaf0] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <label htmlFor="danmaku-count" className="text-xs font-medium text-[#745a3d]">每轮弹幕数量</label>
+                      <output htmlFor="danmaku-count" className="rounded-lg border border-[#dec39e] bg-white px-3 py-1 text-sm font-bold tabular-nums text-[#8a6236]">{danmakuCount} <span className="text-[10px] font-normal">条</span></output>
+                    </div>
+                    <input id="danmaku-count" type="range" min={1} max={24} step={1}
+                      aria-label="弹幕数量" aria-valuetext={`${danmakuCount} 条`}
                       value={danmakuCount}
-                      onChange={event => onDanmakuCountChange(Math.max(1, Math.min(24, Math.round(Number(event.target.value) || 1))))}
-                      className="w-20 rounded-lg border border-[#e0cba9] bg-white px-3 py-2 text-center text-sm text-[#745a3d]" />
-                  </div>}
+                      onChange={event => onDanmakuCountChange(Math.max(1, Math.min(24, Number(event.target.value))))}
+                      className="w-full cursor-pointer accent-[#bc8550]"
+                      style={{ background: `linear-gradient(to right, #b88750 0%, #b88750 ${((danmakuCount - 1) / 23) * 100}%, #e8d6b9 ${((danmakuCount - 1) / 23) * 100}%, #e8d6b9 100%)` }} />
+                    <div className="mt-1 flex justify-between text-[10px] text-[#9f8667]"><span>1</span><span>12</span><span>24</span></div>
+                  </div>
                 </>}
                 {(activeMode === "sliding" || activeMode === "novel") && <SwitchRow
                   title="文风优化"
