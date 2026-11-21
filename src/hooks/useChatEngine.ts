@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { CHARACTERS, Session } from "../types";
 import { formatLocalMemoryEntries, parseLocalMemoryEntries, LOCAL_STM_SLOTS } from "../lib/localMemory";
 import { parseStoryTurnMemory, stripStoryTurnMemory } from "../lib/storyTurnMemory";
+import { nextConversationMemory } from "../lib/conversationTurnMemory";
 import { calculateNewStats } from "../lib/emotionalEngine";
 import { uploadImageToCloud } from "../lib/cloudUtils";
 import { buildDrawRequest } from "../lib/drawRequest";
@@ -305,16 +306,37 @@ export const useChatEngine = ({
             }
 
             if (currentSession.memoryMode === "chat") {
-                // Character Chat preserves distinct speaker IDs and memory ownership.
-                setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? {
-                    ...s,
-                    messages: [...msgs, { role: "assistant", content: fullText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }],
-                    updatedAt: Date.now(),
-                } : s));
+                // The visible reply never includes private memory metadata.
+                const inlineMemory = parseStoryTurnMemory(fullText);
+                fullText = stripStoryTurnMemory(fullText);
+                const originalMemory = currentSession.chatCharacterMemories?.[activeCharacterId] || { stm: "", ltm: "" };
+                const inlineApplied = !isRegen && inlineMemory?.stm
+                    ? nextConversationMemory(originalMemory, inlineMemory) : null;
+                setSessions((prev: Session[]) => prev.map(s => {
+                    if (s.id !== currentSessionId || s.memoryMode !== "chat") return s;
+                    const memory = s.chatCharacterMemories?.[activeCharacterId] || { stm: "", ltm: "" };
+                    const canApply = inlineApplied && memory.stm === originalMemory.stm
+                        && memory.ltm === originalMemory.ltm;
+                    return {
+                        ...s,
+                        messages: [...msgs, { role: "assistant", content: fullText, modelName: modelToUse,
+                            characterId: activeCharacterId, ...assistantMeta }],
+                        ...(canApply ? { chatCharacterMemories: {
+                            ...(s.chatCharacterMemories || {}),
+                            [activeCharacterId]: { stm: inlineApplied.stm, ltm: inlineApplied.ltm },
+                        } } : {}),
+                        updatedAt: Date.now(),
+                    };
+                }));
 
+                // Regenerations must not create a second STM slot.
+                // Only a missing inline STM or a seventh-turn missing LTM
+                // requires a compatibility summary request.
+                const needsFallback = !isRegen && fullText.trim() &&
+                    (!inlineMemory?.stm || (parseLocalMemoryEntries(originalMemory.stm).length >= 6 && !inlineMemory.ltm));
                 // The active provider summarizes Chat memories without changing Local JSON format.
                 // Run this after the visible response so memory work does not block the conversation.
-                if (fullText.trim()) {
+                if (needsFallback) {
                     void (async () => {
                         try {
                             const r = await fetch("/api/summarize", {
@@ -328,10 +350,11 @@ export const useChatEngine = ({
                             const result = await r.json();
                             if (typeof result?.summary !== "string" || !result.summary.trim()) return;
                             const summaryLine = `• ${result.summary.trim()}`;
-                            const characterMemory = currentSession.chatCharacterMemories?.[activeCharacterId];
-                            const originalStm = String(characterMemory?.stm || "");
-                            const originalLtm = String(characterMemory?.ltm || "");
-                            const batch = [...parseLocalMemoryEntries(originalStm), summaryLine];
+                            const originalStm = String(originalMemory.stm || "");
+                            const originalLtm = String(originalMemory.ltm || "");
+                            const batch = inlineMemory?.stm
+                                ? [...parseLocalMemoryEntries(originalStm), "• " + inlineMemory.stm]
+                                : [...parseLocalMemoryEntries(originalStm), summaryLine];
                             let archive = "";
                             if (batch.length >= LOCAL_STM_SLOTS) {
                                 const merged = await fetch("/api/summarize", {
@@ -347,13 +370,18 @@ export const useChatEngine = ({
                                 }
                             }
                             setSessions((prev: Session[]) => prev.map(session => {
-                                if (session.id !== currentSessionId || session.memoryMode !== "chat") return session;
+                                if (session.id !== currentSessionId || session.memoryMode !== "chat"
+                                    || session.messages[session.messages.length - 1]?.storyGenerationId !== generationId) return session;
                                 const memory = session.chatCharacterMemories?.[activeCharacterId] || { stm: "", ltm: "" };
-                                const altered = memory.stm !== originalStm || memory.ltm !== originalLtm;
-                                const next = altered
-                                    ? { stm: formatLocalMemoryEntries([...parseLocalMemoryEntries(memory.stm), summaryLine]), ltm: memory.ltm }
-                                    : archive ? { stm: "", ltm: archive }
-                                    : { stm: formatLocalMemoryEntries(batch), ltm: originalLtm };
+                                const expectedStm = inlineApplied?.stm ?? originalStm;
+                                if (memory.stm !== expectedStm || memory.ltm !== originalLtm) return session;
+                                // Seventh-turn fallback may clear memory only on valid macro.
+                                // Otherwise preserve the seventh STM for a later retry.
+                                const next = archive
+                                    ? { stm: "", ltm: archive }
+                                    : inlineApplied
+                                        ? { stm: memory.stm, ltm: memory.ltm }
+                                        : { stm: formatLocalMemoryEntries(batch), ltm: originalLtm };
                                 return { ...session, chatCharacterMemories: {
                                     ...(session.chatCharacterMemories || {}), [activeCharacterId]: next,
                                 }, updatedAt: Date.now() };
