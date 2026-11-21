@@ -1197,6 +1197,133 @@ export const useChatEngine = ({
         setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? { ...s, codeRepository: newRepo } : s));
     };
 
+    const completeStoryState = async (index: number) => {
+        if (!currentSession || currentSession.memoryMode !== "sliding" || isLoading) return;
+        if (index !== currentSession.messages.length - 1) {
+            showToast("只能补齐最新一轮的状态，避免覆盖后续剧情。"); return;
+        }
+        const target = currentSession.messages[index];
+        if (!target || target.role !== "assistant" || !target.storyProtocolMissing) return;
+        if (!await dialog.confirm("确认调用当前模型补齐本轮故事状态吗？仅恢复 game_state，不续写正文。补齐期间将暂时锁定输入框。")) return;
+        if (isLoading) return;
+        const modelToUse = (config.customModelId || config.selectedModel || "").trim();
+        if (!modelToUse) { showToast("请先选择模型。"); return; }
+        const previous = target.storyStateBefore?.fields || {};
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        setStoryStateRepairing(true);
+        setIsLoading(true);
+        try {
+            const prompt = [
+                "仅补齐这一轮已经完成的故事正文的 game_state，禁止续写或修改剧情。",
+                "此前自身状态: " + JSON.stringify(previous.protagonist ?? currentSession.protagonist ?? null).slice(0, 2400),
+                "此前其他角色状态: " + JSON.stringify(previous.charStatus ?? currentSession.charStatus ?? []).slice(0, 4000),
+                "世界线: " + JSON.stringify(currentSession.storyWorldline),
+                "已完成正文:\n" + String(target.content).slice(-14000),
+            ].join("\n\n");
+            const response = await fetch("/api/chat", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    stateRepair: true, memoryMode: "sliding", model: modelToUse,
+                    provider: apiProvider, uiLanguage: locale,
+                    debugRequestPayload: config.terminalRequestLog === true,
+                    debugFullOutput: config.terminalLog === true,
+                    storyRole: currentSession.storyRole || "observer",
+                    storyPovId: currentSession.storyPovId,
+                    storySelf: currentSession.storySelfSnapshot
+                        ? asChartaSelfPromptData(currentSession.storySelfSnapshot) : null,
+                    storyWorldline: currentSession.storyWorldline,
+                    storyNextCastIds: currentSession.storyNextCastIds || [],
+                    storyCastWorlds: storyWorlds.map((world: any) => ({
+                        id: world.id, name: world.name, description: world.description, canonTimeline: world.canonTimeline,
+                    })),
+                    customCharacters: customCharacters.map(asChartaPromptData),
+                    danmakuEnabled: config.danmakuEnabled === true, danmakuCount: config.danmakuCount || 8,
+                    messages: [{ role: "user", content: prompt }],
+                }),
+            });
+            if (!response.ok || !response.body) throw new Error("补齐请求失败");
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let raw = "";
+            while (raw.length < 25000) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                raw += decoder.decode(value, { stream: true });
+            }
+            raw += decoder.decode();
+            const block = lastStoryGameState(raw);
+            if (!block) throw new Error("模型未返回 game_state");
+            const state = normalizeStoryProtocol(JSON.parse(block.json));
+            if (!isUsableStoryProtocol(state)) {
+                throw new Error("补齐状态不完整：" + storyProtocolIssues(state).join("、"));
+            }
+            const repaired: any = state;
+            const worldline = parseStoryWorldline(currentSession.storyWorldline);
+            const allowedChars = [...CHARACTERS, ...customCharacters].filter((char: any) =>
+                worldline && storyCastAllowed(char, worldline));
+            const allowed = new Set(allowedChars.map((char: any) => char.id));
+            const stage = selectStoryCastIds(repaired.sceneCastIds, allowed);
+            const savedSelf = currentSession.storyRole === "participant"
+                ? currentSession.storySelfSnapshot || customSelves.find((s: any) => s.id === currentSession.storySelfId)
+                : null;
+            const pov = allowedChars.find((char: any) => char.id === currentSession.storyPovId);
+            const protagonist = currentSession.storyRole === "observer" && !pov ? undefined
+                : completeStoryProtagonist({
+                    raw: repaired.protagonist, previous: currentSession.protagonist,
+                    name: savedSelf ? selfName(savedSelf, locale) : pov?.name || "",
+                    era: currentSession.storyWorldline?.era,
+                    period: currentSession.storyWorldline?.period,
+                });
+            const oldStats = Array.isArray(currentSession.charStatus) ? currentSession.charStatus : [];
+            const excluded = new Set([savedSelf?.id, ...Object.values(savedSelf?.names || {}), pov?.id, pov?.name]
+                .filter(Boolean).map(v => String(v).toLocaleLowerCase()));
+            const character = currentSession.storyRole === "observer" && !pov ? undefined
+                : (Array.isArray(repaired.character) ? repaired.character : [])
+                    .filter((entry: any) => entry && typeof entry === "object"
+                        && !excluded.has(String(entry.id || "").toLocaleLowerCase())
+                        && !excluded.has(String(entry.name || "").toLocaleLowerCase())
+                        && allowedChars.some((char: any) => char.id === entry.id || char.name === entry.name))
+                    .map((entry: any) => {
+                        const prior: any = oldStats.find((item: any) => item.id === entry.id || item.name === entry.name) || {};
+                        const metrics = ["affection", "Possessiveness", "Obsession", "Intimacy"] as const;
+                        const previousScores = Object.fromEntries(metrics.map(k => [k, Number(prior[k]) || 0])) as {
+                            affection: number; Possessiveness: number; Obsession: number; Intimacy: number;
+                        };
+                        const proposed = Object.fromEntries(metrics.map(k => [k,
+                            typeof entry[k] === "number" && Number.isFinite(entry[k]) ? entry[k] : previousScores[k]])) as typeof previousScores;
+                        const updated = { ...prior, ...entry, ...calculateNewStats(previousScores, proposed) };
+                        for (const key of ["age", "gender", "environment", "timeDesc", "live2d", "effect"]) delete updated[key];
+                        return updated;
+                    });
+            setSessions((prev: Session[]) => prev.map(session => {
+                const currentTarget = session.messages[index];
+                if (session.id !== currentSessionId || index !== session.messages.length - 1
+                    || !currentTarget?.storyProtocolMissing || currentTarget.storyGenerationId !== target.storyGenerationId
+                    || currentTarget.content !== target.content) return session;
+                return {
+                    ...session,
+                    protagonist, charStatus: character, sceneCastIds: stage,
+                    plotSuggestions: repaired.suggestions, timeline: repaired.timeline,
+                    lastDanmaku: config.danmakuEnabled && Array.isArray(repaired.danmaku)
+                        ? repaired.danmaku.filter((v: unknown) => typeof v === "string").slice(0, Math.min(24, config.danmakuCount || 8)) : [],
+                    ...(session.storyWorldline && typeof repaired.timeline?.minor === "string" && repaired.timeline.minor.trim()
+                        ? { storyWorldline: { ...session.storyWorldline, event: repaired.timeline.minor.trim().slice(0, 500) } } : {}),
+                    messages: session.messages.map((message, i) => i === index ? { ...message, storyProtocolMissing: false } : message),
+                    updatedAt: Date.now(),
+                };
+            }));
+            showToast("故事状态已补齐，正文保持不变。");
+        } catch (error) {
+            if (!controller.signal.aborted) showToast("补齐状态失败：" + String(error instanceof Error ? error.message : error));
+        } finally {
+            if (abortControllerRef.current === controller) abortControllerRef.current = null;
+            setStoryStateRepairing(false);
+            setIsLoading(false);
+        }
+    };
+
     const completeEngineeringOutput = async (index: number) => {
         if (!currentSession || currentSession.memoryMode !== "infinite" || isLoading) return;
         if (!currentSession.messages[index]?.engineeringOutputIncomplete) return;
@@ -1206,9 +1333,9 @@ export const useChatEngine = ({
 
     return {
         input, setInput,
-        isLoading,
+        isLoading, storyStateRepairing,
         selectedFile, setSelectedFile,
-        handleSend, completeEngineeringOutput,
+        handleSend, completeEngineeringOutput, completeStoryState,
         stopGeneration,
         handleRegenerate,
         handleEditMessage,
