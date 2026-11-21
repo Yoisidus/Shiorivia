@@ -3,13 +3,19 @@
  * Values describe the target total context window (including system instructions
  * and reserved output), NOT a guarantee about third-party model limits.
  */
-export const CONTEXT_WINDOW_OPTIONS = [8192, 16384, 32768, 65536, 98304, 131072] as const;
+export const CONTEXT_WINDOW_OPTIONS = [65536, 131072, 262144, 524288, 1048576] as const;
 export type ContextWindowTokens = (typeof CONTEXT_WINDOW_OPTIONS)[number];
-export const DEFAULT_CONTEXT_WINDOW_TOKENS: ContextWindowTokens = 32768;
+export const DEFAULT_CONTEXT_WINDOW_TOKENS: ContextWindowTokens = 262144;
 
 export function normalizeContextWindowTokens(value: unknown): ContextWindowTokens {
-  return CONTEXT_WINDOW_OPTIONS.includes(value as ContextWindowTokens)
-    ? value as ContextWindowTokens : DEFAULT_CONTEXT_WINDOW_TOKENS;
+  if (CONTEXT_WINDOW_OPTIONS.includes(value as ContextWindowTokens)) return value as ContextWindowTokens;
+  // Migrate legacy Local presets to the closest supported tier at least as
+  // large as the former user-selected limit. Never silently shrink old choices.
+  if (typeof value === "number" && Number.isFinite(value) && value > 0
+      && value <= CONTEXT_WINDOW_OPTIONS[CONTEXT_WINDOW_OPTIONS.length - 1]) {
+    return CONTEXT_WINDOW_OPTIONS.find(limit => limit >= value) || DEFAULT_CONTEXT_WINDOW_TOKENS;
+  }
+  return DEFAULT_CONTEXT_WINDOW_TOKENS;
 }
 
 export type ContextMessage = { role: string; content: unknown; [key: string]: unknown };
