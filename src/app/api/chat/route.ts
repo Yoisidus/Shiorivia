@@ -304,9 +304,9 @@ Use this worldline as the novel's established background. Do not replace it with
 4. **DANMAKU — OPTIONAL EXTENSION**: ${danmakuEnabled ? `After the prose and before novel_choices, append exactly one <novel_danmaku> JSON array of ${danmakuCount} short, funny, distinctive fictional audience reactions to the chapter, e.g. <novel_danmaku>["这下是真的瞒不住了！","她竟然记得那个细节！"]</novel_danmaku>. Keep every comment grounded in this chapter and vary tone; no future spoilers, invented canon or real audience identities. These are not words spoken by characters.` : "Do NOT output <novel_danmaku> or other bullet comments when the extension is disabled."}
 5. **NOVEL CHOICES — REQUIRED**: Finish the literary prose with exactly three grounded, distinct, clickable next-plot suggestions in ONE <novel_choices> JSON block; never print them as ordinary chapter paragraphs or markdown lists. Shape: <novel_choices>{"fun":"...","rational":"...","radical":"..."}</novel_choices>. Each VALUE must be a concrete, compelling potential NEXT action/event in the active UI language. 'fun' is playful/unexpected but plausible, 'rational' is smart/cautious with consequences, 'radical' is a bold/high-risk but psychologically believable choice. All three must respect the chosen worldline, agency, motivations and established canon; NEVER force OOC behavior or pre-decide a participant protagonist's major actions. Do not reveal future facts.
 6. **NOVEL STATE — REQUIRED**: After the prose and <novel_choices> block, append ONE complete <novel_state> JSON object. It must be the very LAST block in every novel response. Keep it outside any draw/audio/markdown fences.
-<novel_state>{"environment":"current location, weather, temperature and significant surroundings as established by THIS chapter","event":"what is happening NOW at the chapter's endpoint, not the whole historical plot","nextSceneCastIds":["character IDs expected in the NEXT chapter"]}</novel_state>
-- All three keys are REQUIRED. environment and event must be nonempty strings describing the scene AT THE END of the chapter, rather than merely echoing the opening settings if it moved. nextSceneCastIds must be an array of 0–6 IDs chosen ONLY from the eligible cast roster provided. Use [] if no established character is expected; do not invent character IDs.
-- Forecast a small, plausible next-chapter cast grounded in who is present or expected to enter; do not list every available character. The next chapter will receive full profiles ONLY for selected predicted IDs.
+<novel_state>{"environment":"current location, weather, temperature and significant surroundings as established by THIS chapter","event":"what is happening NOW at the chapter's endpoint, not the whole historical plot","nextSceneCastIds":[]}</novel_state>
+- All three keys are REQUIRED. environment and event must be nonempty strings describing the scene AT THE END of the chapter. nextSceneCastIds is retained only for old JSON compatibility: always return [], because the next chapter will run a new cast-lookup round.
+- The current chapter already received full profiles from the cast tool. Do not predict or pin the next chapter's cast.
 - Treat the selected worldline's WORLD / ERA / PERIOD / AU baseline as immutable context. The novel state MUST NOT set or modify that worldline, and must not reveal future canon knowledge.
 - The novel state is structured metadata, not part of the prose, not an invitation to narrate the user's decisions, and never a replacement for the mandatory first-line <meta> chapter title.
 [SYSTEM]: EXECUTE NOVEL MODE. BEGIN WITH <meta>, WRITE ACTUAL LITERARY FICTION, THEN <novel_choices>, THEN <novel_state>. NEVER EXPOSE THE STRUCTURED BLOCKS AS PROSE.
@@ -661,7 +661,7 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
       if (localWorldInfo?.trim())
         finalSystemPrompt += `=== [SESSION STORY NOTES] ===\n${String(localWorldInfo).slice(0, 12000)}\n\n`;
 
-      // Cast lore is injected from the explicit next-turn selection below.
+      // Cast lore is resolved by an independent model selection round below.
       // Keyword-only activation lost already-present characters and could not use
       // the built-in LORE_LIBRARY (CHAR_DATA does not contain full biographies).
 
