@@ -1,9 +1,10 @@
-import { parseStoryWorldline, type StoryWorldline } from "./storyWorldline";
+import { parseStoryWorldline, canAdvanceWorldline, type StoryWorldline } from "./storyWorldline";
 
 /**
  * Worldlines are session contracts, not editable scene drafts.
- * Saving the first worldline fixes its main world and time point.
- * Later saves may append (never remove or alter) secondary worlds.
+ * Saving the first worldline fixes its main world, AU baseline and chronology.
+ * Later saves may move the original timeline forward (never backward), and
+ * append (never remove or alter) secondary worlds.
  */
 export function canExtendWorldline(previous: unknown, next: unknown): boolean {
   const proposed = parseStoryWorldline(next);
@@ -14,8 +15,7 @@ export function canExtendWorldline(previous: unknown, next: unknown): boolean {
     && saved.worldName === proposed.worldName
     && saved.worldDescription === proposed.worldDescription
     && JSON.stringify(saved.canonTimeline) === JSON.stringify(proposed.canonTimeline)
-    && saved.kind === proposed.kind && saved.era === proposed.era
-    && saved.period === proposed.period
+    && saved.kind === proposed.kind && canAdvanceWorldline(saved, proposed)
     && saved.baseEra === proposed.baseEra && saved.basePeriod === proposed.basePeriod;
   if (!sameMain) return false;
   const former = saved.crossWorld;
@@ -30,7 +30,7 @@ export function canExtendWorldline(previous: unknown, next: unknown): boolean {
   return true;
 }
 
-/** Keep persisted base immutable while allowing adding extra worlds; events are scene-only. */
+/** Persisted world and AU baseline are immutable; canon era/period may advance only. */
 export function immutableWorldlineMain(saved: StoryWorldline): Pick<StoryWorldline,
   "worldId" | "worldName" | "worldDescription" | "canonTimeline" | "kind" | "era" | "period" | "baseEra" | "basePeriod"> {
   return {
