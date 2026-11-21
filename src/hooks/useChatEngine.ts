@@ -200,6 +200,8 @@ export const useChatEngine = ({
                         && (configOverride?.useMusicControl ?? config.musicControl) === true,
                     useImageGen: ["sliding", "novel", "infinite", "chat"].includes(currentSession.memoryMode)
                         && config.imageGen === true,
+                    danmakuEnabled: ["sliding", "novel"].includes(currentSession.memoryMode) && config.danmakuEnabled === true,
+                    danmakuCount: Math.min(24, Math.max(1, Math.round(config.danmakuCount || 8))),
                     charStatus: currentSession.charStatus,
                     codeRepository: currentSession.engineeringProjectRoot ? undefined : currentSession.codeRepository,
                     engineeringProjectRoot: currentSession.memoryMode === "infinite" ? currentSession.engineeringProjectRoot || "" : "",
@@ -464,6 +466,18 @@ export const useChatEngine = ({
             }
             let currentText = fullText;
             let novelState = currentSession.memoryMode === "novel" ? extractNovelState(fullText) : null;
+            let novelDanmaku: string[] = [];
+            if (currentSession.memoryMode === "novel" && config.danmakuEnabled === true) {
+                const match = fullText.match(/<novel_danmaku\s*>([\s\S]*?)<\/novel_danmaku\s*>/i);
+                if (match) {
+                    try {
+                        const parsed: unknown = JSON.parse(match[1]);
+                        if (Array.isArray(parsed)) novelDanmaku = parsed.filter(item => typeof item === "string")
+                            .map(item => item.trim().slice(0, 120)).filter(Boolean).slice(0, Math.min(24, Math.max(1, config.danmakuCount || 8)));
+                    } catch { /* Preserve prose when an optional extension is malformed. */ }
+                }
+            }
+
             if (currentSession.memoryMode === "novel") {
                 // A malformed or missing chapter state must never erase the last good state.
                 if (!novelState) {
@@ -900,6 +914,7 @@ export const useChatEngine = ({
                             ? { engineeringProjectRoot: outputProject } : {}),
                         messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing, ...(ideEditedFiles.length ? { ideEditedFiles } : {}) }],
                         codeRepository: updatedRepo,
+                        ...(s.memoryMode === "novel" ? { lastDanmaku: config.danmakuEnabled ? novelDanmaku : [] } : {}),
                         ...(s.memoryMode === "novel" && novelState ? {
                             novelState,
                             storyNextCastIds: novelState.nextSceneCastIds,
@@ -918,7 +933,7 @@ export const useChatEngine = ({
                                 storyNextCastIds: capturedState.nextSceneCastIds || [],
                             } : {}),
                             plotSuggestions: capturedState.suggestions,
-                            lastDanmaku: capturedState.danmaku,
+                            lastDanmaku: config.danmakuEnabled ? (capturedState.danmaku || []).slice(0, Math.min(24, Math.max(1, config.danmakuCount || 8))) : [],
                             timeline: capturedState.timeline,
                             ...(s.memoryMode === "sliding" && s.storyWorldline && typeof capturedState.timeline?.minor === "string" && capturedState.timeline.minor.trim()
                                 ? { storyWorldline: { ...s.storyWorldline, event: capturedState.timeline.minor.trim().slice(0, 500) } }
