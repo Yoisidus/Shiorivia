@@ -154,7 +154,7 @@ const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, the
 
 export const NovelInterface = ({
     currentSession, handleSend,
-    isLoading, onExit, onOpenSettings,
+    isLoading, onExit, onOpenSettings, onCompleteMissingMetadata, metadataRepairing = false,
     dbChars, updateSessionTitle,
     deleteMessage, updateSessionInfo,
     handleRegenerate, createNewSession,
@@ -649,6 +649,17 @@ export const NovelInterface = ({
                                             onImageOpen={setPreviewImage} theme={theme} selfColors={selfColors} locale={locale}
                                             disabled={isLoading || i !== chapters.length - 1} />
 
+                                        {msg.metadataRepairMissing && i === chapters.length - 1 && (
+                                            <div role="status" className="my-5 flex items-center gap-3 rounded-xl border border-[#dfc29a] bg-[#fff8e9] p-3 text-xs text-[#735439]">
+                                                <AlertTriangle size={16} className="shrink-0"/>
+                                                <span className="flex-1">本章状态或记忆不完整，章节正文已保留。</span>
+                                                <button type="button" disabled={isLoading || metadataRepairing}
+                                                    onClick={() => onCompleteMissingMetadata?.(msg.realIndex)}
+                                                    className="rounded-lg border border-[#d9c39d] bg-white px-3 py-1.5 font-semibold disabled:opacity-40">
+                                                    {metadataRepairing ? "补齐中…" : "补齐状态"}
+                                                </button>
+                                            </div>
+                                        )}
                                         {useImageGen && parseDrawTag(msg.content)?.trigger && (
                                             <button type="button" disabled={drawingIndex !== null || isLoading}
                                                 onClick={() => void confirmNovelDraw(msg.realIndex)}
