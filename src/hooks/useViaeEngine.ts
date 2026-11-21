@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ViaeConversation, ViaeMessage, Session } from "../types";
 import { formatLocalMemoryEntries, LOCAL_STM_SLOTS, parseLocalMemoryEntries } from "../lib/localMemory";
 import { useLanguage } from "../context/LanguageContext";
+import { useAppDialog } from "../context/DialogContext";
 import { asChartaPromptData, type ChartaCharacter } from "../lib/charta";
 import { asChartaSelfPromptData, type ChartaSelf } from "../lib/chartaSelf";
 
@@ -23,6 +24,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
   contextWindowTokens?: number;
 }) {
   const { locale } = useLanguage();
+  const dialog = useAppDialog();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -43,7 +45,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
   const send = async (regenerate = false) => {
     if (busyRef.current || !activeGroup || !provider) return;
     if (!model.trim()) {
-      window.alert("请先为当前供应商选择模型，确认后再发送。");
+      void dialog.alert("请先为当前供应商选择模型，确认后再发送。");
       return;
     }
     if (activeGroup.pov === "insider" && !activeSelf) { notify?.("参与模式需要当前 Charta 启用的自设。"); return; }
