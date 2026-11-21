@@ -1013,6 +1013,7 @@ export default function Home() {
                     handleRegenerate={engine.handleRegenerate} handleDeleteMessage={engine.handleDeleteMessage}
                     onCompleteEngineeringOutput={engine.completeEngineeringOutput}
                     onCompleteStoryState={engine.completeStoryState}
+                    onCompleteMissingMetadata={engine.completeMissingMetadata}
                     storyStateRepairing={engine.storyStateRepairing}
                     onGenerateDraw={engine.generateDraw} imageSettings={config.imageSettings} useImageGen={config.imageGen}
                     handleCopy={(t: string, i: number) => {
