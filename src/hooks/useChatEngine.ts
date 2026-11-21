@@ -740,7 +740,7 @@ export const useChatEngine = ({
             }
 
 
-            const inlineStoryMemory = currentSession.memoryMode === "sliding" && !storyProtocolMissing
+            const inlineStoryMemory = currentSession.memoryMode === "sliding"
                 ? parseStoryTurnMemory(currentText) : null;
             if (currentSession.memoryMode === "sliding") currentText = stripStoryTurnMemory(currentText);
 
@@ -885,10 +885,13 @@ export const useChatEngine = ({
                         ...s,
                         ...(s.memoryMode === "infinite" && outputProject
                             ? { engineeringProjectRoot: outputProject } : {}),
-                        messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing, ...(ideEditedFiles.length ? { ideEditedFiles } : {}) }],
+                        messages: [...msgs, { role: "assistant", content: currentText, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta, storyProtocolMissing,
+                            ...(storyProtocolMissing && inlineStoryMemory ? { storyPendingMemory: inlineStoryMemory } : {}),
+                            ...(ideEditedFiles.length ? { ideEditedFiles } : {}) }],
                         codeRepository: updatedRepo,
                         ...(s.memoryMode === "novel" ? { lastDanmaku: config.danmakuEnabled ? novelDanmaku : [] } : {}),
                         ...(s.memoryMode === "sliding" && resolvedTurnCast ? { storyNextCastIds: resolvedTurnCast } : {}),
+                        ...(s.memoryMode === "novel" && resolvedTurnCast ? { storyNextCastIds: resolvedTurnCast } : {}),
                         ...(s.memoryMode === "novel" && novelState ? {
                             novelState,
                             storyNextCastIds: novelState.nextSceneCastIds,
@@ -1302,15 +1305,27 @@ export const useChatEngine = ({
                 if (session.id !== currentSessionId || index !== session.messages.length - 1
                     || !currentTarget?.storyProtocolMissing || currentTarget.storyGenerationId !== target.storyGenerationId
                     || currentTarget.content !== target.content) return session;
+                // The inline memory arrived in the same original stream. Preserve it
+                // until state recovery succeeds; never pay for a second summary
+                // when this metadata is already complete.
+                const pending = currentTarget.storyPendingMemory;
+                const count = Math.max(0, session.turnCount || 0);
+                const nextMemory = pending?.stm
+                    ? count >= 6 && pending.ltm
+                        ? { stm: "", ltm: pending.ltm, stmBackup: session.stm, turnCount: 0 }
+                        : { stm: formatLocalMemoryEntries([
+                            ...parseLocalMemoryEntries(session.stm), "• " + pending.stm,
+                          ]), stmBackup: session.stm, turnCount: count + 1 }
+                    : {};
                 return {
-                    ...session,
+                    ...session, ...nextMemory,
                     protagonist, charStatus: character, sceneCastIds: stage,
                     plotSuggestions: repaired.suggestions, timeline: repaired.timeline,
                     lastDanmaku: config.danmakuEnabled && Array.isArray(repaired.danmaku)
                         ? repaired.danmaku.filter((v: unknown) => typeof v === "string").slice(0, Math.min(24, config.danmakuCount || 8)) : [],
                     ...(session.storyWorldline && typeof repaired.timeline?.minor === "string" && repaired.timeline.minor.trim()
                         ? { storyWorldline: { ...session.storyWorldline, event: repaired.timeline.minor.trim().slice(0, 500) } } : {}),
-                    messages: session.messages.map((message, i) => i === index ? { ...message, storyProtocolMissing: false } : message),
+                    messages: session.messages.map((message, i) => i === index ? { ...message, storyProtocolMissing: false, storyPendingMemory: undefined } : message),
                     updatedAt: Date.now(),
                 };
             }));
