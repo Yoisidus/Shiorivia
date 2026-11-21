@@ -93,7 +93,7 @@ export const SaveLoadModal = ({ isOpen, onClose, currentSession, onLoadSession }
             if (!res.ok) throw new Error("Save failed");
             await fetchSlots();
         } catch (e) {
-            void dialog.alert("存档保存失败");
+            dialog.notify("存档保存失败");
         } finally {
             setIsLoading(false);
         }
@@ -116,7 +116,7 @@ export const SaveLoadModal = ({ isOpen, onClose, currentSession, onLoadSession }
                 onClose();
             }
         } catch (e) {
-            void dialog.alert("读取存档失败");
+            dialog.notify("读取存档失败");
         } finally {
             setIsLoading(false);
         }
