@@ -5,9 +5,11 @@ import { listWorkspaceFiles, readWorkspaceFile, searchWorkspace } from "./ideWor
 
 type Provider = { id: string; apiKey: string; baseURL?: string };
 type TextMessage = { role: string; content: unknown };
-type Request = { project: string; provider: Provider; model: string; messages: TextMessage[] };
-const MAX_ROUNDS = 6;
-const MAX_CONTEXT = 24000;
+type Request = { project: string; provider: Provider; model: string; messages: TextMessage[]; contextWindowTokens?: number };
+const MAX_ROUNDS = 20;
+const DEFAULT_CONTEXT = 36000;
+const MAX_CONTEXT = 64000;
+const MAX_PLANNER_TRACE = 22000;
 function contentText(value: unknown): string {
   return typeof value === "string" ? value : JSON.stringify(value ?? "").slice(0, 1500);
 }
@@ -67,6 +69,8 @@ async function executeTool(project: string, call: ToolRequest): Promise<unknown>
  */
 export async function inspectIdeProject(request: Request): Promise<string> {
   const { project, provider, model, messages } = request;
+  const contextBudget = Math.min(MAX_CONTEXT, Math.max(DEFAULT_CONTEXT,
+    Math.floor((Number.isFinite(request.contextWindowTokens) ? Number(request.contextWindowTokens) : 32768) * 1.1)));
   const history = messages.slice(-8).map(m =>
     m.role + ": " + contentText(m.content).slice(0, 1600)).join("\n");
 
@@ -82,7 +86,10 @@ export async function inspectIdeProject(request: Request): Promise<string> {
     "For changes to EXISTING code, you MUST successfully read_file the relevant existing source and its actual numbered lines before <ide_done/>.",
     "If a project-relative filename was supplied, call read_file directly. Otherwise list_files or search_code to find candidates, then read_file.",
     "Do not treat previous chat code snippets, a directory tree or search excerpts as authoritative source lines.",
-    "Read only the relevant portions (about 40–160 lines per call); use extra reads if the edit spans more lines.",
+    "Read only relevant portions (roughly 40–180 lines per call). Long files can be read in multiple numbered ranges.",
+    "For a large repository, map structure with list_files/search_code, then read the relevant implementation and dependencies; do not dump every unrelated file.",
+    "You may perform up to " + MAX_ROUNDS + " read-only tool calls when the task genuinely requires many files. Stop earlier when sufficient.",
+    "Previously inspected content may be evicted from the final context as newer results arrive; reread precise line ranges before emitting patches if necessary.",
     "Available tools (read-only, under the bound project):",
     '- list_files: <ide_tool>{"tool":"list_files","arguments":{"path":"src"}}</ide_tool>',
     '- search_code: <ide_tool>{"tool":"search_code","arguments":{"query":"someSymbol"}}</ide_tool>',
@@ -99,7 +106,9 @@ export async function inspectIdeProject(request: Request): Promise<string> {
     + "\n\nBOUND PROJECT: " + project
     + "\nDecide now: if live source inspection is necessary, choose the first tool; otherwise <ide_done/>.";
   let thread = threadStart;
-  let trace = "";
+  let plannerLog = "";
+  const retained: Array<{tool: string; detail: string; read: boolean}> = [];
+  let retainedLength = 0;
   let successfulReads = 0;
   let toolCalls = 0;
   let invalidRetryUsed = false;
@@ -111,7 +120,7 @@ export async function inspectIdeProject(request: Request): Promise<string> {
     } catch (error) {
       // Retain successful inspection results if a later planning call fails.
       if (!toolCalls) throw error;
-      trace += "\n\n[IDE PLANNER ERROR] Further planning failed; already retrieved results remain available.";
+      retained.push({ tool: "planner", detail: "[IDE PLANNER ERROR] Further planning failed; already retrieved results remain available.", read: false });
       break;
     }
     const decision = decodeDecision(proposed);
@@ -120,12 +129,13 @@ export async function inspectIdeProject(request: Request): Promise<string> {
       // Never interpret malformed tool output as an intentional choice to skip.
       if (!invalidRetryUsed) {
         invalidRetryUsed = true;
-        thread += "\n\nFORMAT ERROR: Choose exactly <ide_done/> OR a valid single <ide_tool> JSON command. "
+        plannerLog += "\n\nFORMAT ERROR: Choose exactly <ide_done/> OR a valid single <ide_tool> JSON command. "
           + "Do not write explanations. The previous response was not executed.";
+        thread = threadStart + plannerLog.slice(-MAX_PLANNER_TRACE);
         round--;
         continue;
       }
-      trace += "\n\n[IDE PLANNER ERROR] The model did not produce a usable inspection command.";
+      retained.push({ tool: "planner", detail: "[IDE PLANNER ERROR] The model did not produce a usable inspection command.", read: false });
       break;
     }
 
@@ -137,27 +147,35 @@ export async function inspectIdeProject(request: Request): Promise<string> {
       result = { error: error instanceof Error ? error.message : "Read failed" };
     }
     const detail = JSON.stringify({ tool: decision.tool, arguments: decision.arguments, result });
-    if (trace.length + detail.length + 150 > MAX_CONTEXT) {
-      const limitNotice = "\n\n[IDE INSPECTION LIMIT] Result exceeds the available inspection budget. "
-        + "Request a narrower line range or a more specific search.";
-      trace += limitNotice;
-      thread += "\n\nTOOL RESULT OMITTED: Output was too large. "
-        + "Choose a narrower read_file range or refine the search. The file was NOT successfully inspected.";
+    if (detail.length + 300 > contextBudget) {
+      plannerLog += "\n\nTOOL RESULT OMITTED: Output is too large for a single retained read. "
+        + "Choose a narrower read_file line range or more specific search.";
+      thread = threadStart + plannerLog.slice(-MAX_PLANNER_TRACE);
       continue;
     }
-    if (decision.tool === "read_file" && result && typeof result === "object"
-      && typeof (result as { content?: unknown }).content === "string") successfulReads++;
-    trace += "\n\n[IDE INSPECTION " + toolCalls + "]\n" + detail;
-    thread += "\n\nTOOL: " + JSON.stringify({ tool: decision.tool, arguments: decision.arguments })
-      + "\nRESULT: " + detail.slice(0, 8500)
-      + "\nChoose the next tool or <ide_done/> if enough code has been read.";
+    // Keep the newest verified source within the selected context window.
+    // Unlike the old hard-stop at 24K characters, earlier reads may be evicted.
+    while (retainedLength + detail.length + 250 > contextBudget && retained.length) {
+      const removed = retained.shift()!;
+      retainedLength -= removed.detail.length + 50;
+    }
+    const read = decision.tool === "read_file" && result && typeof result === "object"
+      && typeof (result as { content?: unknown }).content === "string";
+    retained.push({ tool: decision.tool, detail: "[IDE INSPECTION " + toolCalls + "]\n" + detail, read });
+    retainedLength += detail.length + 50;
+    if (read) successfulReads++;
+    plannerLog += "\n\nTOOL: " + JSON.stringify({ tool: decision.tool, arguments: decision.arguments })
+      + "\nRESULT: " + detail.slice(0, 6000)
+      + "\nChoose the next useful tool, or <ide_done/> after enough CURRENT code has been read.";
+    thread = threadStart + plannerLog.slice(-MAX_PLANNER_TRACE);
   }
 
-  if (!toolCalls && !trace) return ""; // AI chose no inspection.
-  if (toolCalls && !successfulReads) {
-    trace += "\n\n[IDE SOURCE STATUS] No source file contents were successfully read. "
-      + "Search/list results can help locate files, but do not prove their contents. "
-      + "Do not generate edits for existing files without exact original lines.";
+  if (!toolCalls && !retained.length) return ""; // AI chose no inspection.
+  const inspected = retained.some(item => item.read);
+  const trace = retained.map(item => item.detail).join("\n\n");
+  if (toolCalls && !inspected) {
+    return (trace + "\n\n[IDE SOURCE STATUS] No source file contents are retained. "
+      + "List/search alone is insufficient for existing-file edits; inspect exact lines before patching.").slice(0, contextBudget);
   }
-  return trace.slice(0, MAX_CONTEXT);
+  return trace.slice(0, contextBudget);
 }
