@@ -38,7 +38,7 @@ export function conversationTurnMemoryInstruction(input: {
     : "Summarize the actual participant messages or director-guided character-to-character conversation on this road, retaining who said what. Director notes are not visible to fictional chat members.";
   const placement = input.mode === "umbra"
     ? "Place one <turn_memory> after your character's actual chat reply (and any authorized draw instruction), at the END of the response. Do not narrate the memory."
-    : "Place one <turn_memory> AFTER the complete <viae_chat> JSON block and any optional <worldline_update> marker, as the FINAL output block. Do not put it inside the chat JSON or a character's text.";
+    : "Place one <turn_memory> AFTER the complete <viae_chat> JSON block. If time advances, put the optional <worldline_update> AFTER </turn_memory>, as the last block. Do not put memory inside the chat JSON or any character's text.";
   return [
     "[" + label + " INLINE MEMORY — PRIVATE METADATA]",
     "Memory belongs to this " + (input.mode === "umbra" ? "character, not to other speakers" : "road, not to other conversations") + ".",
