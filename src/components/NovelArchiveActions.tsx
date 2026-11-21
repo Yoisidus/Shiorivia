@@ -11,22 +11,19 @@ const FORMAT = "shiorivia-novel-session";
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024;
 
 /** A single, self-contained Novel session. This never overwrites the main backup. */
-export function NovelArchiveActions({ session, draft, onImport, disabled = false, className = "", tone = "paper" }: {
+export function NovelArchiveActions({ session, draft, onImport, disabled = false, className = "" }: {
   session: Session;
   draft: NovelDraft;
   onImport: (imported: Session, draft?: NovelDraft) => void;
   disabled?: boolean;
   className?: string;
-  tone?: "paper" | "sage";
 }) {
   const { locale } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
   const [exportFormat, setExportFormat] = useState<"json" | "docx">("json");
-  const softText = tone === "paper" ? "text-[#937b55]" : "text-[#657e6e]";
-  const actionStyle = tone === "paper"
-    ? "border-[#c9ae7d] bg-[#f5e9ce] text-[#6b5430] hover:bg-[#ead6ac]"
-    : "border-[#a8c3ae] bg-[#e3f0e3] text-[#3e6649] hover:bg-[#cfe5d1]";
+  const softText = "text-[#937b55]";
+  const actionStyle = "border-[#c9ae7d] bg-[#f5e9ce] text-[#6b5430] hover:bg-[#ead6ac]";
 
   const exportNovel = () => {
     try {
