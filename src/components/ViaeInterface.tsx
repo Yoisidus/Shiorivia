@@ -294,10 +294,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
           <button type="button" onClick={onExit} title={deepText(locale, "viae.choosePath")} aria-label={deepText(locale, "viae.choosePath")} className="rounded-xl p-2 text-[#586d81] transition hover:bg-[#f2f5f7]"><ArrowLeft size={18}/></button>
           <button type="button" onClick={() => chooseGroup(null)} title="VIAE · 道路总览" aria-label="VIAE · 道路总览" className="rounded-xl transition hover:ring-2 hover:ring-[#e5d5b4]"><img src="/shiorivia-app-icon.png" alt="Shiorivia" className="h-10 w-10 rounded-xl object-cover"/></button>
           <div className="min-w-0 flex-1"><h1 className="font-semibold tracking-[0.18em] text-[#162942]">VIAE</h1><p className="text-[10px] tracking-wide text-[#8994a1]">SHIORIVIA · CHARACTER MESSAGING</p></div>
-          <button type="button" onClick={onManualSync} disabled={!onManualSync || isLoading || syncStatus === "syncing"}
-            title="将全部 Local 会话和 VIAE 道路写入本地磁盘" aria-label="保存到本地"
-            className="rounded-xl p-2 text-[#718095] transition hover:bg-[#f3f5f7] disabled:opacity-40"><Save size={18}/></button>
-          <button type="button" onClick={onSettings} title={deepText(locale, "common.settings")} aria-label={deepText(locale, "common.settings")} className="rounded-xl p-2 text-[#718095] hover:bg-[#f3f5f7]"><Settings2 size={18}/></button>
+<button type="button" onClick={onSettings} title={deepText(locale, "common.settings")} aria-label={deepText(locale, "common.settings")} className="rounded-xl p-2 text-[#718095] hover:bg-[#f3f5f7]"><Settings2 size={18}/></button>
         </div>
         <div className="px-5 pb-3 pt-6">
           <div className="mb-4 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[0.18em] text-[#8290a0]">YOUR PATHS / {deepText(locale, "viae.paths")}</span><span className="text-xs text-[#b49a6c]">{conversations.length.toString().padStart(2, "0")}</span></div>
@@ -320,6 +317,14 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
               <button type="button" title={`删除 ${g.name}`} aria-label={`删除 ${g.name}`} disabled={isLoading} onClick={() => removeGroup(g.id)} className="rounded-lg p-1.5 text-[#a5afba] opacity-60 transition hover:bg-rose-50 hover:text-rose-600 sm:opacity-0 sm:group-hover:opacity-100"><Trash2 size={14}/></button>
             </div>;
           })}
+        </div>
+        <div className="border-t border-[#e8edf1] bg-[#fbfcfd] px-5 py-3">
+          <button type="button" onClick={onManualSync}
+            disabled={!onManualSync || isLoading || syncStatus === "syncing"}
+            title="将当前全部 Local 会话、世界线和 VIAE 道路保存到本地磁盘"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8e0e8] bg-white px-4 py-2.5 text-xs font-semibold text-[#3a526b] transition hover:border-[#c2af89] hover:bg-[#fffaf0] disabled:cursor-not-allowed disabled:opacity-40">
+            <Save size={15}/> {syncStatus === "syncing" ? "正在保存…" : "保存到本地"}
+          </button>
         </div>
         <div className="relative overflow-hidden bg-[#152841] px-5 py-5 text-[#e8d3aa]"><RouteIllustration compact/><div className="relative z-10 flex items-center gap-3"><PathEmblem size={35}/><div><p className="font-serif text-sm italic">Where stories find their way.</p><p className="mt-1 text-[9px] tracking-widest text-[#9baabe]">SHIORIVIA / VIAE</p></div></div></div>
       </aside>
