@@ -9,6 +9,8 @@ export const DEFAULT_CONTEXT_WINDOW_TOKENS: ContextWindowTokens = 262144;
 
 export function normalizeContextWindowTokens(value: unknown): ContextWindowTokens {
   if (CONTEXT_WINDOW_OPTIONS.includes(value as ContextWindowTokens)) return value as ContextWindowTokens;
+  // The former 32K default should become the new 256K default, not a 64K cap.
+  if (value === 32768) return DEFAULT_CONTEXT_WINDOW_TOKENS;
   // Migrate legacy Local presets to the closest supported tier at least as
   // large as the former user-selected limit. Never silently shrink old choices.
   if (typeof value === "number" && Number.isFinite(value) && value > 0
