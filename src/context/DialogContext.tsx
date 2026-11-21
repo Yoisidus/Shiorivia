@@ -19,6 +19,7 @@ type DialogApi = {
   prompt: (message: string, initial?: string, options?: DialogOptions) => Promise<string | null>;
   reviewEdits: (files: IdeDiffFile[]) => Promise<boolean>;
   setTone: (tone: DialogTone) => void;
+  tone: DialogTone;
 };
 
 const DialogContext = createContext<DialogApi | null>(null);
@@ -74,7 +75,8 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     },
     reviewEdits: async files => (await enqueue("review", "", { title: "审阅 IDE 代码修改", confirmLabel: "应用全部修改", cancelLabel: "取消修改", tone: "officina" }, undefined, files)) === true,
     setTone,
-  }), [enqueue]);
+    tone,
+  }), [enqueue, tone]);
 
   useEffect(() => { setInput(active?.initial || ""); }, [active?.id]);
   useEffect(() => {
