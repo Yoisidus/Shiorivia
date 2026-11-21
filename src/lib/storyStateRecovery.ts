@@ -68,7 +68,7 @@ const isRecord = (v: unknown): v is StoryObject =>
   !!v && typeof v === "object" && !Array.isArray(v);
 
 const SUGGESTION_TYPES = ["fun", "rational", "radical"] as const;
-const TIMELINE_TYPES = ["major", "medium", "minor"] as const;
+const TIMELINE_TYPES = ["era", "period", "event"] as const;
 
 /** Returns a new value; never mutates the untrusted model response. */
 export function normalizeStoryProtocol(value: unknown): unknown {
@@ -90,19 +90,28 @@ export function normalizeStoryProtocol(value: unknown): unknown {
     state.suggestions = normalized;
   }
 
-  // Common alternative: [{type:"minor",description:"..."}].
-  // Unknown levels are ignored, and absent levels remain empty strings.
+  // Normalize old story archives and equivalent timeline arrays to
+  // era/period/event without silently inventing the actual worldline.
   if (Array.isArray(state.timeline)) {
-    const normalized: StoryObject = { major:"", medium:"", minor:"" };
+    const normalized: StoryObject = { era: "", period: "", event: "" };
+    const aliases: Record<string,string> = { major:"era", medium:"period", minor:"event" };
     for (const entry of state.timeline) {
       if (!isRecord(entry)) continue;
-      const type = entry.type ?? entry.tag;
+      const rawKey = String(entry.type ?? entry.tag ?? "");
+      const key = aliases[rawKey] || rawKey;
       const description = entry.description ?? entry.text;
-      if (TIMELINE_TYPES.some(key => key === type) && typeof description === "string") {
-        normalized[String(type)] = description;
+      if (TIMELINE_TYPES.some(item => item === key) && typeof description === "string") {
+        normalized[key] = description;
       }
     }
     state.timeline = normalized;
+  } else if (isRecord(state.timeline)) {
+    const old = state.timeline;
+    state.timeline = {
+      era: typeof old.era === "string" ? old.era : typeof old.major === "string" ? old.major : "",
+      period: typeof old.period === "string" ? old.period : typeof old.medium === "string" ? old.medium : "",
+      event: typeof old.event === "string" ? old.event : typeof old.minor === "string" ? old.minor : "",
+    };
   }
 
   // The model may use charId/characterName rather than id/name, and
@@ -153,8 +162,8 @@ export function storyProtocolIssues(value: unknown): string[] {
   if (!Array.isArray(value.danmaku) || !value.danmaku.every(item => typeof item === "string")) {
     issues.push("danmaku 必须为字符串数组");
   }
-  if (!isRecord(value.timeline) || ["major", "medium", "minor"].some(key => typeof (value.timeline as StoryObject)[key] !== "string")) {
-    issues.push("timeline 必须包含 major / medium / minor 字符串");
+  if (!isRecord(value.timeline) || ["era", "period", "event"].some(key => typeof (value.timeline as StoryObject)[key] !== "string")) {
+    issues.push("timeline 必须包含 era / period / event 字符串");
   }
   if (!("music" in value) || (value.music !== null && !isRecord(value.music))) {
     issues.push("music 必须为对象或 null");
