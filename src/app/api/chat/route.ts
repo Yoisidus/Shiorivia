@@ -298,6 +298,10 @@ The character array contains only relationship TARGETS, NEVER the protagonist. R
 Observer without chosen POV: protagonist=null and character=[]. Participant: protagonist is the supplied self. Observer with POV: protagonist is the chosen on-stage character.
 Never omit sceneCastIds or suggestions. If the narrative does not establish a detail, use null, an empty string or an empty array rather than inventing it.
 Only JSON belongs between the tags.`;
+      finalSystemPrompt += body.danmakuEnabled === true
+        ? "\n[DANMAKU STATE REPAIR] Generate exactly " + Math.min(24, Math.max(1, Number(body.danmakuCount) || 8))
+          + " short, witty, scene-specific fictional viewer comments as the danmaku string array, grounded ONLY in the provided completed story. Avoid spoilers and repetition."
+        : "\n[DANMAKU STATE REPAIR] danmaku must be an empty array [].";
       if (body.storyRole === "participant") {
         const profile = body.storySelf && typeof body.storySelf === "object" ? body.storySelf : {};
         const aliases = Object.values(profile.names && typeof profile.names === "object" ? profile.names : {})
