@@ -96,7 +96,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     <DialogContext.Provider value={api}>
       {children}
       {active && (
-        <div className="fixed inset-0 z-[5000] flex items-center justify-center bg-[#070c19]/75 p-3 backdrop-blur-[6px] sm:p-6"
+        <div className="fixed inset-0 z-[20000] flex items-center justify-center bg-[#070c19]/75 p-3 backdrop-blur-[6px] sm:p-6"
           onMouseDown={event => { if (event.target === event.currentTarget && active.kind !== "alert") finish(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="shiorivia-dialog-title"
             className={`flex w-full flex-col overflow-hidden rounded-2xl border shadow-[0_35px_100px_rgba(0,0,0,.4)] ${theme.frame} ${active.kind === "review" ? "max-w-5xl max-h-[92dvh]" : "max-w-lg max-h-[90dvh]"}`}>
