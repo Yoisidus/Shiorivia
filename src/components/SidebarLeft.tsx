@@ -160,7 +160,7 @@ export const SidebarLeft = ({
                                         <span className="mt-1 block truncate text-xs text-[#486453]">{chatWorldline ? describeStoryWorldline(chatWorldline) : "尚未配置世界线 · 点击选择"}</span>
                                     </span><Globe size={17} className="shrink-0 text-[#6a9680]"/>
                                 </button>
-                                <StoryWorldlineFateModal isOpen={chatWorldlineOpen} value={chatWorldline}
+                                <StoryWorldlineFateModal tone="chat" isOpen={chatWorldlineOpen} value={chatWorldline}
                                     worlds={storyWorlds} showEvent={false} onSave={(next: StoryWorldline) => onSaveChatWorldline(next)}
                                     onClose={() => setChatWorldlineOpen(false)} />
                             </div>}
