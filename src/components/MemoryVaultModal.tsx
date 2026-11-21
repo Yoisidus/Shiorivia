@@ -5,6 +5,7 @@ import { Archive, Brain, Check, LockKeyhole, Plus, Save, Trash2, X } from "lucid
 import { formatLocalMemoryEntries, latestLocalMemoryEntry, LOCAL_STM_SLOTS, parseLocalMemoryEntries } from "../lib/localMemory";
 import { useLanguage } from "../context/LanguageContext";
 import { localText } from "../lib/i18nLocal";
+import { useAppDialog } from "../context/DialogContext";
 
 export type MemoryTone = "engineering" | "story" | "novel" | "novel-sage" | "novel-paper";
 
@@ -55,6 +56,7 @@ export function MemoryPreviewButton({ stm, ltm, onOpen, tone = "story" }: {
 
 export function MemoryVaultModal({ open, onClose, sessionId, stm = "", ltm = "", onSave, tone = "engineering" }: MemoryVaultProps) {
   const { locale } = useLanguage();
+  const dialog = useAppDialog();
   const style = tones[tone === "novel-sage" ? "story" : tone === "novel-paper" ? "novel" : tone];
   const [stmSlots, setStmSlots] = useState<string[]>([]);
   const [ltmSlots, setLtmSlots] = useState<string[]>([]);
@@ -84,12 +86,12 @@ export function MemoryVaultModal({ open, onClose, sessionId, stm = "", ltm = "",
   const visibleStmCount = Math.max(LOCAL_STM_SLOTS, stmSlots.length);
   const filledStm = stmSlots.filter((entry) => entry.trim()).length;
 
-  const save = () => {
+  const save = async () => {
     if (stm !== original.current.stm || ltm !== original.current.ltm) {
       setError(localText(locale, "memory.changed"));
       return;
     }
-    if (!window.confirm(localText(locale, "memory.confirm"))) return;
+    if (!await dialog.confirm(localText(locale, "memory.confirm"))) return;
     onSave({ stm: formatLocalMemoryEntries(stmSlots), ltm: formatLocalMemoryEntries(ltmSlots) });
     onClose();
   };
@@ -151,7 +153,7 @@ export function MemoryVaultModal({ open, onClose, sessionId, stm = "", ltm = "",
                   <div key={index} className="rounded-xl border border-slate-200 bg-white p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <label htmlFor={`shiorivia-ltm-${index}`} className="rounded bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-500">LTM {index + 1}</label>
-                      <button type="button" aria-label={`删除长期记忆 ${index + 1}`} onClick={() => { if (window.confirm(`删除第 ${index + 1} 条长期记忆？保存后生效。`)) setLtmSlots((prev) => prev.filter((_, i) => i !== index)); }} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 size={15} /></button>
+                      <button type="button" aria-label={`删除长期记忆 ${index + 1}`} onClick={async () => { if (await dialog.confirm(`删除第 ${index + 1} 条长期记忆？保存后生效。`)) setLtmSlots((prev) => prev.filter((_, i) => i !== index)); }} className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 size={15} /></button>
                     </div>
                     <textarea id={`shiorivia-ltm-${index}`} rows={3} value={entry}
                       onChange={(e) => setLtmSlots((prev) => prev.map((item, i) => i === index ? e.target.value : item))}
