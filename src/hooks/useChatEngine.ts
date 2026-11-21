@@ -150,7 +150,7 @@ export const useChatEngine = ({
                 storyRole, storySelfId: storyRole === "participant" ? selectedSelf?.id || selectedSelfId : null,
                 storySelfSnapshot: storyRole === "participant" ? selectedSelf : null,
                 ...(s.memoryMode === "sliding" ? {
-                    storyPovLocked: s.storyPovLocked || (isRegen ? previousStoryTurns >= 2 : previousStoryTurns >= 1),
+                    storyPovLocked: s.storyPovLocked || (Boolean(s.storyPovId) && (isRegen ? previousStoryTurns >= 2 : previousStoryTurns >= 1)),
                 } : {}),
             } : {}),
             updatedAt: Date.now(),
@@ -227,7 +227,7 @@ export const useChatEngine = ({
                         storyCastWorlds: storyWorlds.map((world: any) => ({ id: world.id, name: world.name, description: world.description, canonTimeline: world.canonTimeline })),
                         storySelf: selectedSelf ? asChartaSelfPromptData(selectedSelf) : null,
                         storyPovId: storyRole === "observer" ? currentSession.storyPovId : null,
-                        storyPovLocked: currentSession.storyPovLocked || (isRegen ? previousStoryTurns >= 2 : previousStoryTurns >= 1),
+                        storyPovLocked: currentSession.storyPovLocked || (Boolean(currentSession.storyPovId) && (isRegen ? previousStoryTurns >= 2 : previousStoryTurns >= 1)),
                         previousProtagonist: currentSession.protagonist,
                     } : {}),
                     customCharacters: customCharacters.map(asChartaPromptData),
