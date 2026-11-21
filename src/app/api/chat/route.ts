@@ -971,6 +971,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
         const project = validProjectName(body.engineeringProjectRoot);
         const inspected = await inspectIdeProject({
           project, provider: selectedProvider, model: routedModel, messages: finalMessages,
+          contextWindowTokens: body.contextWindowTokens,
         });
         if (inspected) {
           finalSystemPrompt += "\n\n[OFFICINA PROJECT INSPECTION — READ-ONLY RESULTS]\n"
