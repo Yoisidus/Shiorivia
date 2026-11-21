@@ -11,7 +11,6 @@ import { CHARACTERS, type NovelDraft } from "../types";
 import { fallbackModelGroups, type LocalModelGroup, type PublicLocalProvider } from "../lib/localProviders";
 import { useSavedModels } from "../hooks/useSavedModels";
 import { NovelArchiveActions } from "./NovelArchiveActions";
-import { SuggestionModal } from "./Modals";
 import { StoryWorldlineFateModal } from "./StoryWorldlineFateModal";
 import { StoryCastPicker } from "./StoryCastPicker";
 import { parseStoryWorldline, describeStoryWorldline, enabledWorldIds, type StoryWorldline } from "../lib/storyWorldline";
@@ -74,7 +73,7 @@ const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, the
         .replace(/<novel_danmaku\b[\s\S]*$/gi, "")
         .trim();
 
-    const suggestions = extractNovelSuggestions(clean);
+    const suggestions = extractNovelSuggestions(content);
     clean = stripNovelSuggestions(clean);
     const labels: Record<string, [string, string, string]> = {
         "zh-CN": ["趣味", "理智", "激进"], "zh-TW": ["趣味", "理智", "激進"],
@@ -180,11 +179,26 @@ export const NovelInterface = ({
     const confirmStopGeneration = async () => {
         if (await dialog.confirm("确认暂停小说章节生成吗？当前章节可能尚未完成。", { destructive: true })) stopGeneration();
     };
+    const confirmNovelSuggestion = async (text: string, mode: "send" | "insert") => {
+        if (isLoading || !text.trim()) return;
+        const accepted = await dialog.confirm(
+            mode === "send" ? "确认直接采用并发送这条剧情指引吗？" : "确认将这条剧情指引填入导演输入框吗？",
+            { title: mode === "send" ? "TELA · 确认发送" : "TELA · 确认填入",
+              confirmLabel: mode === "send" ? "确认发送" : "确认填入", tone: "tela", preview: text },
+        );
+        if (!accepted || isLoading) return;
+        if (mode === "send") {
+            dialog.notify("已采纳剧情指引，正在生成下一章。", { type: "success", tone: "tela" });
+            void handleGenerate("continue", text);
+        } else {
+            setDirectorInput(text);
+            dialog.notify("剧情指引已填入导演输入框，可以继续修改。", { type: "success", tone: "tela" });
+        }
+    };
     const [showFullPlayer, setShowFullPlayer] = useState(false);
     const [worldlineOpen, setWorldlineOpen] = useState(false);
 
     const [directorInput, setDirectorInput] = useState("");
-    const [pendingNovelChoice, setPendingNovelChoice] = useState<string | null>(null);
     const [selectedCharIds, setSelectedCharIds] = useState<string[]>([]);
     const novelWorldline = parseStoryWorldline(currentSession.storyWorldline);
     const novelRole = currentSession.storyRole === "participant"
@@ -630,8 +644,8 @@ export const NovelInterface = ({
                                     <div className="flex items-center gap-4 mb-8 opacity-30 justify-center"><div className={`h-px ${theme.text} w-12`}></div><span className="font-mono text-xs tracking-widest uppercase">{title}</span><div className={`h-px ${theme.text} w-12`}></div></div>
                                     <div className={`prose ${theme.prose} prose-lg md:prose-xl leading-loose ${theme.text} font-serif whitespace-pre-wrap`}>
                                         <NovelContent content={msg.content}
-                                            onOptionClick={(opt: string) => setPendingNovelChoice(opt)}
-                                            onOptionInsert={(opt: string) => { setDirectorInput(opt); showToast?.("剧情建议已填入导演输入框，可继续修改。"); }}
+                                            onOptionClick={(opt: string) => { void confirmNovelSuggestion(opt, "send"); }}
+                                            onOptionInsert={(opt: string) => { void confirmNovelSuggestion(opt, "insert"); }}
                                             onImageOpen={setPreviewImage} theme={theme} selfColors={selfColors} locale={locale}
                                             disabled={isLoading || i !== chapters.length - 1} />
 
@@ -847,13 +861,6 @@ export const NovelInterface = ({
                     </motion.div>
                 )}
             </AnimatePresence>
-            <SuggestionModal isOpen={pendingNovelChoice !== null} content={pendingNovelChoice || ""}
-                mode="send" onClose={() => setPendingNovelChoice(null)}
-                onConfirm={() => {
-                    const choice = pendingNovelChoice;
-                    setPendingNovelChoice(null);
-                    if (choice && !isLoading) handleGenerate("continue", choice);
-                }} />
             <StoryWorldlineFateModal tone="novel" elevated isOpen={worldlineOpen}
                 value={novelWorldline ? { ...novelWorldline, event:"" } : undefined}
                 worlds={storyWorlds}
