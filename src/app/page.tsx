@@ -775,6 +775,7 @@ export default function Home() {
                 stopGeneration={engine.stopGeneration}
                 handleRegenerate={engine.handleRegenerate}
                 onGenerateDraw={engine.generateDraw} imageSettings={config.imageSettings} debugMode={ui.debugMode && config.debugDrawTags} useImageGen={config.imageGen} showToast={ui.showToast}
+                danmakuEnabled={config.danmakuEnabled} danmakuCount={config.danmakuCount}
                 setIsGlobalGenerating={setIsGlobalGenerating}
                 onImageGenerated={async (base64: string, meta: any) => {
                     const res = await fetch("/api/upload", {
