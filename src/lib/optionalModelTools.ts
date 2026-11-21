@@ -108,12 +108,12 @@ export async function searchWithProvider(query: string, providerId: string, mode
       return response.text() + "\nSources:\n" + [...new Set(refs)].slice(0, 8).join("\n");
     }
     if (provider.id === "openrouter") {
-      // OpenRouter's legacy web plugin can fall back to third-party search even
+      // OpenRouter's web tool may fall back to third-party search even
       // with native requested on unsupported models. Fail closed for unknown
       // model families rather than silently changing the engine.
       const supportedFamily = /^(?:openai\/(?:gpt-(?:5|[6-9])(?:[.\w-]*)?|o[34](?:[.\w-]*)?)|anthropic\/claude-(?:3[.-]7|[4-9])\S*|google\/gemini-(?:3|[4-9])\S*|x-ai\/grok-(?:4|[5-9])\S*|perplexity\/\S+)$/i.test(model);
       if (!supportedFamily) throw new Error("当前 OpenRouter 模型不在已验证的原生联网搜索家族中；已停止调用以防使用第三方回退。请改用支持原生联网的模型或自定义提供商。");
-      // The documented engine=native mode is requested explicitly.
+      // Use OpenRouter's current model-callable server tool rather than the deprecated plugin.
 
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST", headers: {
@@ -123,7 +123,7 @@ export async function searchWithProvider(query: string, providerId: string, mode
           "X-Title": "Shiorivia Local",
         },
         body: JSON.stringify({
-          model, stream: false, plugins: [{ id: "web", engine: "native" }],
+          model, stream: false, tools: [{ type: "openrouter:web_search", parameters: { engine: "native", max_results: 5 } }],
           messages: [{ role: "user", content: "Use web search to research this query; return factual findings with source links:\n" + query }],
         }),
         signal: AbortSignal.timeout(45000), cache: "no-store",
