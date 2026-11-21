@@ -14,7 +14,7 @@ This document describes the **Local** implementation in `seemoon1/Shiorivia`.
 
 ## Worldline policy
 
-- Via Lata, Tela, Umbra and VIAE save one immutable primary worldline. Its WORLD, canon/AU, ERA and PERIOD (including AU reference baseline) cannot change once saved. For existing worlds, new secondary worlds may be appended up to the configured limit of three; previously saved secondary worlds cannot be changed or deleted.
+- All narrative spaces preserve the primary WORLD and original-canon AU baseline after saving. Canon ERA/PERIOD can advance only forward on the ordered stage list after the user unlocks the timeline. AU creative ERA/PERIOD can be freely edited by the user after unlock; AI cannot author those changes. Umbra never advances its worldline through model output. Existing secondary worlds may be appended up to the limit of three but not altered or removed.
 - Shared worldline editors disable locked fields and validate the additive-only contract before saving. Worldline scene EVENT is still allowed to change in story contexts. VIAE's route editor uses the same contract.
 - Existing routes/sessions remain readable using the prior compatibility layer; the change does not rewrite or delete old archives.
 
