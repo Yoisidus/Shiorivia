@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useAppDialog } from "../context/DialogContext";
 import { Check, Download, Plus, Save, Trash2 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { type ChartaGender } from "../lib/charta";
@@ -31,6 +32,7 @@ export function ChartaSelfPanel({ selves, activeId, loaded, error, saveSelf, rem
   worlds?: ChartaWorld[];
 }) {
   const { locale } = useLanguage();
+  const dialog = useAppDialog();
   const [draft, setDraft] = useState<ChartaSelf | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -50,8 +52,8 @@ export function ChartaSelfPanel({ selves, activeId, loaded, error, saveSelf, rem
   const profileFor = (self: ChartaSelf) => self.profile || {...emptyChartaLore(),intro:self.description || ""};
   const timelineFor = (id?: string) => id === BANG_DREAM_WORLD_ID
     ? BANG_DREAM_CANON : worlds.find(w=>w.id===id)?.canonTimeline || [];
-  const choose = (value: ChartaSelf | null) => {
-    if (dirty && !window.confirm("放弃未保存的修改吗？")) return;
+  const choose = async (value: ChartaSelf | null) => {
+    if (dirty && !await dialog.confirm("放弃未保存的修改吗？")) return;
     setDraft(value ? { ...value, names: { ...value.names } } : null);
     setDirty(false); setMessage("");
   };
@@ -80,7 +82,7 @@ export function ChartaSelfPanel({ selves, activeId, loaded, error, saveSelf, rem
   };
   const remove = async () => {
     if (!draft || busy || !selves.some(s => s.id === draft.id)) return;
-    if (!window.confirm("确定删除这个自设吗？已有故事会保留其身份快照，但无法再选择已删除的自设。")) return;
+    if (!await dialog.confirm("确定删除这个自设吗？已有故事会保留其身份快照，但无法再选择已删除的自设。")) return;
     setBusy(true);
     try { if (await removeSelf(draft.id)) { setDraft(null); setDirty(false); setMessage("已删除自设"); } }
     finally { setBusy(false); }
