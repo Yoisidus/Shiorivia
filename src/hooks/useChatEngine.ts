@@ -381,6 +381,8 @@ export const useChatEngine = ({
                             storyAllowCrossWorld: currentSession.storyAllowCrossWorld === true,
                             storyCastWorlds: storyWorlds.map((world: any) => ({ id: world.id, name: world.name, description: world.description, canonTimeline: world.canonTimeline })),
                             storySelf: selectedSelf ? asChartaSelfPromptData(selectedSelf) : null,
+                            danmakuEnabled: config.danmakuEnabled === true,
+                            danmakuCount: Math.min(24, Math.max(1, Math.round(config.danmakuCount || 8))),
                             storyWorldline: currentSession.storyWorldline,
                             customCharacters: customCharacters.map(asChartaPromptData),
                             messages: [{ role: "user", content: repairPrompt }],
