@@ -260,7 +260,11 @@ export const useChatEngine = ({
                 fullText += chunk;
 
                 setSessions((prev: any) => prev.map((s: any) => s.id === currentSessionId ? {
-                    ...s, messages: [...msgs, { role: "assistant", content: extractInlineTitle(fullText).text, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }]
+                    ...s, messages: [...msgs, { role: "assistant", content: extractInlineTitle(
+                        currentSession.memoryMode === "sliding"
+                            ? stripStoryThinking(fullText).replace(/<thinking\b[^>]*>[\s\S]*$/i, "")
+                            : fullText
+                    ).text, modelName: modelToUse, characterId: activeCharacterId, ...assistantMeta }]
                 } : s));
             }
 
