@@ -311,6 +311,9 @@ const strings: Record<string, readonly [string, string, string, string, string]>
   "viae.titleOverview": ["道路总览", "道路總覽", "Path overview", "道の一覧", "길 전체 보기"],
   "viae.actionMessageArchive": ["每条道路都记得与你同行的人。选择左侧的小径或路口，继续尚未写完的故事；也可以从这里开启新的相遇。", "每條道路都記得與你同行的人。選擇左側小徑或路口，繼續未完的故事，或展開新的相遇。", "Every path remembers your companions. Choose a Semita or Compitum on the left to continue, or begin another encounter.", "それぞれの道には仲間との記憶が残っています。左から Semita や Compitum を選んで続きを始めるか、新しい出会いを作りましょう。", "모든 길은 함께한 사람들을 기억합니다. 왼쪽에서 Semita 또는 Compitum을 선택해 이어가거나 새로운 만남을 시작하세요."],
   "viae.actionMessageStart": ["一条路从这里开始。为角色建立小径或路口，选择世界与视角，让故事沿着新的方向延伸。", "一條路從這裡開始。為角色建立小徑或路口，選擇世界與視角，讓故事往新的方向延伸。", "Every road starts somewhere. Create a Semita or Compitum, choose a world and viewpoint, and see where the story goes.", "すべての道はここから始まります。Semita または Compitum を作り、世界と視点を選んで、新たな物語を始めましょう。", "모든 길은 이곳에서 시작됩니다. Semita 또는 Compitum을 만들고 세계와 시점을 선택해 새로운 이야기를 시작하세요."],
+  "viae.kindDirect": ["Semita · 小径", "Semita · 小徑", "Semita · Private path", "Semita · 小径", "Semita · 오솔길"],
+  "viae.kindGroup": ["Compitum · 路口", "Compitum · 路口", "Compitum · Crossing", "Compitum · 交差点", "Compitum · 교차로"],
+  "viae.memberCountUnit": ["位同行者", "位同行者", "companions", "人の同行者", "명 동행자"],
 };
 
 export type DeepTextKey = keyof typeof strings;
