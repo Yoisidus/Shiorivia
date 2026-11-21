@@ -263,7 +263,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                       className="w-full cursor-pointer accent-[#bc8550]"
                       style={{ background: `linear-gradient(to right, #b88750 0%, #b88750 ${((danmakuCount - 1) / 23) * 100}%, #e8d6b9 ${((danmakuCount - 1) / 23) * 100}%, #e8d6b9 100%)` }} />
                     <div className="mt-1 flex justify-between text-[10px] text-[#9f8667]"><span>1</span><span>12</span><span>24</span></div>
-                  </div>
+                  </div>}
                 </>}
                 {(activeMode === "sliding" || activeMode === "novel") && <SwitchRow
                   title="文风优化"
