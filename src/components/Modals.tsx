@@ -60,48 +60,66 @@ export const WorldInfoModal = ({ isOpen, onClose, title, subtitle, content, onSa
    );
 };
 
-export const EditModal = ({ isOpen, onClose, content, setContent, onConfirm }: any) => (
-   <AnimatePresence>
-      {isOpen && (
-         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-white rounded-2xl shadow-2xl w-[600px] max-w-full overflow-hidden flex flex-col max-h-[80vh]">
-               <div className="p-4 border-b flex justify-between items-center bg-gray-50"><div className="font-bold text-gray-700 flex items-center gap-2"><Edit2 size={16} /> 编辑消息</div><button onClick={onClose}><X size={20} /></button></div>
-               <div className="p-4 flex-1 overflow-auto"><textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full h-64 p-4 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none resize-none text-sm" /></div>
-               <div className="p-4 border-t bg-gray-50 flex justify-end gap-2"><button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg text-sm">取消</button><button onClick={onConfirm} className="px-6 py-2 bg-emerald-500 text-white rounded-lg text-sm hover:bg-emerald-600 shadow-md">确认重试</button></div>
-            </motion.div>
-         </motion.div>
-      )}
-   </AnimatePresence>
-);
+const modalTheme = (tone: string) => tone === "officina"
+   ? { header: "bg-[#172946] border-[#435b86]", title: "text-[#c9d7f7]", frame: "bg-[#101b32] border-[#526b9a]", body: "bg-[#152541] text-[#e5ecfa] border-[#435b86]", button: "bg-[#667fca] hover:bg-[#8298da]" }
+   : tone === "story" ? { header: "bg-fuchsia-50 border-fuchsia-200", title: "text-fuchsia-800", frame: "bg-white border-fuchsia-200", body: "bg-fuchsia-50/30 text-slate-700 border-fuchsia-200", button: "bg-fuchsia-600 hover:bg-fuchsia-700" }
+   : tone === "tela" ? { header: "bg-[#f7eedb] border-[#e6d7b7]", title: "text-[#80643e]", frame: "bg-[#fdf9ee] border-[#d9c7a6]", body: "bg-[#fffaf0] text-[#63553e] border-[#e6d7b7]", button: "bg-[#987952] hover:bg-[#886a44]" }
+   : tone === "viae" ? { header: "bg-[#eff2fa] border-[#d4dcef]", title: "text-[#536891]", frame: "bg-white border-[#bfc8df]", body: "bg-[#f7f9fe] text-slate-700 border-[#d4dcef]", button: "bg-[#6479a6] hover:bg-[#526996]" }
+   : tone === "charta" ? { header: "bg-[#eff5eb] border-[#dae7d4]", title: "text-[#58764b]", frame: "bg-white border-[#cfddca]", body: "bg-[#f6faf4] text-slate-700 border-[#dae7d4]", button: "bg-[#6b8b5d] hover:bg-[#58764b]" }
+   : { header: "bg-emerald-50 border-emerald-200", title: "text-emerald-800", frame: "bg-white border-emerald-200", body: "bg-emerald-50/30 text-slate-700 border-emerald-200", button: "bg-emerald-600 hover:bg-emerald-700" };
 
-export const SuggestionModal = ({ isOpen, onClose, content, onConfirm, mode = "send" }: any) => (
-   <AnimatePresence>
-      {isOpen && (
-         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white rounded-xl shadow-2xl w-[500px] border overflow-hidden">
-               <div className="bg-emerald-50 p-4 border-b border-emerald-100 flex items-center gap-2">
-                  <span className="text-xl">💡</span>
-                  <span className="font-bold text-emerald-800 text-sm">采纳剧情建议 / Adopt Suggestion</span>
-               </div>
-
-               <div className="p-6">
-                  <div className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Preview content:</div>
-                  <div className="bg-gray-50 p-4 rounded-lg border text-sm text-gray-700 leading-relaxed font-medium">
-                     {content}
+export const EditModal = ({ isOpen, onClose, content, setContent, onConfirm }: any) => {
+   const { tone } = useAppDialog();
+   const style = modalTheme(tone);
+   return (
+      <AnimatePresence>
+         {isOpen && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+               <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} role="dialog" aria-modal="true" aria-label="编辑消息"
+                  className={`w-full max-w-[600px] overflow-hidden rounded-2xl border shadow-2xl ${style.frame}`}>
+                  <header className={`flex items-center justify-between gap-3 border-b p-4 ${style.header}`}>
+                     <h2 className={`flex items-center gap-2 text-sm font-bold ${style.title}`}><Edit2 size={17}/>编辑消息</h2>
+                     <button type="button" onClick={onClose} aria-label="关闭编辑弹窗" className={style.title}><X size={19}/></button>
+                  </header>
+                  <div className="p-5">
+                     <textarea value={content} onChange={e => setContent(e.target.value)}
+                        className={`h-64 w-full resize-y rounded-xl border p-4 text-sm outline-none focus:ring-2 focus:ring-current/20 ${style.body}`} />
                   </div>
-                  <div className="mt-4 text-xs text-gray-400">
-                     {mode === "insert" ? "* 确认后只会填入发送文本框，不会立即发送。你可以继续编辑。" : "* 点击确认将直接发送此内容。"}
-                  </div>
-               </div>
-
-               <div className="p-4 bg-gray-50 border-t flex justify-end gap-2">
-                  <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg text-xs font-bold">取消 / Cancel</button>
-                  <button onClick={onConfirm} className="px-6 py-2 bg-emerald-500 text-white rounded-lg text-xs font-bold hover:bg-emerald-600 shadow-md flex items-center gap-2">
-                     {mode === "insert" ? "确认填入 / Insert" : "确认发送 / Send"}
-                  </button>
-               </div>
+                  <footer className={`flex justify-end gap-2 border-t p-4 ${style.header}`}>
+                     <button type="button" onClick={onClose} className={`rounded-lg border border-current/20 px-4 py-2 text-sm ${style.title}`}>取消</button>
+                     <button type="button" onClick={onConfirm} className={`rounded-lg px-5 py-2 text-sm text-white shadow-sm ${style.button}`}>确认重试</button>
+                  </footer>
+               </motion.div>
             </motion.div>
-         </motion.div>
-      )}
-   </AnimatePresence>
-);
+         )}
+      </AnimatePresence>
+   );
+};
+
+export const SuggestionModal = ({ isOpen, onClose, content, onConfirm, mode = "send" }: any) => {
+   const { tone } = useAppDialog();
+   const style = modalTheme(tone);
+   return (
+      <AnimatePresence>
+         {isOpen && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+               <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} role="dialog" aria-modal="true" aria-label="采纳剧情建议"
+                  className={`w-full max-w-[540px] overflow-hidden rounded-2xl border shadow-2xl ${style.frame}`}>
+                  <header className={`flex items-center gap-2 border-b p-4 ${style.header}`}>
+                     <span>💡</span><h2 className={`text-sm font-bold ${style.title}`}>采纳剧情建议 / Adopt Suggestion</h2>
+                  </header>
+                  <div className="p-5">
+                     <p className={`mb-2 text-xs uppercase tracking-wider ${style.title}`}>Preview content</p>
+                     <div className={`max-h-[50dvh] overflow-y-auto whitespace-pre-wrap break-words rounded-xl border p-4 text-sm leading-7 ${style.body}`}>{content}</div>
+                     <p className={`mt-4 text-xs ${style.title}`}>{mode === "insert" ? "确认后只填入输入框，你仍可继续修改。" : "确认后会立即发送这段建议。"}</p>
+                  </div>
+                  <footer className={`flex justify-end gap-2 border-t p-4 ${style.header}`}>
+                     <button type="button" onClick={onClose} className={`rounded-lg border border-current/20 px-4 py-2 text-xs ${style.title}`}>取消</button>
+                     <button type="button" onClick={onConfirm} className={`rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm ${style.button}`}>{mode === "insert" ? "确认填入" : "确认发送"}</button>
+                  </footer>
+               </motion.div>
+            </motion.div>
+         )}
+      </AnimatePresence>
+   );
+};
