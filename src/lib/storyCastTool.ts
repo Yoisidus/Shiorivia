@@ -50,6 +50,8 @@ export async function decideStoryCast(input: {
     const ai = new GoogleGenerativeAI(input.provider.apiKey);
     const client = ai.getGenerativeModel({
       model: input.model.replace(/^google\//, ""),
+      // The project uses an older Gemini client whose type definitions omit this option.
+      // @ts-ignore
       systemInstruction: instructions,
     });
     const previous = history.slice(0, -1).map(m => ({
