@@ -183,7 +183,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     notify,
     setTone,
     tone,
-  }), [enqueue, tone, notify]);
+  }), [enqueue, tone, notify, locale]);
 
   useEffect(() => { setInput(active?.initial || ""); }, [active?.id]);
   useEffect(() => {
