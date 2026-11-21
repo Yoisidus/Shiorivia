@@ -2,6 +2,9 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "sessionMenu.thinking": ["思考过程", "思考過程", "Thought process", "思考過程", "사고 과정"],
+  "sessionMenu.root": ["最外层", "最外層", "Top level", "最上位", "최상위"],
+  "sessionMenu.bindProject": ["绑定 IDE 项目", "綁定 IDE 專案", "Bind IDE project", "IDE プロジェクトを指定", "IDE 프로젝트 연결"],
   "app.providerLoadFailed": ["无法加载供应商配置，请检查本地服务。", "無法載入供應商設定，請檢查本機服務。", "Unable to load provider settings. Check the local service.", "プロバイダー設定を読み込めません。ローカルサービスを確認してください。", "공급자 설정을 불러오지 못했습니다. 로컬 서비스를 확인하세요."],
   "app.providerMissing": ["请先配置对应的本地服务或 API 密钥。", "請先設定對應的本機服務或 API 金鑰。", "Configure the corresponding local service or API key first.", "対応するローカルサービスまたは API キーを設定してください。", "해당 로컬 서비스 또는 API 키를 먼저 설정하세요."],
   "app.providerValidationFailed": ["无法验证本地服务配置。", "無法驗證本機服務設定。", "Unable to validate local service configuration.", "ローカルサービス設定を検証できませんでした。", "로컬 서비스 설정을 확인할 수 없습니다."],
