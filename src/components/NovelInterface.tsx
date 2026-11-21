@@ -285,7 +285,7 @@ export const NovelInterface = ({
     const confirmNovelDraw = async (index: number) => {
         if (drawingIndex !== null) return;
         if (!useImageGen) { showToast('请先在设置中启用生图功能'); return; }
-        if (!window.confirm('确认按当前设置生成这幅插图吗？')) return;
+        if (!await dialog.confirm('确认按当前设置生成这幅插图吗？')) return;
         setDrawingIndex(index);
         try { await onGenerateDraw(index); }
         catch (error) { showToast(`插图生成失败：${error instanceof Error ? error.message : '未知错误'}`); }
