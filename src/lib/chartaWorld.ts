@@ -1,4 +1,11 @@
-export type ChartaTimelineStage = { era: string; period: string };
+export const TIMELINE_LOCALES = ["zh-CN", "zh-TW", "en", "ja", "ko"] as const;
+export type TimelineLocale = typeof TIMELINE_LOCALES[number];
+export type ChartaTimelineStage = {
+  era: string;
+  period: string;
+  /** Optional, locale-exact short descriptions; absent translations stay hidden. */
+  descriptions?: Partial<Record<TimelineLocale, string>>;
+};
 export type ChartaWorld = {
   id: string;
   name: string;
@@ -31,7 +38,18 @@ export function parseChartaWorld(value: unknown): ChartaWorld {
       || !entry.era.trim() || !entry.period.trim() || entry.era.trim().length > 100 || entry.period.trim().length > 100) {
       throw new Error("原作时间线的 ERA 和 PERIOD 必须填写（各最多 100 字）");
     }
-    return { era: entry.era.trim(), period: entry.period.trim() };
+    const raw = isObject(entry.descriptions) ? entry.descriptions : {};
+    const descriptions: Partial<Record<TimelineLocale, string>> = {};
+    for (const locale of TIMELINE_LOCALES) {
+      const description = raw[locale];
+      if (description === undefined || description === "") continue;
+      if (typeof description !== "string" || description.length > 500) {
+        throw new Error("时间线简述每种语言最多 500 字");
+      }
+      if (description.trim()) descriptions[locale] = description.trim();
+    }
+    return { era: entry.era.trim(), period: entry.period.trim(),
+      ...(Object.keys(descriptions).length ? { descriptions } : {}) };
   });
   // Each period should map to exactly one era; the same era may cover several periods.
   const periods = new Set(canonTimeline.map(stage => stage.period));
