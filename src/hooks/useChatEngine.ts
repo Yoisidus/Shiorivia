@@ -196,8 +196,10 @@ export const useChatEngine = ({
                     } : undefined), 
                     useWebSearch: currentSession.memoryMode === "infinite" && config.webSearch,
                     webToolConfig: config.webToolConfig,
-                    useMusicControl: configOverride?.useMusicControl ?? config.musicControl,
-                    useImageGen: config.imageGen,
+                    useMusicControl: ["sliding", "novel"].includes(currentSession.memoryMode)
+                        && (configOverride?.useMusicControl ?? config.musicControl) === true,
+                    useImageGen: ["sliding", "novel", "infinite", "chat"].includes(currentSession.memoryMode)
+                        && config.imageGen === true,
                     charStatus: currentSession.charStatus,
                     codeRepository: currentSession.engineeringProjectRoot ? undefined : currentSession.codeRepository,
                     engineeringProjectRoot: currentSession.memoryMode === "infinite" ? currentSession.engineeringProjectRoot || "" : "",
