@@ -183,8 +183,8 @@ const SidebarRightComponent = ({
                                     </div>
                                     {storyRole === "participant" ? <p className="text-xs leading-5 text-[#75877b]">使用身份：<span style={{ color: storySelf?.hex || "#799783" }}>{storySelf ? selfName(storySelf, locale) : "自设不存在，请新建故事"}</span></p>
                                     : <div className="space-y-2"><p className="text-[11px] leading-5 text-[#7d8e82]">以旁观者身份开始，不预设用户姓名。从第一轮结束后起，随时可选择已出场角色作为主视角；未选择不会自动锁定。</p>
-                                        {storyStarted && <label className="block text-xs text-[#718678]">当前主视角<select value={currentSession?.storyPovId || ""} disabled={currentSession?.storyPovLocked || isGenerating} onChange={e => onStoryPovChange(e.target.value)} className="mt-1 w-full rounded-lg border border-[#dce6dd] bg-white p-2 text-xs disabled:opacity-60"><option value="">尚未选择 · 第三人称旁观</option>{possiblePovs.map((char: any) => <option key={char.id} value={char.id}>{characterDisplayName(char.id, char.name, locale)}</option>)}</select></label>}
-                                        {currentSession?.storyPovLocked && <p className="flex items-center gap-1 text-[10px] text-[#a18c6f]"><Lock size={11}/>视角已在下一轮发送时锁定</p>}
+                                        {storyStarted && <label className="block text-xs text-[#718678]">当前主视角<select value={currentSession?.storyPovId || ""} disabled={(currentSession?.storyPovLocked && Boolean(currentSession?.storyPovId)) || isGenerating} onChange={e => onStoryPovChange(e.target.value)} className="mt-1 w-full rounded-lg border border-[#dce6dd] bg-white p-2 text-xs disabled:opacity-60"><option value="">尚未选择 · 第三人称旁观</option>{possiblePovs.map((char: any) => <option key={char.id} value={char.id}>{characterDisplayName(char.id, char.name, locale)}</option>)}</select></label>}
+                                        {currentSession?.storyPovLocked && currentSession?.storyPovId && <p className="flex items-center gap-1 text-[10px] text-[#a18c6f]"><Lock size={11}/>视角已在下一轮发送时锁定</p>}
                                     </div>}
                                 </div>
 
