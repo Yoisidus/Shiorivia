@@ -311,7 +311,7 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
 
                             <div
                                 className="absolute top-2 right-4 z-10 opacity-30 hover:opacity-100 cursor-pointer transition-opacity p-1 bg-black/50 rounded"
-                                onClick={() => { void navigator.clipboard.writeText(files[activeFile].content).then(() => dialog.alert("已复制代码")).catch(() => dialog.alert("复制失败")); }}
+                                onClick={() => { void navigator.clipboard.writeText(files[activeFile].content).then(() => dialog.notify("代码已复制", { type: "success" })).catch(() => dialog.notify("复制失败", { type: "error" })); }}
                                 title="Copy Content"
                             >
                                 <Copy size={14} />
