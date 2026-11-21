@@ -202,15 +202,23 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         notify?.("本轮 VIAE 状态不完整，可点击「补齐状态」。");
       }
     } catch (error) {
-      if (controller.signal.aborted) {
-        if (!fullText.trim()) patchGroup(groupId, group => ({ ...group, messages: group.messages.filter(msg => msg.id !== requestId) }));
-        notify?.("已停止生成");
-      } else {
-        const message = error instanceof Error ? error.message : "Viae 请求失败";
-        notify?.(message);
-        // Keep the user's text but drop an empty assistant placeholder.
-        if (!fullText.trim()) patchGroup(groupId, group => ({ ...group, messages: group.messages.filter(msg => msg.id !== requestId) }));
+      if (isReplace && lastAssistant) {
+        // A failed/aborted refresh must not destroy the old reply, its
+        // memory, or a chronology update that belonged to the old reply.
+        patchGroup(groupId, group => group.messages[group.messages.length - 1]?.id !== requestId
+          ? group : {
+              ...group,
+              stm: activeGroup.stm, ltm: activeGroup.ltm, turnCount: activeGroup.turnCount,
+              storyWorldline: activeGroup.storyWorldline, timeline: activeGroup.timeline,
+              messages: [...group.messages.slice(0, -1), lastAssistant],
+            });
+      } else if (!fullText.trim()) {
+        patchGroup(groupId, group => ({
+          ...group, messages: group.messages.filter(msg => msg.id !== requestId),
+        }));
       }
+      if (controller.signal.aborted) notify?.("已停止生成；刷新时原回复已保留");
+      else notify?.(error instanceof Error ? error.message : "Viae 请求失败");
     } finally {
       busyRef.current = false;
       abortRef.current = null;
