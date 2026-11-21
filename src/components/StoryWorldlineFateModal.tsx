@@ -12,7 +12,7 @@ import {
 } from "../lib/storyWorldline";
 
 const geometric = { fontFamily: 'Bahnschrift, "DIN Alternate", "Arial Narrow", "Yu Gothic", "Noto Sans SC", sans-serif' };
-const inputStyle = "mt-2 w-full rounded-xl border border-[#a8baa9]/50 bg-[#f7faf6] px-4 py-3 text-sm font-medium text-[#233c34] outline-none transition focus:border-[#718a78] focus:ring-2 focus:ring-[#a9c9af]/25";
+
 
 export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds, onSave, onClose, onOpenCharta, elevated = false, showEvent = true, tone = "story" }: {
   isOpen: boolean;
@@ -27,6 +27,9 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
   tone?: "story" | "novel";
 }) {
   const novel = tone === "novel";
+  const inputStyle = "mt-2 w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none transition focus:ring-2 "
+    + (novel ? "border-[#dac4a3] bg-[#fffcf6] text-[#614733] focus:border-[#b99264] focus:ring-[#d9b483]/25"
+        : "border-[#e7b7ca] bg-[#fffafd] text-[#682c49] focus:border-[#c15f86] focus:ring-[#d989aa]/25");
   const [draft, setDraft] = useState<StoryWorldline>(() => value || worldlineFor(null));
   const [error, setError] = useState("");
   useEffect(() => {
@@ -191,7 +194,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
             </div>
             {!stages.length && <p className="text-[11px] text-[#a17855]">这个世界尚未定义时间线，请先去 Charta 创建。AU 也需要原作基准时间线。</p>}
           </section>
-          {draft.kind === "au" && <section className="space-y-3 rounded-2xl border border-[#bed2bf] bg-[#eef5ed] p-4">
+          {draft.kind === "au" && <section className={`space-y-3 rounded-2xl border p-4 ${novel ? "border-[#e0c6a4] bg-[#f9edda]" : "border-[#eab6cd] bg-[#fdeaf2]"}`}>
             <h3 className="text-xs font-bold tracking-[.12em] text-[#456b57]" style={geometric}>AU ONLY · 基准时间线 *</h3>
             <p className="text-[11px] leading-6 text-[#718c7a]">决定人物从原作继承至哪个时期。AU 自己的 ERA / PERIOD 与此独立，不会提前注入后期经历。</p>
             <div className="grid gap-3 sm:grid-cols-2">
