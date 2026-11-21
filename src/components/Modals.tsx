@@ -61,9 +61,9 @@ export const WorldInfoModal = ({ isOpen, onClose, title, subtitle, content, onSa
 };
 
 const modalTheme = (tone: string) => tone === "officina"
-   ? { header: "bg-[#172946] border-[#435b86]", title: "text-[#c9d7f7]", frame: "bg-[#101b32] border-[#526b9a]", body: "bg-[#152541] text-[#e5ecfa] border-[#435b86]", button: "bg-[#667fca] hover:bg-[#8298da]" }
+   ? { header: "bg-[#e5f1fe] border-[#c3d8ee]", title: "text-[#37688f]", frame: "bg-[#f4f9ff] border-[#b6cfe8]", body: "bg-white text-[#243e5d] border-[#c3d8ee]", button: "bg-[#3475bc] hover:bg-[#265f9e]" }
    : tone === "story" ? { header: "bg-fuchsia-50 border-fuchsia-200", title: "text-fuchsia-800", frame: "bg-white border-fuchsia-200", body: "bg-fuchsia-50/30 text-slate-700 border-fuchsia-200", button: "bg-fuchsia-600 hover:bg-fuchsia-700" }
-   : tone === "tela" ? { header: "bg-[#f7eedb] border-[#e6d7b7]", title: "text-[#80643e]", frame: "bg-[#fdf9ee] border-[#d9c7a6]", body: "bg-[#fffaf0] text-[#63553e] border-[#e6d7b7]", button: "bg-[#987952] hover:bg-[#886a44]" }
+   : tone === "tela" ? { header: "bg-[#f2e5cf] border-[#e0cba9]", title: "text-[#8c683c]", frame: "bg-[#fffcf6] border-[#dcc9a9]", body: "bg-white text-[#594b39] border-[#d1b997]", button: "bg-[#765034] hover:bg-[#5c3c28]" }
    : tone === "viae" ? { header: "bg-[#eff2fa] border-[#d4dcef]", title: "text-[#536891]", frame: "bg-white border-[#bfc8df]", body: "bg-[#f7f9fe] text-slate-700 border-[#d4dcef]", button: "bg-[#6479a6] hover:bg-[#526996]" }
    : tone === "charta" ? { header: "bg-[#eff5eb] border-[#dae7d4]", title: "text-[#58764b]", frame: "bg-white border-[#cfddca]", body: "bg-[#f6faf4] text-slate-700 border-[#dae7d4]", button: "bg-[#6b8b5d] hover:bg-[#58764b]" }
    : { header: "bg-emerald-50 border-emerald-200", title: "text-emerald-800", frame: "bg-white border-emerald-200", body: "bg-emerald-50/30 text-slate-700 border-emerald-200", button: "bg-emerald-600 hover:bg-emerald-700" };
@@ -86,7 +86,7 @@ export const EditModal = ({ isOpen, onClose, content, setContent, onConfirm }: a
                         className={`h-64 w-full resize-y rounded-xl border p-4 text-sm outline-none focus:ring-2 focus:ring-current/20 ${style.body}`} />
                   </div>
                   <footer className={`flex justify-end gap-2 border-t p-4 ${style.header}`}>
-                     <button type="button" onClick={onClose} className={`rounded-lg border border-current/20 px-4 py-2 text-sm ${style.title}`}>取消</button>
+                     <button type="button" onClick={onClose} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">取消</button>
                      <button type="button" onClick={onConfirm} className={`rounded-lg px-5 py-2 text-sm text-white shadow-sm ${style.button}`}>确认重试</button>
                   </footer>
                </motion.div>
@@ -114,7 +114,7 @@ export const SuggestionModal = ({ isOpen, onClose, content, onConfirm, mode = "s
                      <p className={`mt-4 text-xs ${style.title}`}>{mode === "insert" ? "确认后只填入输入框，你仍可继续修改。" : "确认后会立即发送这段建议。"}</p>
                   </div>
                   <footer className={`flex justify-end gap-2 border-t p-4 ${style.header}`}>
-                     <button type="button" onClick={onClose} className={`rounded-lg border border-current/20 px-4 py-2 text-xs ${style.title}`}>取消</button>
+                     <button type="button" onClick={onClose} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100">取消</button>
                      <button type="button" onClick={onConfirm} className={`rounded-lg px-5 py-2 text-xs font-semibold text-white shadow-sm ${style.button}`}>{mode === "insert" ? "确认填入" : "确认发送"}</button>
                   </footer>
                </motion.div>
