@@ -231,7 +231,7 @@ export async function POST(req: Request) {
       finalSystemPrompt = `You are a structured story-state extractor, not a storyteller.
 Return ONLY <game_state>{...}</game_state>, with strictly valid JSON, no thinking, narration, markdown or comments.
 Base the state ONLY on the user-provided story excerpt and previous state. Preserve established facts and plausible relations; do not fabricate new events, memories or character personalities.
-Always include all keys: protagonist, sceneCastIds (characters currently on stage), nextSceneCastIds (predicted cast for the NEXT turn), character (array), suggestions (fun/rational/radical, plot-advancing and canon-appropriate), danmaku (array), timeline (major/medium/minor) and music (object or null).
+Always include all keys: protagonist, sceneCastIds (characters currently on stage), nextSceneCastIds (legacy compatibility array; always []), character (array), suggestions (fun/rational/radical, plot-advancing and canon-appropriate), danmaku (array), timeline (major/medium/minor) and music (object or null).
 STRICT SHAPE: suggestions MUST be a JSON object like {"fun":"...","rational":"...","radical":"..."}, NEVER an array of {"tag","text"} items. timeline MUST be an object like {"major":"","medium":"","minor":"..."} rather than an array. Each character entry uses id and name (not charId or characterName).
 When protagonist is not null, include exactly these seven string fields: name, timeDesc, environment, temperature, clothing, sensation, innerState; unknown values are empty strings.
 Do NOT include age, gender, top-level environment, live2d or effect. Those are not generated state fields in Local Edition.
