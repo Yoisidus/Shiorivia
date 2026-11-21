@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { PublicLocalProvider } from "../lib/localProviders";
 import type { ImageSettings, ProviderCapability } from "../lib/imageSettings";
+import type { WebToolConfig } from "../lib/webToolSettings";
 import { capabilityFor } from "../lib/imageSettings";
 import { useLanguage } from "../context/LanguageContext";
 import { useAppDialog } from "../context/DialogContext";
@@ -54,6 +55,10 @@ type Props = {
   autoSyncInterval: 3 | 4 | 5;
   onAutoSyncChange: (enabled: boolean) => void;
   onAutoSyncIntervalChange: (turns: 3 | 4 | 5) => void;
+  webToolConfig: WebToolConfig;
+  onWebToolConfigChange: (changes: Partial<WebToolConfig>) => void;
+  providerAliases: Record<string, string>;
+  onProviderAliasChange: (id: string, label: string) => void;
   imageSettings: ImageSettings;
   onImageSettingsChange: (changes: Partial<ImageSettings>) => void;
   providerCapabilities: Record<string, ProviderCapability>;
@@ -101,7 +106,7 @@ function SwitchRow({ title, description, checked, onClick, icon: Icon }: {
   );
 }
 
-export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, contextWindowTokens, onContextWindowChange, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
+export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, contextWindowTokens, onContextWindowChange, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, webToolConfig, onWebToolConfigChange, providerAliases, onProviderAliasChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
   const dialog = useAppDialog();
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const { refreshLibrary, allTracks } = useMusic();
@@ -222,6 +227,12 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                         <p className="font-semibold">{provider.label} {provider.id === "fal" && <span className="ml-2 text-[10px] font-normal text-[#71917d]">IMAGE ONLY</span>} {provider.id !== "fal" && activeProvider === provider.id && <span className="ml-1 text-[10px] text-emerald-600">{t("settings.active")}</span>}</p>
                         <p className="mt-1 text-xs text-slate-400">{provider.configured ? t("settings.configured") : t("settings.unconfigured")}{" · "}{provider.custom ? t("settings.custom") : t("settings.default")}</p>
                       </div>
+                      {provider.custom && <label className="block mt-2 max-w-[250px] text-[11px] text-slate-500">自定义供应商显示名称（仅本地 UI）
+                        <input aria-label={`${provider.id} 显示名称`} value={providerAliases[provider.id] || ""}
+                          onChange={event => onProviderAliasChange(provider.id, event.target.value)}
+                          placeholder={provider.id} maxLength={40}
+                          className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-[#8ea9cd]" />
+                      </label>}
                       {provider.custom && <div className="flex shrink-0 gap-2 text-[11px] text-slate-600"><label className="flex items-center gap-1"><input type="checkbox" checked={capabilityFor(provider.id, providerCapabilities).llm} onChange={e => onProviderCapabilitiesChange(provider.id, { llm: e.target.checked })}/>LLM</label><label className="flex items-center gap-1"><input type="checkbox" checked={capabilityFor(provider.id, providerCapabilities).image} onChange={e => onProviderCapabilitiesChange(provider.id, { image: e.target.checked })}/>生图</label></div>}
                       <button type="button" disabled={!provider.configured} aria-pressed={!disabledProviders.includes(provider.id)} onClick={() => onToggleProvider(provider.id)}
                         className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold ${disabledProviders.includes(provider.id) ? "border-slate-200 bg-slate-50 text-slate-400" : "border-emerald-200 bg-emerald-50 text-emerald-700"} disabled:opacity-40`}>
@@ -250,7 +261,41 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                     <SwitchRow title="主要经历" description="附加全时间线的主要事件与角色经历，增加 Token 用量。" checked={engineeringLoreExperiencesEnabled} onClick={onToggleEngineeringLoreExperiences} icon={BookOpen} />
                   </div>
                 </div>}
-                <SwitchRow title={t("settings.webSearch")} description={t("settings.webSearch.description")} checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
+                {activeMode === "infinite" && <>
+                  <SwitchRow title="Officina · AI 联网搜索工具" description="开启后，AI 会先判断当前对话是否需要检索；只有选择联网工具时才请求搜索供应商。未配置或模型不支持时明确报错，不再依赖 Tavily。" checked={values.webSearch} onClick={() => onToggle("webSearch")} icon={Globe2} />
+                  {values.webSearch && <div className="mt-2 mb-5 space-y-3 rounded-xl border border-sky-200 bg-[#f5f9ff] p-4">
+                    <p className="text-xs font-semibold text-[#3b6589]">搜索路由</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <button type="button" aria-pressed={webToolConfig.mode === "native"}
+                        onClick={() => onWebToolConfigChange({mode:"native"})}
+                        className={`rounded-lg border px-3 py-3 text-left text-xs ${webToolConfig.mode === "native" ? "border-blue-400 bg-white font-semibold text-[#275b94]" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
+                        当前模型原生联网搜索
+                        <span className="mt-1 block text-[10px] font-normal">尝试当前对话供应商与模型的搜索能力，不支持则报错。</span>
+                      </button>
+                      <button type="button" aria-pressed={webToolConfig.mode === "model"}
+                        onClick={() => onWebToolConfigChange({mode:"model"})}
+                        className={`rounded-lg border px-3 py-3 text-left text-xs ${webToolConfig.mode === "model" ? "border-blue-400 bg-white font-semibold text-[#275b94]" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
+                        指定搜索模型
+                        <span className="mt-1 block text-[10px] font-normal">使用另一已配置供应商和手动填写的模型 ID。</span>
+                      </button>
+                    </div>
+                    {webToolConfig.mode === "model" && <>
+                      <label className="block text-xs text-slate-600">搜索供应商
+                        <select value={webToolConfig.provider} onChange={e => onWebToolConfigChange({provider:e.target.value})}
+                          className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+                          {providers.filter(provider => provider.configured && provider.id !== "fal" && !disabledProviders.includes(provider.id)).map(provider =>
+                            <option key={provider.id} value={provider.id}>{provider.label}</option>)}
+                        </select>
+                      </label>
+                      <label className="block text-xs text-slate-600">搜索模型 ID
+                        <input value={webToolConfig.model} onChange={e => onWebToolConfigChange({model:e.target.value})}
+                          placeholder="例如支持原生联网搜索的模型 ID" maxLength={160}
+                          className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs" />
+                      </label>
+                    </>}
+                    <p className="text-[11px] leading-5 text-slate-500">只有当前模型或指定模型具备兼容的联网接口时才能成功。AI 选择搜索之后，结果会作为参考资料提供给当前回复。</p>
+                  </div>}
+                </>}
                 <SwitchRow title={t("settings.imageGen")} description={t("settings.imageGen.description")} checked={values.imageGen} onClick={() => onToggle("imageGen")} icon={ImageIcon} />
                 <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
                   <p className="text-xs font-semibold tracking-wide text-slate-700">Image Studio · 生图设置</p>
