@@ -356,7 +356,7 @@ export const useChatEngine = ({
                                 ? [...parseLocalMemoryEntries(originalStm), "• " + inlineMemory.stm]
                                 : [...parseLocalMemoryEntries(originalStm), summaryLine];
                             let archive = "";
-                            if (batch.length >= LOCAL_STM_SLOTS) {
+                            if (batch.length > LOCAL_STM_SLOTS) {
                                 const merged = await fetch("/api/summarize", {
                                     method: "POST", headers: { "Content-Type": "application/json" },
                                     body: JSON.stringify({
