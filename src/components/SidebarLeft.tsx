@@ -54,6 +54,30 @@ export const SidebarLeft = ({
     const [showNewChatMenu, setShowNewChatMenu] = useState(false);
     const [chatWorldlineOpen, setChatWorldlineOpen] = useState(false);
     const showSession = (session: any) => session.memoryMode !== 'lime';
+    // Group sessions by their current folder, but order BOTH folder groups
+    // and unfiled conversations by the latest activity of their members.
+    // This keeps files organised while bringing active work to the top.
+    const visibleSessions = (sessions as any[])
+        .filter(session => showSession(session) && session.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort((a, b) => (Number(b.updatedAt) || Number(b.id) || 0) - (Number(a.updatedAt) || Number(a.id) || 0));
+    const knownFolders = new Set((folders as any[]).map(folder => folder.id));
+    const explorerEntries: Array<{ kind: "folder" | "session"; item: any; latest: number; tie: number }> = [
+        ...(folders as any[]).map((folder, index) => ({
+            kind: "folder" as const, item: folder,
+            latest: Math.max(0, ...visibleSessions.filter(session => session.folderId === folder.id)
+                .map(session => Number(session.updatedAt) || Number(session.id) || 0)),
+            tie: index,
+        })),
+        ...visibleSessions.filter(session => !session.folderId || !knownFolders.has(session.folderId))
+            .map((session, index) => ({
+                kind: "session" as const, item: session,
+                latest: Number(session.updatedAt) || Number(session.id) || 0,
+                tie: (folders as any[]).length + index,
+            })),
+    ].filter(entry => !searchQuery || entry.kind === "session"
+        || visibleSessions.some(session => session.folderId === entry.item.id))
+      .sort((a, b) => b.latest - a.latest || a.tie - b.tie);
+
     const [isBatchMode, setIsBatchMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showBatchConfirm, setShowBatchConfirm] = useState(false);
@@ -220,43 +244,38 @@ export const SidebarLeft = ({
                                 <div className="relative mb-2"><Search size={12} className="absolute left-2 top-2 text-gray-400" /><input className="w-full bg-gray-50 border rounded-lg py-1 pl-7 pr-2 text-xs outline-none focus:ring-1 focus:ring-gray-200" placeholder="Search..." value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} /></div>
 
                                 <div className="flex-1 overflow-y-auto scrollbar-thin">
-                                    {folders.map((f: any) => (
-                                        <div key={f.id} className="mb-1">
-                                            <div className="flex items-center justify-between px-2 py-1 hover:bg-gray-50 rounded cursor-pointer group" onClick={() => toggleFolder(f.id)}>
+                                    {explorerEntries.map(entry => entry.kind === "folder" ? (
+                                        <div key={`folder-${entry.item.id}`} className="mb-1">
+                                            <div className="group flex cursor-pointer items-center justify-between rounded px-2 py-1 hover:bg-gray-50" onClick={() => toggleFolder(entry.item.id)}>
                                                 <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
-                                                    <Folder size={12} className="text-yellow-400 fill-yellow-400" />
-                                                    {f.name}
+                                                    <Folder size={12} className="fill-yellow-400 text-yellow-400"/>
+                                                    {entry.item.name}
                                                 </div>
-                                                <button onClick={(e) => { deleteFolder(e, f.id) }} className="opacity-0 group-hover:opacity-100"><Trash2 size={10} /></button>
+                                                <button type="button" aria-label={`删除文件夹 ${entry.item.name}`} onClick={(event) => deleteFolder(event, entry.item.id)}
+                                                    className="rounded p-1 text-gray-400 opacity-0 hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100"><Trash2 size={12}/></button>
                                             </div>
-                                            {f.isExpanded && (
-                                                <div className="ml-3 pl-2 border-l border-gray-100">
-                                                    {sessions.filter((s: any) => showSession(s) && s.folderId === f.id && s.title.toLowerCase().includes(searchQuery)).map((s: any) => (
-                                                        <div key={s.id} className="flex items-center gap-1">
-                                                            {isBatchMode && (
-                                                                <button onClick={() => toggleSelect(s.id)} className="p-1">
-                                                                    {selectedIds.has(s.id) ? <CheckSquare size={16} className="text-indigo-500" /> : <Square size={16} className="text-gray-300" />}
-                                                                </button>
-                                                            )}
-                                                            <div className="flex-1 min-w-0">
-                                                                <SessionItem session={s} isActive={currentSessionId === s.id} isEditing={editingSessionId === s.id} tempTitle={tempTitle} showMenu={activeMenuSessionId === s.id} folders={folders} onSelect={() => setCurrentSessionId(s.id)} onEditStart={() => { setEditingSessionId(s.id); setTempTitle(s.title); setActiveMenuSessionId(null) }} onEditSave={() => updateSessionTitle(s.id, tempTitle)} onDelete={(e: any) => deleteSession(e, s.id)} onMenuToggle={(e: any) => { e.stopPropagation(); setActiveMenuSessionId(activeMenuSessionId === s.id ? null : s.id) }} onMoveTo={(fid: any) => moveSessionToFolder(s.id, fid)} onBindProject={loadBindingProjects} setTempTitle={setTempTitle} />
+                                            {entry.item.isExpanded && (
+                                                <div className="ml-3 border-l border-gray-100 pl-2">
+                                                    {visibleSessions.filter(session => session.folderId === entry.item.id).map(session => (
+                                                        <div key={session.id} className="mb-0.5 flex items-center gap-1">
+                                                            {isBatchMode && <button type="button" onClick={() => toggleSelect(session.id)} className="p-1">
+                                                                {selectedIds.has(session.id) ? <CheckSquare size={16} className="text-indigo-500"/> : <Square size={16} className="text-gray-300"/>}
+                                                            </button>}
+                                                            <div className="min-w-0 flex-1">
+                                                                <SessionItem session={session} isActive={currentSessionId === session.id} isEditing={editingSessionId === session.id} tempTitle={tempTitle} showMenu={activeMenuSessionId === session.id} folders={folders} onSelect={() => setCurrentSessionId(session.id)} onEditStart={() => { setEditingSessionId(session.id); setTempTitle(session.title); setActiveMenuSessionId(null); }} onEditSave={() => updateSessionTitle(session.id, tempTitle)} onDelete={(event: any) => deleteSession(event, session.id)} onMenuToggle={(event: any) => { event.stopPropagation(); setActiveMenuSessionId(activeMenuSessionId === session.id ? null : session.id); }} onMoveTo={(fid: any) => moveSessionToFolder(session.id, fid)} onBindProject={loadBindingProjects} setTempTitle={setTempTitle}/>
                                                             </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             )}
                                         </div>
-                                    ))}
-
-                                    {sessions.filter((s: any) => showSession(s) && !s.folderId && s.title.toLowerCase().includes(searchQuery)).map((s: any) => (
-                                        <div key={s.id} className="flex items-center gap-1 mb-0.5">
-                                            {isBatchMode && (
-                                                <button onClick={() => toggleSelect(s.id)} className="p-1">
-                                                    {selectedIds.has(s.id) ? <CheckSquare size={16} className="text-indigo-500" /> : <Square size={16} className="text-gray-300" />}
-                                                </button>
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <SessionItem session={s} isActive={currentSessionId === s.id} isEditing={editingSessionId === s.id} tempTitle={tempTitle} showMenu={activeMenuSessionId === s.id} folders={folders} onSelect={() => setCurrentSessionId(s.id)} onEditStart={() => { setEditingSessionId(s.id); setTempTitle(s.title); setActiveMenuSessionId(null) }} onEditSave={() => updateSessionTitle(s.id, tempTitle)} onDelete={(e: any) => deleteSession(e, s.id)} onMenuToggle={(e: any) => { e.stopPropagation(); setActiveMenuSessionId(activeMenuSessionId === s.id ? null : s.id) }} onMoveTo={(fid: any) => moveSessionToFolder(s.id, fid)} onBindProject={loadBindingProjects} setTempTitle={setTempTitle} />
+                                    ) : (
+                                        <div key={`session-${entry.item.id}`} className="mb-0.5 flex items-center gap-1">
+                                            {isBatchMode && <button type="button" onClick={() => toggleSelect(entry.item.id)} className="p-1">
+                                                {selectedIds.has(entry.item.id) ? <CheckSquare size={16} className="text-indigo-500"/> : <Square size={16} className="text-gray-300"/>}
+                                            </button>}
+                                            <div className="min-w-0 flex-1">
+                                                <SessionItem session={entry.item} isActive={currentSessionId === entry.item.id} isEditing={editingSessionId === entry.item.id} tempTitle={tempTitle} showMenu={activeMenuSessionId === entry.item.id} folders={folders} onSelect={() => setCurrentSessionId(entry.item.id)} onEditStart={() => { setEditingSessionId(entry.item.id); setTempTitle(entry.item.title); setActiveMenuSessionId(null); }} onEditSave={() => updateSessionTitle(entry.item.id, tempTitle)} onDelete={(event: any) => deleteSession(event, entry.item.id)} onMenuToggle={(event: any) => { event.stopPropagation(); setActiveMenuSessionId(activeMenuSessionId === entry.item.id ? null : entry.item.id); }} onMoveTo={(fid: any) => moveSessionToFolder(entry.item.id, fid)} onBindProject={loadBindingProjects} setTempTitle={setTempTitle}/>
                                             </div>
                                         </div>
                                     ))}
