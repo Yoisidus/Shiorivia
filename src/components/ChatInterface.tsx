@@ -283,7 +283,7 @@ export const ChatInterface = ({
     toggleWardrobe,
     apiProvider, setApiProvider,
     debugMode, setDebugMode, showDrawDebugTags = false,
-    onGenerateDraw, imageSettings, useImageGen, onCompleteEngineeringOutput, onCompleteStoryState, storyStateRepairing = false,
+    onGenerateDraw, imageSettings, useImageGen, onCompleteEngineeringOutput, onCompleteStoryState, onCompleteMissingMetadata, storyStateRepairing = false,
     triggerEffect,
 
     currentOutfitId,
@@ -707,6 +707,17 @@ export const ChatInterface = ({
                                          </button>
                                      </div>
                                  )}
+                                {msg.role === 'assistant' && msg.metadataRepairMissing && !msg.storyProtocolMissing && (
+                                    <div role="status" className={`mt-2 flex items-center gap-3 rounded-xl border p-3 text-[11px] leading-5 ${currentSession.memoryMode === "chat" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-rose-200 bg-rose-50 text-rose-900"}`}>
+                                        <AlertTriangle size={15} className="shrink-0"/>
+                                        <span className="flex-1">本轮记忆或状态不完整，原始回复已保留。</span>
+                                        <button type="button" disabled={isLoading || storyStateRepairing || i !== currentSession.messages.length - 1}
+                                            onClick={() => onCompleteMissingMetadata?.(i)}
+                                            className="shrink-0 rounded-lg border border-current/20 bg-white px-3 py-1.5 font-semibold disabled:opacity-40">
+                                            {storyStateRepairing ? "补齐中…" : "补齐状态"}
+                                        </button>
+                                    </div>
+                                )}
                                 {msg.role === 'assistant' && activeDrawMatch && (
                                     <DrawPlaceholder busy={drawingIndex === i} disabled={drawingIndex !== null}
                                         mode={currentSession.memoryMode === "sliding" ? "sliding" : currentSession.memoryMode === "chat" ? "chat" : "infinite"}
