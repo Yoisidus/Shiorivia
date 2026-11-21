@@ -13,58 +13,13 @@ import {
 import { fallbackModelGroups, type LocalModelGroup, type PublicLocalProvider } from "../lib/localProviders";
 import { useSavedModels } from "../hooks/useSavedModels";
 import { useLanguage } from "../context/LanguageContext";
+import { useAppDialog } from "../context/DialogContext";
 import { localText } from "../lib/i18nLocal";
 import { SessionItem } from "./Common";
 import { deepText } from "../lib/i18nDeep";
 import { BatchDeleteModal } from "./BatchDeleteModal";
 import { StoryWorldlineFateModal } from "./StoryWorldlineFateModal";
 import { describeStoryWorldline, type StoryWorldline } from "../lib/storyWorldline";
-
-const checkEnv = async (feature: 'openrouter' | 'google' | 'tavily' | 'sd' | 'tts' | 'music') => {
-    try {
-        const res = await fetch("/api/check_env");
-        const data = await res.json();
-
-        let isValid = false;
-        let errorMsg = "";
-
-        switch (feature) {
-            case 'openrouter':
-                isValid = data.hasOpenRouter;
-                errorMsg = "⚠️ OPENROUTER_API_KEY 未配置！\n请在 .env.local 中填入密钥。\n(详见 README)";
-                break;
-            case 'google':
-                isValid = data.hasGoogle;
-                errorMsg = "⚠️ GOOGLE_API_KEY 未配置！\n请在 .env.local 中填入密钥。\n(详见 README)";
-                break;
-            case 'tavily':
-                isValid = data.hasTavily;
-                errorMsg = "⚠️ TAVILY_API_KEY (联网) 未配置！\n请在 .env.local 中填入密钥。";
-                break;
-            case 'sd':
-                isValid = data.hasSdUrl;
-                errorMsg = "⚠️ 生图后端 (SD_URL) 未连接！\n请确保本地 SD 已启动并在 .env.local 配置地址。";
-                break;
-            case 'tts':
-                isValid = data.hasTtsUrl;
-                errorMsg = "⚠️ TTS 后端未连接！\n请配置 GPT-SoVITS 接口地址。";
-                break;
-            case 'music':
-                isValid = data.hasMusic;
-                errorMsg = "⚠️ 音乐库为空！\n请在 public/music 放入歌曲并在 data/bgm_library.ts 注册。";
-                break;
-        }
-
-        if (!isValid) {
-            alert(errorMsg); 
-            return false;
-        }
-        return true;
-    } catch (e) {
-        console.error("Env check failed", e);
-        return true; 
-    }
-};
 
 export const SidebarLeft = ({
     isOpen, onClose,
@@ -93,6 +48,7 @@ export const SidebarLeft = ({
     currentMode, chatWorldline, onSaveChatWorldline, storyWorlds = [],
 }: any) => {
     const { locale } = useLanguage();
+    const dialog = useAppDialog();
     const importInputRef = useRef<HTMLInputElement>(null);
 
     const [showNewChatMenu, setShowNewChatMenu] = useState(false);
@@ -114,11 +70,11 @@ export const SidebarLeft = ({
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "读取 IDE 项目失败");
             setIdeProjects(Array.isArray(data.projects) ? data.projects : []);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { void dialog.alert(e.message); }
         finally { setProjectLoading(false); }
     };
     const createBindingProject = async () => {
-        const name = window.prompt("新项目根目录名称（创建在 Shiorivia/IDE 下）：");
+        const name = await dialog.prompt("新项目根目录名称（创建在 Shiorivia/IDE 下）：");
         if (!name) return;
         try {
             const response = await fetch("/api/ide", { method: "POST",
@@ -129,7 +85,7 @@ export const SidebarLeft = ({
             setIdeProjects(prev => [...new Set([...prev, data.project])].sort());
             if (bindingSessionId) onBindEngineeringProject(bindingSessionId, data.project);
             setBindingSessionId(null);
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { void dialog.alert(e.message); }
     };
     const [modelGroups, setModelGroups] = useState<LocalModelGroup[]>(fallbackModelGroups(apiProvider));
     const [catalogSource, setCatalogSource] = useState("fallback");
