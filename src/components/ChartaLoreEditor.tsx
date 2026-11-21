@@ -116,7 +116,7 @@ export function ChartaLoreEditor({ value, onChange, stages, characters, currentI
         <ChartaTimelineRangePicker periods={exp.periods} stages={stages} onChange={periods=>updateExperience(exp.id,{periods})}/>
       </div>)}
     </div>
-    <div className="space-y-2"><h3 className={head}><span><Sparkles size={15} className="mr-2 inline"/>07 · {deepText(locale, "charta.lore.guidance")}</span><span className="font-normal text-[#8aa18d]">选填</span></h3>
+    <div className="space-y-2"><h3 className={head}><span><Sparkles size={15} className="mr-2 inline"/>07 · {deepText(locale, "charta.lore.guidance")}</span><span className="font-normal text-[#8aa18d]">{deepText(locale, "common.optional")}</span></h3>
       <textarea value={value.guidance} onChange={e=>patch("guidance",e.target.value)} maxLength={20000} rows={6} placeholder={deepText(locale, "charta.lore.guidancePlaceholder")} className={field}/>
     </div>
     {relationshipError && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700">{relationshipError}</p>}
