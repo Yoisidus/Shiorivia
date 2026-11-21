@@ -486,7 +486,7 @@ export const ChatInterface = ({
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     className="absolute top-full right-0 mt-2 w-48 bg-white/95 backdrop-blur border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden p-1"
                                 >
-                                    <div className="md:hidden">
+                                    {debugMode && <div className="md:hidden">
                                         <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Mobile Tools</div>
                                         <button
                                             onClick={toggleDebugConsole}
@@ -495,7 +495,7 @@ export const ChatInterface = ({
                                             <span>Debug Console</span>
                                             {consoleVisible ? <ToggleRight size={20} className="text-emerald-500" /> : <ToggleLeft size={20} className="text-gray-300" />}
                                         </button>
-                                    </div>
+                                    </div>}
 
                                     <div className="border-t border-gray-100 mt-1 pt-1 px-3 py-2">
                                         <button
