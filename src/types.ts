@@ -22,6 +22,8 @@ export type Message = {
   storyProtocolMissing?: boolean;
   /** Missing private memory or model metadata; recover only on explicit click. */
   metadataRepairMissing?: boolean;
+  memoryRepairMissing?: boolean;
+  novelStateRepairMissing?: boolean;
   /** Pending inline memory retained when game_state needs manual completion. */
   storyPendingMemory?: { stm: string; ltm: string | null };
   /** Officina: the assistant forgot to include the expected code artifact. */
