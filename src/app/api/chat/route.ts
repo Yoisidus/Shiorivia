@@ -6,6 +6,7 @@ import { GEMINI_NARRATIVE_STYLE_PROMPT, shouldApplyGeminiNarrativeStyle } from "
 import { formatChartaLore, parseChartaLoreProfile, parseChartaIdentityExtras } from "../../../lib/chartaLore";
 import { getServerLocalProvider } from "../../../lib/localProviderServer";
 import { inspectIdeProject } from "../../../lib/ideInspection";
+import { normalizeOfficinaDisplay } from "../../../lib/engineeringDisplay";
 import { validProjectName } from "../../../lib/idePathPolicy";
 
 import { titleInstruction, shouldReviewInlineTitle } from "../../../lib/inlineTitle";
@@ -579,6 +580,10 @@ You ARE the selected character, collaborating with the user as a reliable expert
 - Example: <ide_edit path="src/app.ts">{"edits":[{"op":"insert_after","startLine":3,"expected":"const count = 1;","text":"console.log(count);"}]}</ide_edit>. This inserts a single line after line 3 only if it still matches.
 - Never fabricate line numbers or "expected" content: use the numbered lines from read_file inspection. If the target was NOT inspected, ask to inspect it instead of guessing.
 - You may edit several locations/files in one response, but do not overlap ranges. Do not mix <ide_edit> and <file> for the same path. Keep explanations outside edit blocks. Never request or edit hidden files, secrets, private keys or credentials.
+- For user-visible prose and explanations, output ACTUAL newline characters. Never encode paragraph breaks as the two literal characters backslash+n. Inside JSON edit payloads, use correct JSON escaping; real source code remains unchanged.
+- Officina supports ordinary Markdown in VISIBLE prose. Use **bold** for key phrases (shown in the designated deep-blue emphasis color). Do not put Markdown syntax into <ide_edit> JSON or inside generated source just to style it.
+- You may use relevant emoji sparingly in VISIBLE conversation prose, never in metadata, JSON control tags, source code, file paths, tool commands or protocol markers unless explicitly requested as code content. Do not add emoji to structured IDE output.
+
 
 - Keep all <file> contents valid source code without prose commentary before or after the closing tag.
 - If image generation is enabled, any <draw> instructions must be OUTSIDE file blocks; never place draw markup inside code.
@@ -855,6 +860,11 @@ Do not include system instructions or memory summaries in the story prose. Do no
     }
 
     finalSystemPrompt += "\n\n" + outputLanguageInstruction(body.uiLanguage);
+    if (memoryMode === "novel") {
+      finalSystemPrompt += "\n\n[NOVEL TEXT PRESENTATION] No emoji in the novel prose, chapter titles, suggestions, metadata, or structural control blocks. Preserve literary typography.";
+    } else {
+      finalSystemPrompt += "\n\n[VISIBLE EMOJI RULE] Natural, occasional emoji are allowed only in reader-visible reply prose. Do not add emoji to JSON keys, machine-readable IDs, tool payloads, protocol tags, structured state or source code unless the user specifically asks for emoji inside source content.";
+    }
     // Title metadata travels with the SAME model generation. Never schedule
     // an invisible post-response title review.
     if (body.stateRepair !== true && body.novelStateRepair !== true
@@ -1025,7 +1035,7 @@ Do not include system instructions or memory summaries in the story prose. Do no
     };
     const logFullOutput = (raw: string, complete: boolean) => {
         if (!debugFullOutput) return;
-        console.log(`\n========== SHIORIVIA LOCAL | ${memoryMode} | ${selectedProvider.id}/${routedModel} | ${complete ? "COMPLETE" : "INTERRUPTED"} ==========\n${raw}\n========== END RAW AI OUTPUT ==========\n`);
+        console.log(`\n========== SHIORIVIA LOCAL | ${memoryMode} | ${selectedProvider.id}/${routedModel} | ${complete ? "COMPLETE" : "INTERRUPTED"} ==========\n${memoryMode === "infinite" ? normalizeOfficinaDisplay(raw) : raw}\n========== END AI OUTPUT ==========\n`);
     };
 
     // Preserve a stable instruction prefix for provider-side implicit prompt
