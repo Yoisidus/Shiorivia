@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react"; 
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, User, Heart, Zap, Skull, Thermometer, Shirt, Footprints, Sparkles, ChevronLeft, Send, Copy, Lock, Check, Brain, TreeDeciduous, X } from "lucide-react";
+import { ChevronRight, User, Heart, Zap, Skull, Thermometer, Shirt, Footprints, Sparkles, ChevronLeft, Send, Lock, Check, Brain, TreeDeciduous, X } from "lucide-react";
 import { CHAR_DATA } from "../data/char_config";
 import { useLanguage } from "../context/LanguageContext";
 import { characterDisplayName } from "../lib/characterNames";
@@ -130,13 +130,13 @@ const SidebarRightComponent = ({
     const confirmSuggestion = async (text: string, mode: "send" | "insert") => {
         if (isGenerating || currentSession?.memoryMode !== "sliding" || !text.trim()) return;
         const accepted = await dialog.confirm(
-            (mode === "send" ? "确认立即发送这条剧情建议吗？" : "确认将这条剧情建议填入输入框吗？") + "\n\n" + text,
+            mode === "send" ? "确认立即发送这条剧情建议吗？" : "确认将这条剧情建议填入输入框吗？",
             { title: mode === "send" ? "采纳剧情建议 · 直接发送" : "采纳剧情建议 · 填入输入框",
-              confirmLabel: mode === "send" ? "确认发送" : "确认填入", tone: "story" },
+              confirmLabel: mode === "send" ? "确认发送" : "确认填入", tone: "story", preview: text },
         );
         if (!accepted || isGenerating) return;
-        if (mode === "send") void handleSend(text);
-        else setInput?.(text);
+        if (mode === "send") { void handleSend(text); dialog.notify("剧情建议已确认发送。", { tone: "story", type: "success" }); }
+        else { setInput?.(text); dialog.notify("剧情建议已填入输入框，可以继续修改。", { tone: "story", type: "success" }); }
     };
 
     const SuggestionItem = ({ type, content, colorBg, colorText, colorBorder, icon }: any) => {
@@ -154,10 +154,6 @@ const SidebarRightComponent = ({
                         onClick={() => void confirmSuggestion(suggestion, "insert")}
                         className="flex items-center gap-1 rounded-md border border-current/20 bg-white/60 px-2 py-1 text-[10px] font-medium hover:bg-white disabled:opacity-40"
                         title="仅填入输入框，不立即发送"><Send size={11} /> 填入输入框</button>
-                    <button type="button" disabled={!suggestion}
-                        onClick={() => { void navigator.clipboard.writeText(suggestion); }}
-                        className="rounded-md border border-current/20 bg-white/50 p-1.5 hover:bg-white disabled:opacity-40"
-                        title="复制建议"><Copy size={12} /></button>
                 </div>
             </div>
         );
