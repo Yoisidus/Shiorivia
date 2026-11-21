@@ -105,7 +105,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
     if (draft.kind === "au" && (!draft.baseEra || !draft.basePeriod)) { setError("AU 必须选择基准 ERA 和 PERIOD。"); return; }
     const next = parseStoryWorldline(showEvent ? draft : { ...draft, event: "" });
     if (!next) { setError("世界线尚未成立：请填写对应的 ERA 与 PERIOD。"); return; }
-    if (!canExtendWorldline(value, next)) { setError("世界线只能沿原作顺序向后推进；不能回退，且不能改变主世界、AU 基准或已保存的附属世界。"); return; }
+    if (!canExtendWorldline(value, next)) { setError("原作时期只能向后推进；AU 时期可手动修改，但主世界、AU 原作基准及已保存的附属世界不能改变。"); return; }
     onSave(next); onClose();
   };
 
@@ -211,7 +211,7 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
             </div>
           </section>}
           {primaryLocked && <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#dac9bb] bg-white/75 px-3 py-2 text-[11px]">
-            <span>ERA / PERIOD {timeUnlocked ? "已解锁 · 仅可向后推进" : "已锁定 · 防止意外更改"}</span>
+            <span>ERA / PERIOD {timeUnlocked ? draft.kind === "au" ? "已解锁 · AU 时间由用户自由设定" : "已解锁 · 原作仅可向后推进" : "已锁定 · 防止意外更改"}</span>
             <button type="button" className="rounded-lg border border-[#cbb49b] px-3 py-1.5 font-semibold hover:bg-[#f5eee5]"
               onClick={() => { setTimeUnlocked(v => !v); setDraft(value!); setError(""); }}>
               {timeUnlocked ? "重新锁定" : "解锁时间线"}
@@ -219,9 +219,9 @@ export function StoryWorldlineFateModal({ isOpen, value, legacyTimeline, worlds,
           </div>}
           <section className="grid gap-4 sm:grid-cols-2">
             <label className="text-xs font-bold tracking-[.12em]" style={geometric}>03 · ERA / 时代 *
-              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.era} onChange={e=>chooseEra(e.target.value)} className={inputStyle}><option value="">请选择 ERA</option>{eras.map(era=><option key={era} value={era}>{era}</option>)}</select> : <input disabled={!timeEditable || primaryLocked} value={draft.era} maxLength={100} placeholder="另一条时间轴中的时代" onChange={e=>setDraft(p=>({...p,era:e.target.value}))} className={inputStyle}/>}</label>
+              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.era} onChange={e=>chooseEra(e.target.value)} className={inputStyle}><option value="">请选择 ERA</option>{eras.map(era=><option key={era} value={era}>{era}</option>)}</select> : <input disabled={!timeEditable} value={draft.era} maxLength={100} placeholder="另一条时间轴中的时代" onChange={e=>setDraft(p=>({...p,era:e.target.value}))} className={inputStyle}/>}</label>
             <label className="text-xs font-bold tracking-[.12em]" style={geometric}>04 · PERIOD / 时期 *
-              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.period} onChange={e=>choosePeriod(e.target.value)} className={inputStyle}><option value="">请选择 PERIOD</option>{periods.map(period=><option key={period} value={period}>{period}{timelineStageDescription(stages.find(s => s.period === period), locale) ? " · " + timelineStageDescription(stages.find(s => s.period === period), locale) : ""}</option>)}</select> : <input disabled={!timeEditable || primaryLocked} value={draft.period} maxLength={100} placeholder="另一条时间轴中的时期" onChange={e=>setDraft(p=>({...p,period:e.target.value}))} className={inputStyle}/>}</label>
+              {draft.kind==="canon" ? <select disabled={!timeEditable} value={draft.period} onChange={e=>choosePeriod(e.target.value)} className={inputStyle}><option value="">请选择 PERIOD</option>{periods.map(period=><option key={period} value={period}>{period}{timelineStageDescription(stages.find(s => s.period === period), locale) ? " · " + timelineStageDescription(stages.find(s => s.period === period), locale) : ""}</option>)}</select> : <input disabled={!timeEditable} value={draft.period} maxLength={100} placeholder="另一条时间轴中的时期" onChange={e=>setDraft(p=>({...p,period:e.target.value}))} className={inputStyle}/>}</label>
           </section>
           {timeEditable && !primaryLocked && draft.kind==="canon" && <button type="button" onClick={()=>setDraft(p=>({...p,era:"",period:""}))} className="flex items-center gap-1 text-[11px] text-[#648370] hover:underline"><RotateCcw size={12}/>重新选择 ERA / PERIOD</button>}
           {timelineStageDescription(currentStage, locale) && <div className="rounded-xl border border-[#e5d4bf] bg-white/70 px-3 py-2.5 text-xs leading-6">
