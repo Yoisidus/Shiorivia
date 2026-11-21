@@ -32,6 +32,7 @@ import { deepText } from "../lib/i18nDeep";
 import { useAppDialog } from "../context/DialogContext";
 import { IllustratedImage, ImageLightbox } from "./IllustrationImage";
 import { stripNovelState } from "../lib/novelState";
+import { DanmakuOverlay } from "./DanmakuOverlay";
 import { extractNovelSuggestions, stripNovelSuggestions } from "../lib/novelSuggestions";
 
 const THEMES = {
@@ -68,6 +69,8 @@ const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, the
     let clean = cleanDrawTag(stripNovelState(content)) 
         .replace(/<meta.*?\/>/g, "")
         .replace(/<audio>.*?<\/audio>/g, "")
+        .replace(/<novel_danmaku\s*>[\s\S]*?<\/novel_danmaku\s*>/gi, "")
+        .replace(/<novel_danmaku\b[\s\S]*$/gi, "")
         .trim();
 
     const suggestions = extractNovelSuggestions(clean);
@@ -157,7 +160,7 @@ export const NovelInterface = ({
     handleRegenerate, createNewSession,
     stopGeneration, setIsGlobalGenerating,
     onImageGenerated, setSessions,
-    onGenerateDraw, imageSettings, debugMode, useImageGen, showToast,
+    onGenerateDraw, imageSettings, debugMode, useImageGen, showToast, danmakuEnabled = false, danmakuCount = 8,
     syncStatus, onManualSync,
     initialSelectedModel,
     provider, providers = [], onProviderChange,
@@ -528,6 +531,7 @@ export const NovelInterface = ({
             className={`fixed inset-0 z-[500] ${theme.bg} ${theme.text} flex overflow-hidden font-serif transition-colors duration-500 h-[100dvh] w-screen overscroll-none`}
             style={{ backgroundColor: '#fdf6e3' }}
         >
+            <DanmakuOverlay danmakuList={danmakuEnabled ? currentSession?.lastDanmaku?.slice(0, danmakuCount) : []} />
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <AnimatePresence>
                     {(dynamicBg || currentTrack?.cover) && (
