@@ -1194,7 +1194,7 @@ export default function Home() {
                 sessionId={`${currentSession?.id || ""}${currentSession?.memoryMode === "chat" ? `:${activeCharacterId || "unselected"}` : ""}`}
                 stm={currentSession?.memoryMode === "chat" ? currentSession.chatCharacterMemories?.[activeCharacterId]?.stm || "" : currentSession?.stm}
                 ltm={currentSession?.memoryMode === "chat" ? currentSession.chatCharacterMemories?.[activeCharacterId]?.ltm || "" : currentSession?.ltm}
-                tone={currentSession?.memoryMode === "sliding" ? "story" : "engineering"}
+                tone={currentSession?.memoryMode === "sliding" ? "story" : currentSession?.memoryMode === "chat" ? "chat" : "engineering"}
                 onSave={({ stm, ltm }) => {
                     if (!currentSession) return;
                     cloud.setSessions(prev => prev.map(s => s.id === currentSession.id
