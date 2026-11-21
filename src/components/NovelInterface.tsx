@@ -173,6 +173,9 @@ export const NovelInterface = ({
     const [isMobile, setIsMobile] = useState(false);
     const theme = THEMES.paper;
 
+    const confirmStopGeneration = async () => {
+        if (await dialog.confirm("确认暂停小说章节生成吗？当前章节可能尚未完成。", { destructive: true })) stopGeneration();
+    };
     const [showFullPlayer, setShowFullPlayer] = useState(false);
     const [worldlineOpen, setWorldlineOpen] = useState(false);
 
@@ -624,9 +627,10 @@ export const NovelInterface = ({
                                         {useImageGen && parseDrawTag(msg.content)?.trigger && (
                                             <button type="button" disabled={drawingIndex !== null || isLoading}
                                                 onClick={() => void confirmNovelDraw(msg.realIndex)}
-                                                className={`mt-5 flex items-center gap-3 rounded-xl border ${theme.border} ${theme.inputBg} px-4 py-3 text-xs ${theme.text} transition ${theme.hover} disabled:opacity-50`}>
-                                                <Sparkles size={15}/><span>插图待生成</span>
-                                                <span className="ml-auto text-[11px]">{drawingIndex === msg.realIndex ? '生成中…' : '点击生成'}</span>
+                                                className="mt-5 flex w-full items-center gap-3 rounded-xl border border-[#d9bd91] bg-[#fff4de] px-4 py-3 text-left font-serif text-xs text-[#6f5637] shadow-[0_4px_18px_rgba(117,88,48,.09)] transition hover:border-[#b28b59] hover:bg-[#f8e9ce] disabled:opacity-50">
+                                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#dbc6a1] bg-[#f2e3c7] text-[#9b784a]"><Sparkles size={17}/></span>
+                                                <span className="min-w-0 flex-1"><span className="block font-sans text-[9px] font-bold tracking-[0.15em] text-[#a4875c]">TELA · CHAPTER ILLUSTRATION</span><span className="mt-1 block text-sm font-semibold">为这一章绘制插画</span></span>
+                                                <span className="ml-auto shrink-0 font-sans text-[11px] text-[#977750]">{drawingIndex === msg.realIndex ? '生成中…' : '点击生成'}</span>
                                             </button>
                                         )}
                                         {debugMode && (msg.content.includes('<draw>') || msg.content.includes('<draw_log>')) && (
@@ -657,7 +661,7 @@ export const NovelInterface = ({
 
                             {isLoading ? (
                                 <button
-                                    onClick={stopGeneration}
+                                    onClick={() => void confirmStopGeneration()}
                                     className={`p-2 rounded-xl transition-all shadow-lg bg-red-600 text-white hover:bg-red-500 animate-pulse`}
                                     title="Stop Generation"
                                 >
