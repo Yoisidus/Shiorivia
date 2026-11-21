@@ -399,6 +399,13 @@ export default function Home() {
         setCurtainCycle(value => value + 1);
         ui.setEffect("curtain");
     };
+    const triggerNovelScroll = () => {
+        // The same optional transition setting controls both modes. Keep the
+        // original curtain animation available for existing non-Tela effects.
+        if (!config.curtainTransition) return;
+        setCurtainCycle(value => value + 1);
+        ui.setEffect("parchment");
+    };
 
     const saveChatWorldline = (next: import("../lib/storyWorldline").StoryWorldline) => {
         if (currentSession?.memoryMode !== "chat") return;
@@ -468,7 +475,7 @@ export default function Home() {
             createNewSession(activeCharacterId, mode);
         }
         setShowModeHub(false);
-        if (mode === "novel") triggerCurtain();
+        if (mode === "novel") triggerNovelScroll();
     };
 
     const deleteSession = async (e: any, id: string) => {
@@ -592,7 +599,7 @@ export default function Home() {
                 <ModeHub
                     onEnter={enterMode}
                     onOpenCharta={() => { setChartaInitialSection("characters"); setShowCharta(true); }}
-                    onResume={() => { if (cloud.initLoaded) { setShowModeHub(false); if (currentSession?.memoryMode === "novel") triggerCurtain(); } }}
+                    onResume={() => { if (cloud.initLoaded) { setShowModeHub(false); if (currentSession?.memoryMode === "novel") triggerNovelScroll(); } }}
                     onOpenSettings={() => setShowSettingsCenter(true)}
                     hasSession={Boolean(currentSession)}
                     loading={!cloud.initLoaded}
@@ -793,7 +800,7 @@ export default function Home() {
                 syncStatus={cloud.status}
 
                 setSessions={cloud.setSessions}
-                onExit={() => { setShowModeHub(true); triggerCurtain(); }}
+                onExit={() => { setShowModeHub(true); triggerNovelScroll(); }}
                 onOpenSettings={() => setShowSettingsCenter(true)}
                 updateSessionTitle={(id: string, t: string) => cloud.setSessions(p => p.map(s => s.id === id ? { ...s, title: t, titleAutoManaged: false, updatedAt: Date.now() } : s))}
                 deleteMessage={engine.handleDeleteMessage}
