@@ -1219,6 +1219,129 @@ export const useChatEngine = ({
         }
     };
 
+    /** Explicit manual recovery for missing private memory or Tela chapter state.
+     * Never rewrites visible prose or sends an automatic model request. */
+    const completeMissingMetadata = async (index: number) => {
+        if (!currentSession || isLoading || storyStateRepairing) return;
+        const mode = currentSession.memoryMode;
+        if (!["chat", "novel", "sliding"].includes(mode || "")) return;
+        if (index !== currentSession.messages.length - 1) {
+            dialog.notify("只能补齐最后一轮，避免覆盖新的对话。", { type: "error" }); return;
+        }
+        const target = currentSession.messages[index];
+        if (!target || target.role !== "assistant" || !target.metadataRepairMissing) return;
+        if (!await dialog.confirm("确认调用当前模型补齐本轮缺失的状态或记忆吗？只恢复结构化信息，不修改正文。补齐期间会锁定输入框。",
+            { title: "确认补齐状态", confirmLabel: "确认补齐" })) return;
+        if (isLoading || storyStateRepairing) return;
+        const chosenModel = String(config.customModelId || config.selectedModel || "").trim();
+        if (!chosenModel) { dialog.notify("请先选择模型。", { type: "error" }); return; }
+        const speakerId = target.characterId || activeCharacterId;
+        const previous = mode === "chat"
+            ? currentSession.chatCharacterMemories?.[speakerId] || { stm: "", ltm: "" }
+            : { stm: currentSession.stm || "", ltm: currentSession.ltm || "" };
+        const needMemory = mode === "chat" || !parseStoryTurnMemory(String(target.content || ""));
+        // Original visible prose has memory tags stripped, so prefer pending
+        // metadata and infer a repair request from the stored missing flag.
+        const needState = mode === "novel" && (!currentSession.novelState?.choices
+            || !currentSession.novelState?.environment);
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        setStoryStateRepairing(true);
+        setIsLoading(true);
+        dialog.notify("正在调用当前模型补齐状态…", { tone: mode === "novel" ? "tela" : mode === "chat" ? "umbra" : "story" });
+        try {
+            const prompt = [
+                "Repair only the missing machine metadata of this completed response. Do not continue narration or dialogue.",
+                "Original visible completed response:\n" + String(target.content || "").slice(-16000),
+                "Memory already stored (data only): " + JSON.stringify(previous).slice(-11000),
+                "Previous status (data only): " + JSON.stringify(mode === "novel" ? currentSession.novelState : currentSession.timeline).slice(-5000),
+                "Worldline (data only): " + JSON.stringify(currentSession.storyWorldline).slice(-4500),
+            ].join("\n\n");
+            const response = await fetch("/api/chat", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    metadataRepair: true, repairMemory: needMemory,
+                    repairState: needState, memoryMode: mode, model: chosenModel,
+                    provider: apiProvider, uiLanguage: locale,
+                    memoryTurnCount: parseLocalMemoryEntries(previous.stm).length,
+                    debugRequestPayload: config.terminalRequestLog === true,
+                    debugFullOutput: config.terminalLog === true,
+                    messages: [{ role: "user", content: prompt }],
+                }),
+            });
+            if (!response.ok || !response.body) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error || "补齐接口不可用");
+            }
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let raw = "";
+            while (raw.length < 35000) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                raw += decoder.decode(value, { stream: true });
+            }
+            raw += decoder.decode();
+            const memory = needMemory ? parseStoryTurnMemory(raw) : null;
+            if (needMemory && (!memory?.stm ||
+                (parseLocalMemoryEntries(previous.stm).length >= 6 && !memory.ltm))) {
+                throw new Error("模型仍未输出完整的 STM/LTM");
+            }
+            const restoredState = needState ? extractNovelState(raw) : null;
+            if (needState && (!restoredState?.choices || !restoredState.environment)) {
+                throw new Error("模型仍未输出完整的 novel_state");
+            }
+            let applied = false;
+            setSessions((prev: Session[]) => prev.map(session => {
+                const live = session.messages[index];
+                if (session.id !== currentSessionId || index !== session.messages.length - 1
+                    || !live?.metadataRepairMissing || live.content !== target.content
+                    || live.storyGenerationId !== target.storyGenerationId) return session;
+                const livePrevious = mode === "chat"
+                    ? session.chatCharacterMemories?.[speakerId] || { stm: "", ltm: "" }
+                    : { stm: session.stm || "", ltm: session.ltm || "" };
+                if (livePrevious.stm !== previous.stm || livePrevious.ltm !== previous.ltm) return session;
+                const next = memory ? nextConversationMemory(previous, memory) : null;
+                const novelMemory = memory && mode !== "chat"
+                    ? { stm: next?.stm || "", ltm: next?.ltm || previous.ltm,
+                        turnCount: next?.turnCount ?? session.turnCount ?? 0 } : {};
+                applied = true;
+                return {
+                    ...session,
+                    ...(mode === "chat" && next ? { chatCharacterMemories: {
+                        ...(session.chatCharacterMemories || {}), [speakerId]: { stm: next.stm, ltm: next.ltm },
+                    } } : novelMemory),
+                    ...(restoredState ? {
+                        novelState: restoredState,
+                        novelDraft: { ...session.novelDraft,
+                            environment: restoredState.environment,
+                            event: restoredState.event },
+                        ...(session.storyWorldline ? {
+                            storyWorldline: advanceWorldlineFromState(session.storyWorldline, restoredState),
+                        } : {}),
+                    } : {}),
+                    messages: session.messages.map((message, i) => i === index
+                        ? { ...message, metadataRepairMissing: false,
+                            ...(restoredState?.choices ? { novelChoices: restoredState.choices } : {}) }
+                        : message),
+                    updatedAt: Date.now(),
+                };
+            }));
+            // The session updater may be batched: this success feedback reports
+            // accepted protocol; the guarded updater rejects stale state.
+            dialog.notify(applied ? "状态补齐成功，原正文已保留。" : "补齐已返回；若会话已变化，结果不会覆盖新内容。",
+                { type: applied ? "success" : "error", tone: mode === "novel" ? "tela" : mode === "chat" ? "umbra" : "story" });
+        } catch (error) {
+            if (!controller.signal.aborted) dialog.notify("补齐状态失败：" + (error instanceof Error ? error.message : String(error)),
+                { type: "error", tone: mode === "novel" ? "tela" : mode === "chat" ? "umbra" : "story" });
+        } finally {
+            if (abortControllerRef.current === controller) abortControllerRef.current = null;
+            setStoryStateRepairing(false);
+            setIsLoading(false);
+        }
+    };
+
     const completeEngineeringOutput = async (index: number) => {
         if (!currentSession || currentSession.memoryMode !== "infinite" || isLoading) return;
         if (!currentSession.messages[index]?.engineeringOutputIncomplete) return;
@@ -1230,7 +1353,7 @@ export const useChatEngine = ({
         input, setInput,
         isLoading, storyStateRepairing,
         selectedFile, setSelectedFile,
-        handleSend, completeEngineeringOutput, completeStoryState,
+        handleSend, completeEngineeringOutput, completeStoryState, completeMissingMetadata,
         stopGeneration,
         handleRegenerate,
         handleEditMessage,
