@@ -242,8 +242,9 @@ Required JSON shape: {"era":"current ERA","period":"current PERIOD","environment
 All seven keys are mandatory in newly generated chapters. era/period must preserve the established canon stage or choose a later known canonical stage, never an earlier stage. environment/event must be nonempty strings (up to 2000 characters), nextSceneCastIds must be [], choices must contain three nonempty concrete next-chapter developments with keys fun/rational/radical, and danmaku must be an array of scene-relevant strings (or [] if disabled).
 Only infer facts from the given completed chapter, existing state and known cast roster. Never fabricate a transition that has not occurred. Keep environment/event from the previous state when the chapter did not change them.
 The next chapter will use its own independent cast lookup; return [] in nextSceneCastIds. In state repair, never infer a time jump that is not explicitly demonstrated by the completed chapter; the provided original worldline ERA/PERIOD is the safe default. Do not generate standalone <novel_choices> or <novel_danmaku> tags. When repairing existing legacy chapters, retain old separate choices/danmaku only if already present in the supplied source, but prefer embedding current values inside the state.
-DO NOT change WORLD / ERA / PERIOD / AU baseline. Return structured state, not story prose.
-Worldline: ${JSON.stringify({ worldId: repairWorldline.worldId, era: repairWorldline.era, period: repairWorldline.period, kind: repairWorldline.kind, basePeriod: repairWorldline.basePeriod })}.`;
+Do not change WORLD or AU baseline, and never move ERA/PERIOD backwards. Keep the current stage unless the completed chapter explicitly advances to a later known canonical stage. Return structured state, not story prose.
+Worldline: ${JSON.stringify({ worldId: repairWorldline.worldId, era: repairWorldline.era, period: repairWorldline.period, kind: repairWorldline.kind, basePeriod: repairWorldline.basePeriod })}.
+Known canonical stages (in chronological order): ${JSON.stringify(repairWorldline.canonTimeline.map(stage => ({ era: stage.era, period: stage.period })))}. No AU time progression may be inferred.`;
       finalMessages = Array.isArray(messages) ? messages.slice(-1) : [];
     } else if (memoryMode === "novel") {
       console.log("🌌 Mode: Novel Generation");
@@ -695,7 +696,7 @@ ERA: ${JSON.stringify(selectedWorldline.era)}
 PERIOD: ${JSON.stringify(selectedWorldline.period)}
 ${selectedWorldline.kind === "au" ? `BASELINE ORIGINAL ERA / PERIOD (knowledge cutoff only): ${JSON.stringify(selectedWorldline.baseEra)} / ${JSON.stringify(selectedWorldline.basePeriod)}\nAll events after this baseline are NOT established facts unless explicitly created within the AU story.` : ""}
 EVENT: ${JSON.stringify(selectedWorldline.event)}
-Respect these exact selected ERA/PERIOD labels and this era's continuity; never reinterpret an AU as canon. Do not rewrite the selected story-worldline from model-generated timeline values.
+Treat ERA/PERIOD as the starting point for this scene. game_state.timeline may propose a later canonical stage only if this turn's completed story truly advances time; the app validates it against the ordered stages. Never rewind, change the world or AU baseline, or treat future canon events as past facts.
 [END CURRENT STORY WORLDLINE]
 `;
       }
