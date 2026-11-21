@@ -30,11 +30,12 @@ Shiorivia/
 - In **Officina IDE**, use the project selector beside the title to pick an existing root or create a new one. The selected root is saved to the current conversation.
 - IDE now displays the project's nested file paths plus folder entries. `+` creates files with relative paths; the folder icon creates nested folders (e.g. `src/components`). File `…` supports download and confirmed deletion.
 - **同步** re-reads the actual disk files. It warns before discarding unsaved editor changes; editing and Save write to the actual files within the bound root. This allows editing outside Shiorivia using VS Code, Notepad, etc., followed by **同步**.
+- The embedded Run button, Python execution API and HTML/console preview have been removed; run project code directly on the local machine.
 - Older conversation `codeRepository` content remains intact. With a bound project, **迁入旧文件** copies those historic files into the disk project after confirmation. The old archive is not deleted automatically.
 
 ## AI file access
 
-Once a project is bound, the engineering chat backend no longer sends its full source repository inside every System prompt. It first provides a small directory map and performs a bounded, read-only model-directed inspection loop (up to **four** steps):
+Once a project is bound, the engineering chat backend no longer sends its full source repository inside every System prompt. It first provides a small directory map and performs a bounded, read-only model-directed inspection loop (up to **six** steps):
 
 - `list_files`: list the directory tree under an optional relative prefix.
 - `search_code`: case-insensitive literal keyword lookup, returning at most 45 `path:line` snippets. Regex and semantic/BM25 search are not yet available.
@@ -42,7 +43,7 @@ Once a project is bound, the engineering chat backend no longer sends its full s
 
 The planner may request additional reads using results of the previous step. The backend executes the operations only under the bound root, passes their results back to the same configured model, and incorporates retrieved code into the final normal conversation generation. Planner steps are internal; this revision does not yet provide a detailed live tool-activity timeline in the chat UI. Model queries can require multiple calls, incurring extra time and tokens, but generally use much less code context than eager full-repository injection on larger projects.
 
-**Untrusted source files are never system instructions.** The inspection tool has no write/execute tools; generated code must be delivered through normal `<file name="relative/path.ext">...</file>` blocks and written by the local app.
+**Untrusted source files are never system instructions.** The inspection planner has no write/execute tools. Existing-file changes are normally emitted as compact `<ide_edit>` operations and applied by the dedicated, approval-gated IDE editing API; `<file>` is reserved for new files or major rewrites.
 
 ## Auto-project generation
 
@@ -60,11 +61,11 @@ The client creates `IDE/WeatherApp/`, then writes all relative files (automatica
 Existing files **cannot be silently overwritten**: the user sees a confirmation listing same-name files. If saving is declined or fails, the generated code remains visible below the conversation answer as fenced blocks, and the session's legacy file repository keeps a fallback copy.
 
 AI-assisted **editing of existing code** now defaults to a compact **line-edit protocol**, instead of re-generating the entire file:
-- The bounded inspection planner reads the necessary original line(s). The assistant returns an `<ide_edit path="src/file.ts">{"edits":[...]}</ide_edit>` block with precise 1-based `startLine`, optionally inclusive `endLine`, the exact original `expected` line content, and a small `text` replacement.
+- The bounded inspection planner reads the necessary original line(s). The assistant then returns an `<ide_edit path="src/file.ts">{"edits":[...]}</ide_edit>` block with precise 1-based `startLine`, optionally inclusive `endLine`, the exact original `expected` line content, and a small `text` replacement.
 - Supported operations: `insert_before`, `insert_after`, `replace`, `delete`. Multiple disjoint edits may be applied to one existing file. All anchors are verified against the original file, and edits apply from bottom to top to avoid drifting line numbers.
-- The IDE API **previews without writing**. The frontend displays a native confirmation with the original/replacement snippets and file paths; on approval it applies the patch only when the source version still matches the preview. Protected credential paths and unsafe file types are rejected using the same shared policy as the regular IDE reader. Failed or outdated patches cannot silently replace code.
+- The IDE API **previews without writing**. The frontend displays a dedicated dark IDE diff-review dialog with original/replacement snippets, line ranges and file paths; on approval it applies the patch only when the source version still matches the preview. Protected credential paths and unsafe file types are rejected using the same shared policy as the regular IDE reader. Failed or outdated patches cannot silently replace code.
 - Full `<file name="...">...</file>` output remains available for creating brand-new files or deliberate major rewrites, with its existing overwrite confirmation. The inspection planner itself remains read-only, while the dedicated editor API applies validated user-approved modifications.
-- The current browser confirmation displays a concise textual preview; for lengthy edits it truncates the text, so review the change count and paths before approving. Per-file version checks prevent stale writes, but the multi-file operation is not a transaction: an unexpected error after an earlier file applies can leave a partial change.
+- The IDE diff review displays the individual line changes grouped by file, including unmodified insertion anchors. Carefully inspect them before approving. Per-file version checks prevent stale writes, but the multi-file operation is not a transaction: an unexpected error after an earlier file applies can leave a partial change.
 
 ## Local smoke tests
 
