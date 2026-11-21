@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 
 export type DialogTone = "officina" | "story" | "umbra" | "tela" | "viae" | "charta";
-export type DialogOptions = { title?: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; tone?: DialogTone };
+export type DialogOptions = { title?: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; tone?: DialogTone; preview?: string };
 export type FeedbackOptions = { tone?: DialogTone; type?: "success" | "info" | "warning" | "error"; duration?: number };
 type FeedbackMessage = { id: number; message: string; type: NonNullable<FeedbackOptions["type"]>; tone: DialogTone; createdAt: number };
 export type IdeDiffOperation = { op: "insert_before" | "insert_after" | "replace" | "delete"; startLine: number; endLine?: number; expected: string; text?: string };
@@ -254,6 +254,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
             </header>
             <div className="min-h-0 overflow-y-auto px-5 py-5">
               {active.message && <p className="whitespace-pre-wrap break-words text-sm leading-7">{active.message}</p>}
+              {active.options.preview && <div className={`mt-4 max-h-[42dvh] overflow-y-auto whitespace-pre-wrap break-words rounded-xl border px-4 py-3 text-sm leading-7 shadow-inner ${currentTone === "story" ? "border-[#e8bfd2] bg-[#fff1f7] text-[#70445d]" : currentTone === "tela" ? "border-[#e1cba6] bg-[#fff8eb] text-[#684e35]" : "border-slate-200 bg-white/75"}`}>{active.options.preview}</div>}
               {active.kind === "prompt" && (
                 <input autoFocus aria-label={active.options.title || "输入内容"} value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); finish(true, input); } }}
