@@ -111,7 +111,7 @@ export async function searchWithProvider(query: string, providerId: string, mode
       // OpenRouter's web tool may fall back to third-party search even
       // with native requested on unsupported models. Fail closed for unknown
       // model families rather than silently changing the engine.
-      const supportedFamily = /^(?:openai\/(?:gpt-(?:5|[6-9])(?:[.\w-]*)?|o[34](?:[.\w-]*)?)|anthropic\/claude-(?:3[.-]7|[4-9])\S*|google\/gemini-(?:3|[4-9])\S*|x-ai\/grok-(?:4|[5-9])\S*|perplexity\/\S+)$/i.test(model);
+      const supportedFamily = /^(?:openai\/(?:gpt-(?:4\.1|5|[6-9])(?:[.\w-]*)?|o[34](?:[.\w-]*)?)|anthropic\/claude-(?:3[.-]5-haiku|3[.-]7|[4-9])\S*|google\/gemini-(?:3|[4-9])\S*|x-ai\/grok-(?:4|[5-9])\S*|perplexity\/\S+)$/i.test(model);
       if (!supportedFamily) throw new Error("当前 OpenRouter 模型不在已验证的原生联网搜索家族中；已停止调用以防使用第三方回退。请改用支持原生联网的模型或自定义提供商。");
       // Use OpenRouter's current model-callable server tool rather than the deprecated plugin.
 
