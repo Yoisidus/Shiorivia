@@ -26,6 +26,7 @@ export function StoryCastPicker({ session, worlds, customCharacters, busy, onApp
   tone?: "sage" | "paper";
 }) {
   const { locale } = useLanguage();
+  const novel = mode === "novel";
   const dialog = useAppDialog();
   const [open, setOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<string[]>([]);
@@ -84,34 +85,34 @@ export function StoryCastPicker({ session, worlds, customCharacters, busy, onApp
       {world && mode === "novel" && <p className="mt-1 text-[10px] text-[#927b57]">{started ? "AI 会预测下一章登场角色；手动覆盖时需要确认。" : "第一章可以手动选角；之后由 AI 根据剧情预测下章阵容。"}</p>}
     </section>
     {typeof document !== "undefined" && createPortal(<AnimatePresence>
-      {open && world && <motion.div className={`fixed inset-0 ${mode === "novel" ? "z-[800]" : "z-[200]"} flex items-center justify-center bg-[#152a20]/35 p-4`}
+      {open && world && <motion.div className={`fixed inset-0 ${novel ? "z-[800]" : "z-[200]"} flex items-center justify-center bg-[#152a20]/35 p-4`}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={event => { if (event.target === event.currentTarget) setOpen(false); }}>
           <motion.div initial={{ y: 10, scale: .98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 8, scale: .98 }}
             role="dialog" aria-modal="true" aria-label="下一轮登场角色"
-            className="flex max-h-[85vh] w-full max-w-[430px] flex-col overflow-hidden rounded-2xl border border-[#dfe8dd] bg-[#fcfdfb] shadow-2xl">
-            <header className="flex items-center justify-between border-b border-[#e7ede5] px-5 py-4">
-              <div><p className="text-[10px] font-semibold tracking-[.16em] text-[#93a797]">{mode === "novel" ? "TELA · CAST" : "VIA LATA · CAST"}</p>
-                <h2 className="mt-1 font-serif text-lg text-[#345340]">下一轮登场角色</h2></div>
-              <button type="button" onClick={() => setOpen(false)} aria-label="关闭" className="rounded-lg p-2 text-[#8ba090] hover:bg-[#edf3ed]"><X size={17}/></button>
+            className={`flex max-h-[85vh] w-full max-w-[430px] flex-col overflow-hidden rounded-2xl border shadow-2xl ${novel ? "border-[#d6c19f] bg-[#fffcf5]" : "border-[#dfe8dd] bg-[#fcfdfb]"}`}>
+            <header className={`flex items-center justify-between border-b px-5 py-4 ${novel ? "border-[#e6d4b8] bg-[#f5e8d3]" : "border-[#e7ede5] bg-[#eef5ef]"}`}>
+              <div><p className={`text-[10px] font-semibold tracking-[.16em] ${novel ? "text-[#937453]" : "text-[#718f79]"}`}>{mode === "novel" ? "TELA · CAST" : "VIA LATA · CAST"}</p>
+                <h2 className={`mt-1 font-serif text-lg ${novel ? "text-[#67503c]" : "text-[#345340]"}`}>下一轮登场角色</h2></div>
+              <button type="button" onClick={() => setOpen(false)} aria-label="关闭" className={`rounded-lg p-2 ${novel ? "text-[#806d56] hover:bg-[#e8d7bd]" : "text-[#708d76] hover:bg-[#edf3ed]"}`}><X size={17}/></button>
             </header>
-            <p className="border-b border-[#edf0eb] px-5 py-3 text-[10px] leading-5 text-[#91a394]">
+            <p className={`border-b px-5 py-3 text-[10px] leading-5 ${novel ? "border-[#e9dcc6] text-[#846f53]" : "border-[#edf0eb] text-[#708873]"}`}>
               可选角色由世界线面板决定：主世界、最多三个已启用的附属世界，以及开启时的通用角色。
             </p>
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-              {available.map(char => <label key={char.id} className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[#f1f6f0]">
+              {available.map(char => <label key={char.id} className={`flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 ${novel ? "hover:bg-[#f7ecda]" : "hover:bg-[#f1f6f0]"}`}>
                 <input type="checkbox" checked={draftIds.includes(char.id)} disabled={!draftIds.includes(char.id) && draftIds.filter(id => allowedIds.has(id)).length >= MAX_STORY_CAST}
-                  onChange={() => toggle(char.id)} className="h-4 w-4 shrink-0 accent-[#5b8268]" />
+                  onChange={() => toggle(char.id)} className={`h-4 w-4 shrink-0 ${novel ? "accent-[#9a6d43]" : "accent-[#5b8268]"}`} />
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: char.color }} />
-                <span className="min-w-0 flex-1 truncate text-xs text-[#3e5b47]">{char.name}</span>
+                <span className={`min-w-0 flex-1 truncate text-xs ${novel ? "text-[#684d35]" : "text-[#3e5b47]"}`}>{char.name}</span>
                 <span className="max-w-[115px] truncate text-[10px] text-[#9aa99a]">{worldTitle(char.origin)}</span>
               </label>)}
               {!available.length && <p className="p-4 text-center text-xs text-[#9ba99e]">暂无可选角色，请先在 Charta 创建档案</p>}
             </div>
-            <footer className="flex items-center justify-between border-t border-[#e7ede5] px-5 py-4">
+            <footer className={`flex items-center justify-between border-t px-5 py-4 ${novel ? "border-[#e6d4b8] bg-[#f5e8d3]" : "border-[#e7ede5] bg-[#eef5ef]"}`}>
               <span className="text-[11px] text-[#8da18f]">已选择 {draftIds.filter(id => allowedIds.has(id)).length} / {MAX_STORY_CAST}</span>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-[#d7e3d7] px-4 py-2 text-xs text-[#6a806e]">取消</button>
-                <button type="button" onClick={apply} className="inline-flex items-center gap-1.5 rounded-lg bg-[#4d7459] px-4 py-2 text-xs text-white hover:bg-[#3d6048]"><Check size={13}/>应用</button>
+                <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">取消</button>
+                <button type="button" onClick={apply} className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs text-white ${novel ? "bg-[#765034] hover:bg-[#5c3c28]" : "bg-[#4d7459] hover:bg-[#3d6048]"}`}><Check size={13}/>应用</button>
               </div>
             </footer>
           </motion.div>
