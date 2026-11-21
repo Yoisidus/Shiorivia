@@ -30,6 +30,13 @@ This applies to **seemoon1/Shiorivia** (Local Edition), not Shiorivia_Cloud.
 - Each new VIAE `limeGroups[]` entry records `storyWorldline`. The legacy `reality` / `timeline` / `auContext` keys are kept in place for older readers and older saves; a legacy road without a full worldline receives an in-memory Bang Dream fallback instead of a destructive migration.
 - On EVERY VIAE AI request, only the group's **fixed member IDs** receive character biographies, scoped to their OWN world's selected canon/AU baseline. VIAE does not depend on Via Lata/Tela next-cast prediction, and receives **no color map**. When in Participant mode, the active Charta self is available as identity context, not a newly invented cast ID.
 
+## VIAE English prompt and inline memories
+
+- VIAE's default system prompt is written in English for both Semita and Compitum. Character phone messages remain in the selected UI language, with authentic individual voices. The JSON `<viae_chat>[{"charId":"...","text":"..."}]</viae_chat>` protocol is unchanged; older `<lime_chat>` archives remain readable. Observer scene directions never become messages on the characters' phones, while participant messages use the selected in-world phone viewpoint.
+- Each road stores STM/LTM independently in the existing `limeGroups[].stm`, `ltm` and `turnCount` fields. The current model response appends one private `<turn_memory>` after the visible `<viae_chat>` and optional `<worldline_update>`; chat bubbles never display this metadata.
+- Six complete interactions add STM entries, and the seventh consolidates them plus the prior LTM into one updated LTM without a second model call. The legacy `/api/summarize` path is a fallback only when the inline metadata is missing or the seventh-turn LTM is invalid. Failed macro summaries retain STM instead of resetting the count; slow fallback requests cannot overwrite changed memory or newer chat turns. Regeneration does not append a duplicate memory entry.
+- VIAE retains fixed-member lore injection and the user-selected shared context budget. The shared presets are now 64K, 128K, 256K (default), 512K and 1024K; the actual model/provider's supported context size still applies. No automatic truncation of a member's biography is introduced by this feature.
+
 ## Novel behavior
 
 - The novel system prompt requires first-line `<meta title="..." chapter="..." />` on **every chapter**. Similar scene/theme can keep the prior chapter title; a material focus change should use a different chapter title.
