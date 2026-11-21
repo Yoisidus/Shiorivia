@@ -1,16 +1,19 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const DanmakuOverlay = ({ danmakuList }: { danmakuList: string[] | undefined }) => {
   const [items, setItems] = useState<{ id: number, text: string, top: number, color: string, duration: number }[]>([]);
+  const lastPlayedSignature = useRef<string | null>(null);
 
   // A stable semantic signature avoids replaying the same danmaku whenever
   // a parent produces a new array instance during unrelated UI updates.
   const signature = JSON.stringify(danmakuList || []);
   useEffect(() => {
     const comments: string[] = JSON.parse(signature);
-    if (!comments.length) { setItems([]); return; }
+    if (!comments.length) { lastPlayedSignature.current = null; setItems([]); return; }
+    if (lastPlayedSignature.current === signature) return;
+    lastPlayedSignature.current = signature;
     if (comments.length > 0) {
       const newItems = comments.map((text, i) => ({
         id: Date.now() + i,
