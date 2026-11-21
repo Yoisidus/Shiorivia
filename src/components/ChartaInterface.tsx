@@ -6,6 +6,7 @@ import { BANG_DREAM_WORLD_ID, BANG_DREAM_WORLD_NAME } from "../lib/storyWorldlin
 import { useLanguage } from "../context/LanguageContext";
 import { useAppDialog } from "../context/DialogContext";
 import { chartaText } from "../lib/chartaText";
+import { localizeChartaError } from "../lib/chartaErrorText";
 import { deepText } from "../lib/i18nDeep";
 import {
   CHARTA_LANGUAGES, CHARTA_PRESET_AVATARS, decodeChartaImport, encodeChartaExport,
@@ -113,14 +114,14 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
     }
     const selectedStages = draft.worldId === BANG_DREAM_WORLD_ID ? BANG_DREAM_CANON : worldLibrary.worlds.find(world=>world.id===draft.worldId)?.canonTimeline || [];
     const warning = validateChartaTimelineLinks(editingProfile(draft), selectedStages);
-    if (warning) { setMessage(warning); return; }
+    if (warning) { setMessage(localizeChartaError(locale, warning)); return; }
     const targetError = validateChartaRelationshipTargets(editingProfile(draft), draft.worldId, [...characters, ...selfLibrary.selves]);
-    if (targetError) { setMessage(targetError); return; }
+    if (targetError) { setMessage(localizeChartaError(locale, targetError)); return; }
     setBusy(true);
     try {
       const data = parseChartaCharacter(draft);
       if (await save(data)) { setDraft(data); setDirty(false); setMessage(txt("saved")); setCabinetSelection({ kind: "characters", id: data.id }); }
-    } catch (e) { setMessage(e instanceof Error ? e.message : txt("required")); }
+    } catch (e) { setMessage(e instanceof Error ? localizeChartaError(locale, e.message) : txt("required")); }
     finally { setBusy(false); }
   };
   const exportDraft = () => {
@@ -128,7 +129,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
     try {
       const data = parseChartaCharacter(draft);
       saveChartaJsonFile(`charta-${data.id}.json`, encodeChartaExport(data));
-    } catch (e) { setMessage(e instanceof Error ? e.message : txt("required")); }
+    } catch (e) { setMessage(e instanceof Error ? localizeChartaError(locale, e.message) : txt("required")); }
   };
   const openImport = (kind: CabinetKind) => {
     importKindRef.current = kind;
@@ -159,7 +160,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
           : worldLibrary.worlds.find(w => w.id === imported.worldId)?.canonTimeline || [];
         const validation = imported.profile && (validateChartaTimelineLinks(imported.profile, stages)
           || validateChartaRelationshipTargets(imported.profile, imported.worldId, [...characters, ...selfLibrary.selves]));
-        if (validation) throw new Error(validation + cabinetText("importDependencySuffix"));
+        if (validation) throw new Error(localizeChartaError(locale, validation) + cabinetText("importDependencySuffix"));
         if (!await save(imported)) throw new Error(cabinetText("characterSaveFailed"));
         setSection("characters");
         setCabinetSelection({kind:"characters",id:imported.id});
@@ -179,7 +180,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
           : worldLibrary.worlds.find(w => w.id === imported.worldId)?.canonTimeline || [];
         const validation = imported.profile && (validateChartaTimelineLinks(imported.profile, stages)
           || validateChartaRelationshipTargets(imported.profile, imported.worldId, [...characters, ...selfLibrary.selves]));
-        if (validation) throw new Error(validation + cabinetText("importDependencySuffix"));
+        if (validation) throw new Error(localizeChartaError(locale, validation) + cabinetText("importDependencySuffix"));
         if (!await selfLibrary.saveSelf(imported)) throw new Error(cabinetText("selfSaveFailed"));
         setSection("self");
         setCabinetSelection({kind:"self",id:imported.id});
@@ -200,7 +201,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
       }
       setMessage(cabinetText("importSuccess"));
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : cabinetText("importFailed"));
+      setMessage(e instanceof SyntaxError ? cabinetText("importFailed") : e instanceof Error ? localizeChartaError(locale, e.message) : cabinetText("importFailed"));
     } finally { setBusy(false); }
   };
   const uploadImage = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -399,7 +400,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
               />
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-5"><button type="button" disabled={!characters.some(c=>c.id===draft.id)} onClick={deleteDraft} className="inline-flex items-center gap-2 rounded-xl border border-rose-100 px-3 py-3 text-xs text-rose-600 disabled:opacity-30"><Trash2 size={15}/>{txt("delete")}</button><div className="flex flex-wrap gap-2"><button type="button" onClick={exportDraft} className="inline-flex items-center gap-2 rounded-xl border border-[#cbdacc] px-4 py-3 text-xs"><Download size={15}/>{txt("export")}</button><button type="button" disabled={busy} onClick={saveDraft} className="inline-flex items-center gap-2 rounded-xl bg-[#456b57] px-4 py-3 text-xs font-semibold text-white hover:bg-[#355640] disabled:opacity-50"><Save size={15}/>{txt("save")}</button></div></div>
           </div>}
-          {(message || storageError) && <p role="status" className="mt-4 rounded-lg bg-[#f2f4ee] px-4 py-3 text-xs text-[#607566]">{storageError || message}</p>}
+          {(message || storageError) && <p role="status" className="mt-4 rounded-lg bg-[#f2f4ee] px-4 py-3 text-xs text-[#607566]">{storageError ? localizeChartaError(locale, storageError) : message}</p>}
           <p className="mt-5 text-[11px] leading-6 text-[#9cab9c]">{txt("independent")}</p>
         </section>)}
       </div>
