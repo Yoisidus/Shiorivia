@@ -15,6 +15,7 @@ import { buildDrawRequest } from "../lib/drawRequest";
 import { CHARACTERS } from "../types";
 import { useLanguage } from "../context/LanguageContext";
 import { deepText } from "../lib/i18nDeep";
+import type { Locale } from "../lib/locale";
 import { useAppDialog } from "../context/DialogContext";
 import { characterDisplayName } from "../lib/characterNames";
 import { parseStoryWorldline } from "../lib/storyWorldline";
@@ -63,7 +64,7 @@ const DrawPlaceholder = ({ onGenerate, busy, disabled, mode, locale }: {
     );
 };
 
-const renderContent = (text: string, onOpenImage: (src: string) => void, selfColors: Record<string, string> = {}) => {
+const renderContent = (text: string, onOpenImage: (src: string) => void, locale: Locale, selfColors: Record<string, string> = {}) => {
     if (!text) return null;
     let workingText = cleanDrawTag(text);
 
@@ -97,7 +98,7 @@ const renderContent = (text: string, onOpenImage: (src: string) => void, selfCol
                                                     const imgMatch = subPart.match(/!\[(.*?)\]\((.*?)\)/);
                                                     if (imgMatch) {
                                                         const url = imgMatch[2];
-                                                        return <IllustratedImage key={k} src={url} alt={imgMatch[1] || "插图"} onOpen={onOpenImage} className="my-2" />;
+                                                        return <IllustratedImage key={k} src={url} alt={imgMatch[1] || deepText(locale, "chat.illustration")} onOpen={onOpenImage} className="my-2" />;
                                                     }
                                                     return <span key={k}>{subPart}</span>;
                                                 })}
@@ -113,7 +114,7 @@ const renderContent = (text: string, onOpenImage: (src: string) => void, selfCol
                 {extraImages.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                         {extraImages.map((url, idx) => (
-                            <IllustratedImage key={idx} src={url} alt="画廊图片" onOpen={onOpenImage} compact />
+                            <IllustratedImage key={idx} src={url} alt={deepText(locale, "chat.galleryImage")} onOpen={onOpenImage} compact />
                         ))}
                     </div>
                 )}
@@ -179,16 +180,17 @@ const parseDialogue = (fullText: string, defaultCharId: string): DialogueLine[] 
 };
 
 const DialoguePlayer = ({ content, defaultCharId, onPlay, msgIndex, currentLock }: any) => {
+    const { locale } = useLanguage();
     const dialog = useAppDialog();
     const lines = parseDialogue(content, defaultCharId);
 
-    if (lines.length === 0) return <span className="text-[10px] text-gray-300 px-2">No Dialogue</span>;
+    if (lines.length === 0) return <span className="text-[10px] text-gray-300 px-2">{deepText(locale, "chat.toolbar.noDialogue")}</span>;
 
     const handleClick = async (text: string, charId: string, idx: number) => {
         if (currentLock) return;
 
         const charName = CHARACTERS.find(c => c.id === charId)?.name || charId;
-        if (!await dialog.confirm(`确定要生成 [${charName}] 的语音吗？`)) {
+        if (!await dialog.confirm(`${deepText(locale, "chat.generateVoicePrefix")} [${charName}]${deepText(locale, "chat.generateVoiceSuffix")}`)) {
             return;
         }
 
@@ -198,9 +200,9 @@ const DialoguePlayer = ({ content, defaultCharId, onPlay, msgIndex, currentLock 
     return (
         <div className="flex flex-col gap-1 p-2 bg-white/95 backdrop-blur-md rounded-xl border border-gray-100 shadow-xl min-w-[220px] max-w-[300px]">
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-1 mb-1 px-1 flex justify-between items-center">
-                <span>Voice Deck</span>
+                <span>{deepText(locale, "chat.toolbar.voiceDeck")}</span>
                 <span className={`text-[9px] px-1 rounded transition-colors ${currentLock ? 'bg-red-100 text-red-500' : 'bg-emerald-100 text-emerald-500'}`}>
-                    {currentLock ? 'GPU BUSY' : 'GPU READY'}
+                    {deepText(locale, currentLock ? "chat.toolbar.gpuBusy" : "chat.toolbar.gpuReady")}
                 </span>
             </div>
 
@@ -338,7 +340,7 @@ export const ChatInterface = ({
             vcSwitch.style.display = nextState;
             setConsoleVisible(nextState === 'block');
         } else {
-            showToast("Console not found (Mobile Only)");
+            showToast(deepText(locale, "chat.toolbar.consoleMissing"));
         }
     };
 
@@ -388,7 +390,7 @@ export const ChatInterface = ({
         if (targetId === "sakiko") targetId = voiceVariant === "white" ? "sakiko" : "oblivionis";
         if (targetId === "mutsu") targetId = voiceVariant === "mortis" ? "mortis" : "mutsu";
 
-        if (showToast) showToast(`🎵 Requesting audio for ${targetId}...`);
+        if (showToast) showToast(`${deepText(locale, "chat.toolbar.audioRequest")} ${targetId}…`);
 
         try {
             await handlePlayAudio(text, -1, targetId);
@@ -403,23 +405,23 @@ export const ChatInterface = ({
         <>
             {currentSession?.memoryMode === 'sliding' && (
                 <>
-                    <button onClick={toggleSaveModal} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold border bg-fuchsia-50 border-fuchsia-200 text-fuchsia-600 hover:bg-fuchsia-100 ${isMobile ? 'w-full justify-center' : ''}`}><Save size={16} /> <span className={isMobile ? "inline" : "hidden md:inline"}>Save</span></button>
+                    <button onClick={toggleSaveModal} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold border bg-fuchsia-50 border-fuchsia-200 text-fuchsia-600 hover:bg-fuchsia-100 ${isMobile ? 'w-full justify-center' : ''}`}><Save size={16} /> <span className={isMobile ? "inline" : "hidden md:inline"}>{deepText(locale, "common.save")}</span></button>
                     <div className={`flex gap-1 ${isMobile ? 'w-full justify-center' : ''}`}>
-                        <button onClick={() => setShowLocalWorld(true)} title="Via Lata · 会话世界书" className="flex items-center gap-1.5 rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-1.5 text-xs font-semibold text-fuchsia-700 hover:bg-fuchsia-100"><BookOpen size={15} /> <span>故事手记</span></button>
+                        <button onClick={() => setShowLocalWorld(true)} title={`Via Lata · ${deepText(locale, "chat.toolbar.storyNotes")}`} className="flex items-center gap-1.5 rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-1.5 text-xs font-semibold text-fuchsia-700 hover:bg-fuchsia-100"><BookOpen size={15} /> <span>{deepText(locale, "chat.toolbar.storyNotes")}</span></button>
                     </div>
                 </>
             )}
 
             {currentSession?.memoryMode === 'chat' && (
                 <>
-                    <button onClick={() => setShowLocalWorld(true)} title="Umbra · 会话世界书" className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"><StickyNote size={15} /> <span>聊天笔记</span></button>
+                    <button onClick={() => setShowLocalWorld(true)} title={`Umbra · ${deepText(locale, "chat.toolbar.chatNotes")}`} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"><StickyNote size={15} /> <span>{deepText(locale, "chat.toolbar.chatNotes")}</span></button>
                 </>
             )}
 
             {currentSession?.memoryMode === 'infinite' && (
                 <>
                     <button onClick={toggleCodeRepo} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold border bg-slate-800 text-blue-400 hover:bg-slate-700 shadow-sm ${isMobile ? 'w-full justify-center' : ''}`}><Terminal size={16} /> <span className={isMobile ? "inline" : "hidden md:inline"}>IDE</span></button>
-                    <button onClick={() => setShowLocalWorld(true)} title="Officina · 当前会话工程指南" className={`flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 ${isMobile ? 'w-full justify-center' : ''}`}><ClipboardList size={16} /> <span>会话指南</span></button>
+                    <button onClick={() => setShowLocalWorld(true)} title={`Officina · ${deepText(locale, "chat.toolbar.sessionGuide")}`} className={`flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100 ${isMobile ? 'w-full justify-center' : ''}`}><ClipboardList size={16} /> <span>{deepText(locale, "chat.toolbar.sessionGuide")}</span></button>
                 </>
             )}
         </>
@@ -460,21 +462,21 @@ export const ChatInterface = ({
                         </span>
 
                         <span className="text-[10px] text-gray-400 truncate max-w-[120px] md:max-w-xs block">
-                            {(customModelId || selectedModel) ? (customModelId || selectedModel.split('/').pop()) : "尚未选择模型 · Select model"}
+                            {(customModelId || selectedModel) ? (customModelId || selectedModel.split('/').pop()) : deepText(locale, "chat.toolbar.noModel")}
                         </span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-1 md:gap-2">
 
-                    <button type="button" onClick={onOpenHub} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-gray-100" title="模式导航 / Home" aria-label="打开模式导航"><House size={19} /></button>
-                    {currentSession?.memoryMode !== "infinite" && <button type="button" onClick={onOpenMemory} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-gray-100" title="Memory Vault / 记忆档案" aria-label="打开记忆档案"><Brain size={19} /></button>}
+                    <button type="button" onClick={onOpenHub} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-gray-100" title={deepText(locale, "chat.toolbar.home")} aria-label={deepText(locale, "chat.toolbar.home")}><House size={19} /></button>
+                    {currentSession?.memoryMode !== "infinite" && <button type="button" onClick={onOpenMemory} className="rounded-full p-2 text-slate-500 transition-colors hover:bg-gray-100" title={deepText(locale, "chat.toolbar.memoryVault")} aria-label={deepText(locale, "chat.toolbar.memoryVault")}><Brain size={19} /></button>}
 
                     <div className="relative">
                         <button
                             onClick={onOpenSettings}
                             className="p-2 rounded-full text-gray-500 transition-colors hover:bg-gray-100"
-                            title="设置中心 / Settings"
+                            title={deepText(locale, "common.settings")}
                         >
                             <Settings size={20} />
                         </button>
@@ -488,12 +490,12 @@ export const ChatInterface = ({
                                     className="absolute top-full right-0 mt-2 w-48 bg-white/95 backdrop-blur border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden p-1"
                                 >
                                     {debugMode && <div className="md:hidden">
-                                        <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Mobile Tools</div>
+                                        <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{deepText(locale, "chat.toolbar.mobileTools")}</div>
                                         <button
                                             onClick={toggleDebugConsole}
                                             className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                                         >
-                                            <span>Debug Console</span>
+                                            <span>{deepText(locale, "chat.toolbar.debugConsole")}</span>
                                             {consoleVisible ? <ToggleRight size={20} className="text-emerald-500" /> : <ToggleLeft size={20} className="text-gray-300" />}
                                         </button>
                                     </div>}
@@ -508,28 +510,28 @@ export const ChatInterface = ({
                                         >
                                             <span className="flex items-center gap-2">
                                                 <Terminal size={14} /> 
-                                                <span>DEBUG_MODE</span>
+                                                <span>{deepText(locale, "chat.toolbar.debugMode")}</span>
                                             </span>
                                             <div className={`w-2 h-2 rounded-full ${debugMode ? 'bg-red-500 animate-pulse' : 'bg-gray-300'}`} />
                                         </button>
                                         <p className="text-[9px] text-gray-300 mt-1 text-center">
-                                            Reveal hidden &lt;tags&gt; & logic
+                                            {deepText(locale, "chat.toolbar.debugHelp")}
                                         </p>
                                     </div>
 
                                     <div className="border-t border-gray-100 mt-1 pt-1 px-3 py-2">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Dev Tools</div>
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{deepText(locale, "chat.toolbar.devTools")}</div>
                                         <div className="grid grid-cols-4 gap-2">
-                                            <button onClick={() => triggerEffect("rain")} className="aspect-square bg-blue-50 text-blue-500 rounded flex items-center justify-center hover:bg-blue-100" title="Rain">
+                                            <button onClick={() => triggerEffect("rain")} className="aspect-square bg-blue-50 text-blue-500 rounded flex items-center justify-center hover:bg-blue-100" title={deepText(locale, "chat.toolbar.rain")}>
                                                 <CloudRain size={14} />
                                             </button>
-                                            <button onClick={() => triggerEffect("curtain")} className="aspect-square bg-red-50 text-red-500 rounded flex items-center justify-center hover:bg-red-100" title="Curtain">
+                                            <button onClick={() => triggerEffect("curtain")} className="aspect-square bg-red-50 text-red-500 rounded flex items-center justify-center hover:bg-red-100" title={deepText(locale, "chat.toolbar.curtain")}>
                                                 <AlertTriangle size={14} />
                                             </button>
-                                            <button onClick={() => triggerEffect("math")} className="aspect-square bg-emerald-50 text-emerald-500 rounded flex items-center justify-center hover:bg-emerald-100" title="Math">
+                                            <button onClick={() => triggerEffect("math")} className="aspect-square bg-emerald-50 text-emerald-500 rounded flex items-center justify-center hover:bg-emerald-100" title={deepText(locale, "chat.toolbar.math")}>
                                                 <Binary size={14} />
                                             </button>
-                                            <button onClick={() => triggerEffect("glitch")} className="aspect-square bg-black text-red-500 rounded flex items-center justify-center hover:bg-zinc-800" title="Glitch">
+                                            <button onClick={() => triggerEffect("glitch")} className="aspect-square bg-black text-red-500 rounded flex items-center justify-center hover:bg-zinc-800" title={deepText(locale, "chat.toolbar.glitch")}>
                                                 <Skull size={14} />
                                             </button>
                                         </div>
@@ -543,7 +545,7 @@ export const ChatInterface = ({
                         <button
                             onClick={() => setShowFullPlayer(true)}
                             className={`relative p-2 hover:bg-gray-100 rounded-full transition-colors ${isPlaying ? 'text-rose-500' : 'text-gray-400'}`}
-                            title="Music Player"
+                            title={deepText(locale, "chat.toolbar.musicPlayer")}
                         >
                             <Disc size={20} className={isPlaying ? "animate-spin-slow" : ""} style={{ animationDuration: '3s' }} />
 
@@ -643,7 +645,7 @@ export const ChatInterface = ({
                                     {characterDisplayName(msgChar.id, msgChar.name, locale)} · {msgChar.sub || "Umbra"}
                                   </span>}
 
-                                {files.length > 0 && <div className="flex gap-2 justify-end w-full flex-wrap">{files.map((f: any, idx: number) => <IllustratedImage key={idx} src={f} alt="附加图片" compact onOpen={setPreviewImage} />)}</div>}
+                                {files.length > 0 && <div className="flex gap-2 justify-end w-full flex-wrap">{files.map((f: any, idx: number) => <IllustratedImage key={idx} src={f} alt={deepText(locale, "chat.attached")} compact onOpen={setPreviewImage} />)}</div>}
 
                                 {thought && currentSession.memoryMode === 'infinite' && <ThinkingBlock thought={thought} />}
 
@@ -657,10 +659,10 @@ export const ChatInterface = ({
                                                         p: ({ children }) => <p className="my-1.5 whitespace-pre-wrap">{children}</p>,
                                                         pre: ({ children }) => <pre className="my-3 max-w-full overflow-x-auto rounded-xl border border-[#ceddf0] bg-[#f0f6fd] px-3 py-3 text-[12px] leading-5 text-[#254060] whitespace-pre">{children}</pre>,
                                                         code: ({ className, children }) => <code className={className ? `font-mono ${className}` : "rounded bg-[#eaf2fb] px-1 py-0.5 font-mono text-[12px] text-[#28518a]"}>{children}</code>,
-                                                        img: ({ src, alt }) => src ? <IllustratedImage src={src} alt={alt || "图片"} onOpen={setPreviewImage} className="my-2" /> : null,
+                                                        img: ({ src, alt }) => src ? <IllustratedImage src={src} alt={alt || deepText(locale, "chat.picture")} onOpen={setPreviewImage} className="my-2" /> : null,
                                                     }}>{formatOfficinaStreamingDisplay(cleanDrawTag(answer))}</ReactMarkdown>
                                                 </div>
-                                                : renderContent(answer, setPreviewImage, selfColors)
+                                                : renderContent(answer, setPreviewImage, locale, selfColors)
                                             : <div className="whitespace-pre-wrap">{answer}</div>}
                                         {msg.role === 'assistant' && msg.modelName && msg.modelName !== "System" && <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-1.5 text-[9px] font-bold tracking-wider opacity-40 uppercase"><Cpu size={10} /> {msg.modelName.split('/').pop()}</div>}
                                     </div>
@@ -746,8 +748,8 @@ export const ChatInterface = ({
                                     {msg.role === 'user' ? (
                                         isLastUserMsg && (
                                             <>
-                                                <button onClick={() => openEditModal(i, msg.content)} className="p-1 hover:text-emerald-500 rounded"><Pencil size={12} /></button>
-                                                <button onClick={() => handleDeleteMessage(i, 'user')} className="p-1 hover:text-red-500 rounded"><Trash2 size={12} /></button>
+                                                <button title={deepText(locale, "chat.toolbar.edit")} aria-label={deepText(locale, "chat.toolbar.edit")} onClick={() => openEditModal(i, msg.content)} className="p-1 hover:text-emerald-500 rounded"><Pencil size={12} /></button>
+                                                <button title={deepText(locale, "chat.toolbar.delete")} aria-label={deepText(locale, "chat.toolbar.delete")} onClick={() => handleDeleteMessage(i, 'user')} className="p-1 hover:text-red-500 rounded"><Trash2 size={12} /></button>
                                             </>
                                         )
                                     ) : msg.modelName === "System" ? null : (
@@ -760,7 +762,7 @@ export const ChatInterface = ({
                                                             toggleTTSMenu(e, i);
                                                         }}
                                                         className={`p-1 rounded transition-colors ${ttsMenu?.id === i ? 'bg-emerald-100 text-emerald-600' : 'hover:text-emerald-500 text-gray-400'}`}
-                                                        title="Voice Selector"
+                                                        title={deepText(locale, "chat.toolbar.voiceSelect")}
                                                     >
                                                         <Volume2 size={12} />
                                                     </button>
@@ -799,9 +801,9 @@ export const ChatInterface = ({
                                                     )}
                                                 </div>
                                             )}
-                                            <button onClick={() => handleRegenerate(i)} className="p-1 hover:text-emerald-500 rounded"><RefreshCw size={12} /></button>
-                                            <button onClick={() => handleCopy(answer, i)} className="p-1 hover:text-emerald-500 rounded">{copiedIndex === i ? <Check size={12} /> : <Copy size={12} />}</button>
-                                            {isLast && <button onClick={() => handleDeleteMessage(i, 'assistant')} className="p-1 hover:text-red-500 rounded"><Trash2 size={12} /></button>}
+                                            <button title={deepText(locale, "common.retry")} aria-label={deepText(locale, "common.retry")} onClick={() => handleRegenerate(i)} className="p-1 hover:text-emerald-500 rounded"><RefreshCw size={12} /></button>
+                                            <button title={deepText(locale, copiedIndex === i ? "chat.toolbar.copied" : "common.copy")} aria-label={deepText(locale, copiedIndex === i ? "chat.toolbar.copied" : "common.copy")} onClick={() => handleCopy(answer, i)} className="p-1 hover:text-emerald-500 rounded">{copiedIndex === i ? <Check size={12} /> : <Copy size={12} />}</button>
+                                            {isLast && <button title={deepText(locale, "chat.toolbar.delete")} aria-label={deepText(locale, "chat.toolbar.delete")} onClick={() => handleDeleteMessage(i, 'assistant')} className="p-1 hover:text-red-500 rounded"><Trash2 size={12} /></button>}
                                         </>
                                     )}
                                 </div>

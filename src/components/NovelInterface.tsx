@@ -90,7 +90,7 @@ const NovelContent = ({ content, onOptionClick, onOptionInsert, onImageOpen, the
                     const src = imgMatch[2];
                     return (
                         <span key={i} className="my-6 flex w-full justify-center animate-fade-in">
-                            <IllustratedImage src={src} alt={imgMatch[1] || "小说插图"} onOpen={onImageOpen} />
+                            <IllustratedImage src={src} alt={imgMatch[1] || deepText(locale, "novel.toolbar.illustration")} onOpen={onImageOpen} />
                         </span>
                     );
                 }
@@ -286,11 +286,11 @@ export const NovelInterface = ({
     const [drawingIndex, setDrawingIndex] = useState<number | null>(null);
     const confirmNovelDraw = async (index: number) => {
         if (drawingIndex !== null) return;
-        if (!useImageGen) { showToast('请先在设置中启用生图功能'); return; }
-        if (!await dialog.confirm('确认按当前设置生成这幅插图吗？')) return;
+        if (!useImageGen) { showToast(deepText(locale, "chat.drawDisabled")); return; }
+        if (!await dialog.confirm(deepText(locale, "chat.drawConfirm"))) return;
         setDrawingIndex(index);
         try { await onGenerateDraw(index); }
-        catch (error) { showToast(`插图生成失败：${error instanceof Error ? error.message : '未知错误'}`); }
+        catch (error) { showToast(`${deepText(locale, "chat.drawFailed")}${error instanceof Error ? error.message : deepText(locale, "chat.unknownError")}`); }
         finally { setDrawingIndex(null); }
     };
 
@@ -422,14 +422,14 @@ export const NovelInterface = ({
             return;
         }
         if (!novelWorldline) {
-            showToast?.("请先在右侧设置小说世界线：WORLD、ERA、PERIOD；AU 还需选择基准时间线。");
+            showToast?.(deepText(locale, "novel.toolbar.worldlineRequired"));
             setWorldlineOpen(true);
             setRightOpen(true);
             return;
         }
         if (novelRole === "participant" && (!novelSelf || (novelSelf.worldId
             && !enabledWorldIds(novelWorldline).includes(novelSelf.worldId)))) {
-            showToast?.("当前自设不属于选定世界观，请重新选择自设主角。");
+            showToast?.(deepText(locale, "novel.toolbar.selfWorldMismatch"));
             return;
         }
         const targetNames = chars.filter((c: any) => selectedCharIds.includes(c.id)).map((c: any) => characterDisplayName(c.id, c.name, locale)).join(", ");
@@ -504,12 +504,12 @@ export const NovelInterface = ({
         const safeSelection = selectedCharIds.filter(id => allowed.has(id));
         if (changedWorld && novelStarted && novelRole === "participant" && novelSelf?.worldId
             && !enabledWorldIds(next).includes(novelSelf.worldId)) {
-            showToast?.("已开始的小说绑定了自设身份；请新建小说以切换到不兼容的世界观。");
+            showToast?.(deepText(locale, "novel.toolbar.lockedWorld"));
             return;
         }
         if (changedWorld && !novelStarted && novelRole === "participant" && novelSelf?.worldId
             && !enabledWorldIds(next).includes(novelSelf.worldId)) {
-            showToast?.("所选世界线与当前自设不兼容，已恢复为旁观模式。");
+            showToast?.(deepText(locale, "novel.toolbar.resetObserver"));
         }
         updateSessionInfo?.(currentSession.id, {
             storyWorldline: next,
@@ -588,21 +588,21 @@ export const NovelInterface = ({
                                 <button onClick={() => setLeftOpen(false)} className={`${theme.text} hover:${theme.accent}`}><X size={18} /></button>
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin">
-                                <div className={`text-[10px] font-bold ${theme.text} opacity-60 uppercase mb-2`}>Chapters</div>
+                                <div className={`text-[10px] font-bold ${theme.text} opacity-60 uppercase mb-2`}>{deepText(locale, "novel.toolbar.chapters")}</div>
                                 {chapters.map((msg: any, i: number) => {
                                     const match = msg.content.match(/chapter="(.*?)"/);
-                                    const title = match ? match[1] : `Chapter ${i + 1}`;
+                                    const title = match ? match[1] : `${deepText(locale, "novel.toolbar.chapterPrefix")}${i + 1}${deepText(locale, "novel.toolbar.chapterSuffix")}`;
                                     return (
                                         <div key={i} className="group relative">
                                             <button className={`w-full text-left p-3 rounded-lg ${theme.hover} transition-all border border-transparent`} onClick={() => document.getElementById(`chapter-${i}`)?.scrollIntoView({ behavior: 'smooth' })}>
-                                                <div className={`text-xs ${theme.accent} mb-1 font-mono flex justify-between`}><span>Chapter {i + 1}</span>{i === chapters.length - 1 && <span className="opacity-100 md:opacity-0 md:group-hover:opacity-100 flex gap-1"><span onClick={(e) => { e.stopPropagation(); const userIndex = msg.realIndex - 1; deleteMessage?.(userIndex >= 0 && currentSession.messages[userIndex]?.role === "user" ? userIndex : msg.realIndex, userIndex >= 0 && currentSession.messages[userIndex]?.role === "user" ? "user" : "assistant"); }} title="删除最新章节及其导演指令，并回退场景与记忆" className="opacity-60 hover:opacity-100 hover:text-red-400 cursor-pointer p-1"><Trash2 size={12} /></span></span>}</div>
+                                                <div className={`text-xs ${theme.accent} mb-1 font-mono flex justify-between`}><span>{deepText(locale, "novel.toolbar.chapterPrefix")}{i + 1}{deepText(locale, "novel.toolbar.chapterSuffix")}</span>{i === chapters.length - 1 && <span className="opacity-100 md:opacity-0 md:group-hover:opacity-100 flex gap-1"><span onClick={(e) => { e.stopPropagation(); const userIndex = msg.realIndex - 1; deleteMessage?.(userIndex >= 0 && currentSession.messages[userIndex]?.role === "user" ? userIndex : msg.realIndex, userIndex >= 0 && currentSession.messages[userIndex]?.role === "user" ? "user" : "assistant"); }} title={deepText(locale, "novel.toolbar.deleteLatest")} className="opacity-60 hover:opacity-100 hover:text-red-400 cursor-pointer p-1"><Trash2 size={12} /></span></span>}</div>
                                                 <div className={`text-sm ${theme.title} font-bold truncate`}>{title}</div>
                                             </button>
                                         </div>
                                     )
                                 })}
                             </div>
-                            <div className={`p-4 border-t ${theme.border}`}><button onClick={onExit} className={`flex items-center gap-2 opacity-60 hover:opacity-100 hover:text-red-400 transition-colors w-full p-2 rounded ${theme.hover} justify-center`}><LogOut size={16} /> <span className="text-xs font-bold">返回模式导航</span></button></div>
+                            <div className={`p-4 border-t ${theme.border}`}><button onClick={onExit} className={`flex items-center gap-2 opacity-60 hover:opacity-100 hover:text-red-400 transition-colors w-full p-2 rounded ${theme.hover} justify-center`}><LogOut size={16} /> <span className="text-xs font-bold">{deepText(locale, "novel.toolbar.backToHub")}</span></button></div>
                         </div>
                     </motion.div>
                 )}
@@ -638,7 +638,7 @@ export const NovelInterface = ({
                         {chapters.map((msg: any, i: number) => {
                             const cleanContent = stripNovelState(msg.content).replace(/<meta.*?\/>/, '').trim();
                             const match = msg.content.match(/chapter="(.*?)"/);
-                            const title = match ? match[1] : `Chapter ${i + 1}`;
+                            const title = match ? match[1] : `${deepText(locale, "novel.toolbar.chapterPrefix")}${i + 1}${deepText(locale, "novel.toolbar.chapterSuffix")}`;
                             return (
                                 <div key={i} id={`chapter-${i}`} className="animate-fade-in-up">
                                     <div className="flex items-center gap-4 mb-8 opacity-30 justify-center"><div className={`h-px ${theme.text} w-12`}></div><span className="font-mono text-xs tracking-widest uppercase">{title}</span><div className={`h-px ${theme.text} w-12`}></div></div>
@@ -693,13 +693,13 @@ export const NovelInterface = ({
                         <button onClick={() => { const lastAssistIdx = currentSession.messages.map((m: any, i: number) => ({ ...m, i })).filter((m: any) => m.role === 'assistant').pop()?.i; if (lastAssistIdx) handleRegenerate(lastAssistIdx); }} disabled={isLoading || !novelWorldline} className={`p-3 mb-1 rounded-full ${theme.inputBg} backdrop-blur border ${theme.border} opacity-60 hover:opacity-100 hover:text-red-400 transition-all shadow-lg ${theme.subButton}`}><RefreshCw size={18} className={isLoading ? "animate-spin" : ""} /></button>
 
                         <div className={`flex-1 ${theme.inputBg} backdrop-blur-md border ${theme.border} rounded-2xl flex items-center p-2 shadow-2xl transition-all`}>
-                            <input value={directorInput} onChange={(e) => setDirectorInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !isLoading && novelWorldline && handleGenerate('continue')} placeholder={novelWorldline ? "导演指令..." : "请先在右侧设定世界线..."} className={`flex-1 bg-transparent border-none outline-none text-sm ${theme.title} px-3 font-sans ${theme.placeholder} disabled:cursor-not-allowed disabled:opacity-60`} disabled={isLoading || !novelWorldline} />
+                            <input value={directorInput} onChange={(e) => setDirectorInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !isLoading && novelWorldline && handleGenerate('continue')} placeholder={novelWorldline ? deepText(locale, "novel.director") : deepText(locale, "novel.toolbar.worldlineFirst")} className={`flex-1 bg-transparent border-none outline-none text-sm ${theme.title} px-3 font-sans ${theme.placeholder} disabled:cursor-not-allowed disabled:opacity-60`} disabled={isLoading || !novelWorldline} />
 
                             {isLoading ? (
                                 <button
                                     onClick={() => void confirmStopGeneration()}
                                     className={`p-2 rounded-xl transition-all shadow-lg bg-red-600 text-white hover:bg-red-500 animate-pulse`}
-                                    title="Stop Generation"
+                                    title={deepText(locale, "common.stop")}
                                 >
                                     <Square size={18} fill="currentColor" />
                                 </button>
@@ -761,20 +761,20 @@ export const NovelInterface = ({
 
                                     <div className="space-y-2">
                                         <label className={`text-[10px] ${theme.text} opacity-50 font-black uppercase tracking-widest mb-2 block`}>AI Architect · Shared Model</label>
-                                        <select aria-label="小说模型供应商" value={provider || ""} onChange={e => onProviderChange(e.target.value)} className={`w-full ${theme.bg} border ${theme.border} rounded-lg px-3 py-2 text-xs ${theme.text} outline-none ${theme.focus}`}>
+                                        <select aria-label={deepText(locale, "novel.provider")} value={provider || ""} onChange={e => onProviderChange(e.target.value)} className={`w-full ${theme.bg} border ${theme.border} rounded-lg px-3 py-2 text-xs ${theme.text} outline-none ${theme.focus}`}>
                                             {providers.map((p: PublicLocalProvider) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                                            {!providers.some((p: PublicLocalProvider) => p.id === provider) && <option value={provider}>{provider || "未配置供应商"}</option>}
+                                            {!providers.some((p: PublicLocalProvider) => p.id === provider) && <option value={provider}>{provider || deepText(locale, "novel.unconfigured")}</option>}
                                         </select>
-                                        <select aria-label="小说模型" value={customModelId && savedIds.includes(customModelId) ? `saved:${customModelId}` : (!customModelId && !provider.startsWith("custom_") && availableModels.some(m => m.id === selectedModel) ? selectedModel : "")} onChange={e => e.target.value.startsWith("saved:") ? onCustomModelChange(e.target.value.slice(6)) : onModelChange(e.target.value)} className={`w-full ${theme.bg} border ${theme.border} rounded-lg px-3 py-2 text-xs ${theme.text} outline-none ${theme.focus}`}>
+                                        <select aria-label={deepText(locale, "novel.model")} value={customModelId && savedIds.includes(customModelId) ? `saved:${customModelId}` : (!customModelId && !provider.startsWith("custom_") && availableModels.some(m => m.id === selectedModel) ? selectedModel : "")} onChange={e => e.target.value.startsWith("saved:") ? onCustomModelChange(e.target.value.slice(6)) : onModelChange(e.target.value)} className={`w-full ${theme.bg} border ${theme.border} rounded-lg px-3 py-2 text-xs ${theme.text} outline-none ${theme.focus}`}>
                                             <option value="">{deepText(locale, "novel.manual")}</option>
                                             {!provider.startsWith("custom_") && availableModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                            {savedIds.map(id => <option key={`saved:${id}`} value={`saved:${id}`}>{id} · 自定义</option>)}
+                                            {savedIds.map(id => <option key={`saved:${id}`} value={`saved:${id}`}>{id} · {deepText(locale, "novel.toolbar.custom")}</option>)}
                                         </select>
                                         <div className="flex gap-2">
-                                            <input aria-label="小说自定义模型 ID" value={customModelId || ""} onChange={e => onCustomModelChange(e.target.value)} placeholder="Custom Model ID（可选）" className={`min-w-0 flex-1 ${theme.inputBg} border ${theme.border} rounded-lg px-3 py-2 text-xs ${theme.text} outline-none ${theme.focus}`} />
-                                            <button type="button" onClick={() => saveModel(provider, customModelId || "")} disabled={!customModelId?.trim() || savedIds.includes(customModelId.trim())} className="rounded-lg border border-[#bda77c] px-3 text-xs text-[#a48b5c] disabled:opacity-40">保存</button>
+                                            <input aria-label={deepText(locale, "novel.toolbar.modelId")} value={customModelId || ""} onChange={e => onCustomModelChange(e.target.value)} placeholder={deepText(locale, "novel.toolbar.modelIdOptional")} className={`min-w-0 flex-1 ${theme.inputBg} border ${theme.border} rounded-lg px-3 py-2 text-xs ${theme.text} outline-none ${theme.focus}`} />
+                                            <button type="button" onClick={() => saveModel(provider, customModelId || "")} disabled={!customModelId?.trim() || savedIds.includes(customModelId.trim())} className="rounded-lg border border-[#bda77c] px-3 text-xs text-[#a48b5c] disabled:opacity-40">{deepText(locale, "common.save")}</button>
                                         </div>
-                                        {savedIds.length > 0 && <div className="flex flex-wrap gap-2">{savedIds.map(id => <span key={id} className={`inline-flex items-center gap-1 rounded-lg border ${theme.border} px-2 py-1 text-[10px] ${theme.text}`}><button type="button" onClick={() => onCustomModelChange(id)}>{id} · 自定义</button><button type="button" onClick={() => forgetModel(provider, id)} aria-label={`移除 ${id}`} className="ml-1 opacity-60 hover:opacity-100">×</button></span>)}</div>}
+                                        {savedIds.length > 0 && <div className="flex flex-wrap gap-2">{savedIds.map(id => <span key={id} className={`inline-flex items-center gap-1 rounded-lg border ${theme.border} px-2 py-1 text-[10px] ${theme.text}`}><button type="button" onClick={() => onCustomModelChange(id)}>{id} · {deepText(locale, "novel.toolbar.custom")}</button><button type="button" onClick={() => forgetModel(provider, id)} aria-label={`${deepText(locale, "novel.toolbar.removeModel")} ${id}`} className="ml-1 opacity-60 hover:opacity-100">×</button></span>)}</div>}
                                         <p className={`text-[10px] ${theme.text} opacity-50`}>{deepText(locale, "novel.current")}：{activeModel || deepText(locale, "novel.manual")} · {deepText(locale, "novel.sync")}</p>
                                     </div>
 

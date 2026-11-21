@@ -91,7 +91,7 @@ export function NovelArchiveActions({ session, draft, onImport, disabled = false
   return (
     <section className={className} aria-label={deepText(locale, "archive.title")}>
       <div className="mb-3 flex items-center justify-between gap-2 text-xs font-bold">
-        <span className="flex items-center gap-2"><FileJson2 size={16} /> 小说存档 · ARCHIVE</span>
+        <span className="flex items-center gap-2"><FileJson2 size={16} /> {deepText(locale, "archive.title")} · ARCHIVE</span>
         <span className={`rounded-full border border-current/20 px-2 py-0.5 text-[9px] tracking-wider ${softText}`}>JSON / DOCX</span>
       </div>
       <label className="mb-3 block text-[11px] leading-5 font-medium">
