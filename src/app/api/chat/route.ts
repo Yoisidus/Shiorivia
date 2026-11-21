@@ -467,8 +467,6 @@ ${lore || "(No profile supplied.)"}`;
           : "The other party is the user, with no specified fictional identity; do not invent a named self.",
         `Write like real chat messages, not novel chapters. No <game_state>, <file>, <thinking> or story option tags. ${imageToolSelected ? "You may append ONE valid <draw> JSON instruction to request an illustration of a relevant conversational moment. Rendering requires user confirmation." : "Do not output <draw> tags; the image tool was not selected."}`,
         localWorldInfo?.trim() ? `[SESSION WORLD]\n${String(localWorldInfo).slice(0, 6000)}` : "",
-        ltm?.trim() ? `[CURRENT SPEAKER LTM]\n${String(ltm).slice(0, 9000)}` : "",
-        stm?.trim() ? `[CURRENT SPEAKER STM]\n${String(stm).slice(0, 5000)}` : "",
       ].filter(Boolean).join("\n\n");
       finalSystemPrompt += "\n\n" + conversationTurnMemoryInstruction({
         mode: "umbra", previousStm: String(stm || ""), previousLtm: String(ltm || ""),
