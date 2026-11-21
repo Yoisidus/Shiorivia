@@ -101,7 +101,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
     session, updateSession, provider, model: customModel.trim() || model, notify, customCharacters, activeSelf, terminalRequestLogEnabled, terminalLogEnabled, contextWindowTokens,
   });
   const confirmStopGeneration = async () => {
-    if (await dialog.confirm("确认暂停 VIAE 当前回复吗？正在生成的消息可能不完整。", { destructive: true })) stop();
+    if (await dialog.confirm(deepText(locale, "viae.actions.stopConfirm"), { destructive: true })) stop();
   };
   const [editingBubble, setEditingBubble] = useState<{ id: string; index: number; draft: string } | null>(null);
   const startBubbleEdit = (messageId: string, index: number, draft: string) => {
@@ -114,35 +114,35 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
     const target = activeGroup.messages[edit.index];
     if (!target || target.id !== edit.id || target.role !== "user") { setEditingBubble(null); return; }
     if (!edit.draft.trim()) {
-      dialog.notify("消息内容不能留空。", { type: "warning", tone: "viae" }); return;
+      dialog.notify(deepText(locale, "viae.actions.empty"), { type: "warning", tone: "viae" }); return;
     }
     if (edit.draft.trim().length > 5000) {
-      dialog.notify("消息内容不能超过 5000 字符。", { type: "warning", tone: "viae" }); return;
+      dialog.notify(deepText(locale, "viae.actions.tooLong"), { type: "warning", tone: "viae" }); return;
     }
     const historical = edit.index < activeGroup.messages.length - 2;
     const accepted = await dialog.confirm(
       historical
-        ? "确认修改这条历史消息吗？已有的后续回复和 STM/LTM 不会自动重新生成；如有出入，请手动校对记忆档案。"
-        : "确认保存这条消息的修改吗？原有记忆与时间线不会自动重写。如编辑了最新用户消息，可以在对应 AI 回复下点击刷新重新生成。",
-      { title: "VIAE · 编辑消息", tone: "viae", confirmLabel: "保存修改", preview: edit.draft.trim() },
+        ? deepText(locale, "viae.actions.editOld")
+        : deepText(locale, "viae.actions.editCurrent"),
+      { title: `VIAE · ${deepText(locale, "viae.actions.editTitle")}`, tone: "viae", confirmLabel: deepText(locale, "viae.actions.saveEdit"), preview: edit.draft.trim() },
     );
     if (!accepted || isLoading) return;
     if (!activeGroup || activeGroup.messages[edit.index]?.id !== edit.id) return;
     const saved = editMessage(edit.index, edit.draft);
     if (saved) {
       setEditingBubble(null);
-      dialog.notify("你的消息已保存，角色回复未被改动。", { type: "success", tone: "viae" });
-    } else dialog.notify("保存失败：只能编辑自己的消息或导演剧情提示。", { type: "error", tone: "viae" });
+      dialog.notify(deepText(locale, "viae.actions.edited"), { type: "success", tone: "viae" });
+    } else dialog.notify(deepText(locale, "viae.actions.editFailed"), { type: "error", tone: "viae" });
   };
   const confirmRefresh = async () => {
     if (!activeGroup || isLoading) return;
     const last = activeGroup.messages[activeGroup.messages.length - 1];
     if (!last || last.role !== "assistant") return;
     const refreshPrompt = last.viaeTurnBefore
-      ? "确定刷新当前最后一条 VIAE 回复吗？会替换原有角色消息，并从本轮生成前的记忆与时间线重新推演。若请求失败，原回复会保留。"
-      : "这是一条旧存档回复，没有生成前的记忆快照。仍然可以刷新角色消息，但原 STM/LTM 和时间线会原样保留，刷新后可能需要在 Memory Vault 手动校对。确认继续吗？";
+      ? deepText(locale, "viae.actions.refreshCurrent")
+      : deepText(locale, "viae.actions.refreshLegacy");
     if (!await dialog.confirm(refreshPrompt,
-      { title: "VIAE · 刷新回复", tone: "viae", confirmLabel: "重新生成" })) return;
+      { title: `VIAE · ${deepText(locale, "viae.actions.refreshTitle")}`, tone: "viae", confirmLabel: deepText(locale, "common.retry") })) return;
     if (!isLoading) {
       setEditingBubble(null);
       void send(true);
@@ -300,7 +300,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
     }
     updateGroup(activeGroup.id, g => ({ ...g, storyWorldline: parsed, reality: parsed.kind,
       timeline: parsed.kind === "canon" ? parsed.period.replace(/^T-/, "") : "AU", updatedAt: Date.now() }));
-    setShowRouteEditor(false); notify("新的路线已保存");
+    setShowRouteEditor(false); notify(deepText(locale, "viae.actions.routeSaved"));
   };
   const playVoice = async (text: string, id: string) => {
     if (voiceBusy || !text.trim() || !id) return;
@@ -338,15 +338,15 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
       <aside className={`relative z-20 flex w-full shrink-0 flex-col border-r border-[#e5e8eb] bg-white sm:w-[318px] lg:w-[340px] ${activeGroup || creating ? "hidden sm:flex" : "flex"}`}>
         <div className="flex items-center gap-3 border-b border-[#e9edf0] px-5 py-5">
           <button type="button" onClick={onExit} title={deepText(locale, "viae.choosePath")} aria-label={deepText(locale, "viae.choosePath")} className="rounded-xl p-2 text-[#586d81] transition hover:bg-[#f2f5f7]"><ArrowLeft size={18}/></button>
-          <button type="button" onClick={() => chooseGroup(null)} title="VIAE · 道路总览" aria-label="VIAE · 道路总览" className="rounded-xl transition hover:ring-2 hover:ring-[#e5d5b4]"><img src="/shiorivia-app-icon.png" alt="Shiorivia" className="h-10 w-10 rounded-xl object-cover"/></button>
+          <button type="button" onClick={() => chooseGroup(null)} title={`VIAE · ${deepText(locale, "viae.choosePath")}`} aria-label={`VIAE · ${deepText(locale, "viae.choosePath")}`} className="rounded-xl transition hover:ring-2 hover:ring-[#e5d5b4]"><img src="/shiorivia-app-icon.png" alt="Shiorivia" className="h-10 w-10 rounded-xl object-cover"/></button>
           <div className="min-w-0 flex-1"><h1 className="font-semibold tracking-[0.18em] text-[#162942]">VIAE</h1><p className="text-[10px] tracking-wide text-[#8994a1]">SHIORIVIA · CHARACTER MESSAGING</p></div>
 <button type="button" onClick={onSettings} title={deepText(locale, "common.settings")} aria-label={deepText(locale, "common.settings")} className="rounded-xl p-2 text-[#718095] hover:bg-[#f3f5f7]"><Settings2 size={18}/></button>
         </div>
         <div className="px-5 pb-3 pt-6">
           <div className="mb-4 flex items-center justify-between"><span className="text-[10px] font-semibold tracking-[0.18em] text-[#8290a0]">YOUR PATHS / {deepText(locale, "viae.paths")}</span><span className="text-xs text-[#b49a6c]">{conversations.length.toString().padStart(2, "0")}</span></div>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => resetCreate("direct")} className="flex items-center justify-center gap-2 rounded-xl border border-[#e4e8eb] bg-[#f9fafb] px-2 py-3 text-xs font-semibold text-[#253c59] transition hover:border-[#c8b58f] hover:bg-[#fffdf8]"><Route size={16} color={GOLD}/> 小径 <span className="font-normal text-[#8e9aaa]">Semita</span></button>
-            <button type="button" onClick={() => resetCreate("group")} className="flex items-center justify-center gap-2 rounded-xl border border-[#e4e8eb] bg-[#f9fafb] px-2 py-3 text-xs font-semibold text-[#253c59] transition hover:border-[#c8b58f] hover:bg-[#fffdf8]"><GitMerge size={16} color={GOLD}/> 路口 <span className="font-normal text-[#8e9aaa]">Compitum</span></button>
+            <button type="button" onClick={() => resetCreate("direct")} className="flex items-center justify-center gap-2 rounded-xl border border-[#e4e8eb] bg-[#f9fafb] px-2 py-3 text-xs font-semibold text-[#253c59] transition hover:border-[#c8b58f] hover:bg-[#fffdf8]"><Route size={16} color={GOLD}/> {deepText(locale, "viae.startDirect")} <span className="font-normal text-[#8e9aaa]">Semita</span></button>
+            <button type="button" onClick={() => resetCreate("group")} className="flex items-center justify-center gap-2 rounded-xl border border-[#e4e8eb] bg-[#f9fafb] px-2 py-3 text-xs font-semibold text-[#253c59] transition hover:border-[#c8b58f] hover:bg-[#fffdf8]"><GitMerge size={16} color={GOLD}/> {deepText(locale, "viae.startGroup")} <span className="font-normal text-[#8e9aaa]">Compitum</span></button>
           </div>
           <label className="mt-4 flex items-center gap-2 rounded-xl border border-[#e8ebed] bg-[#fbfbfb] px-3 py-2.5 text-[#a2abb6]"><Search size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={deepText(locale, "viae.search")} className="w-full bg-transparent text-xs text-[#263a51] outline-none placeholder:text-[#a2abb6]"/></label>
         </div>
@@ -367,9 +367,9 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
         <div className="border-t border-[#e8edf1] bg-[#fbfcfd] px-5 py-3">
           <button type="button" onClick={onManualSync}
             disabled={!onManualSync || isLoading || syncStatus === "syncing"}
-            title="将当前全部 Local 会话、世界线和 VIAE 道路保存到本地磁盘"
+            title={deepText(locale, "viae.actions.localSaveHint")}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8e0e8] bg-white px-4 py-2.5 text-xs font-semibold text-[#3a526b] transition hover:border-[#c2af89] hover:bg-[#fffaf0] disabled:cursor-not-allowed disabled:opacity-40">
-            <Save size={15}/> {syncStatus === "syncing" ? "正在保存…" : "保存到本地"}
+            <Save size={15}/> {syncStatus === "syncing" ? deepText(locale, "viae.actions.saving") : deepText(locale, "viae.actions.localSave")}
           </button>
         </div>
         <div className="relative overflow-hidden bg-[#152841] px-5 py-5 text-[#e8d3aa]"><RouteIllustration compact/><div className="relative z-10 flex items-center gap-3"><PathEmblem size={35}/><div><p className="font-serif text-sm italic">Where stories find their way.</p><p className="mt-1 text-[9px] tracking-widest text-[#9baabe]">SHIORIVIA / VIAE</p></div></div></div>
@@ -463,28 +463,28 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                 </span>)}
               </div>}
             </div>}
-            <div className="relative mx-4 mt-4 overflow-hidden rounded-2xl bg-[#172b46] px-5 py-4 text-white sm:mx-6"><RouteIllustration/><div className="relative flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><PathEmblem size={34}/><div className="min-w-0"><p className="text-xs font-semibold tracking-wide text-[#f0dcb7]">{viaeWorldline(activeGroup).worldName}</p><p className="mt-1 truncate text-[11px] text-[#aab8cb]">{routeName(activeGroup)}</p></div></div><button type="button" onClick={editRoute} className="shrink-0 rounded-xl border border-[#bca778]/70 bg-[#172b46]/70 px-3 py-2 text-[11px] text-[#f3dbaa] transition hover:bg-white/10"><Route size={14} className="mr-1 inline"/> 路线</button></div></div>
+            <div className="relative mx-4 mt-4 overflow-hidden rounded-2xl bg-[#172b46] px-5 py-4 text-white sm:mx-6"><RouteIllustration/><div className="relative flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><PathEmblem size={34}/><div className="min-w-0"><p className="text-xs font-semibold tracking-wide text-[#f0dcb7]">{viaeWorldline(activeGroup).worldName}</p><p className="mt-1 truncate text-[11px] text-[#aab8cb]">{routeName(activeGroup)}</p></div></div><button type="button" onClick={editRoute} className="shrink-0 rounded-xl border border-[#bca778]/70 bg-[#172b46]/70 px-3 py-2 text-[11px] text-[#f3dbaa] transition hover:bg-white/10"><Route size={14} className="mr-1 inline"/> {deepText(locale, "viae.actions.route")}</button></div></div>
             {showRouteEditor && <section className="z-10 mx-4 mt-2 space-y-3 rounded-2xl border border-[#e2e7eb] bg-[#fffdfa] p-4 shadow-sm sm:mx-6">
-              <div className="flex items-center justify-between text-xs font-semibold"><span>编辑道路世界线</span>
+              <div className="flex items-center justify-between text-xs font-semibold"><span>{deepText(locale, "viae.actions.manageRoute")}</span>
                 <button type="button" onClick={() => setShowRouteEditor(false)} title="关闭"><X size={16}/></button>
               </div>
               <ViaeWorldlineEditor value={routeDraft} onChange={setRouteDraft} worlds={worlds} saved={viaeWorldline(activeGroup)}/>
               <button type="button" disabled={isLoading} onClick={saveRoute}
-                className="rounded-lg bg-[#1a314c] px-4 py-2 text-xs text-white disabled:opacity-50">保存路线</button>
+                className="rounded-lg bg-[#1a314c] px-4 py-2 text-xs text-white disabled:opacity-50">{deepText(locale, "viae.actions.saveRoute")}</button>
             </section>}
             {showManage && <div className="z-10 mx-4 mt-2 space-y-3 rounded-xl border border-[#e5e9ed] bg-white p-4 shadow-sm sm:mx-6"><div className="flex items-center justify-between text-xs font-semibold"><span>{deepText(locale, "viae.tools.pathManage")}</span><button type="button" onClick={() => setShowManage(false)} title={deepText(locale, "viae.tools.closeManage")} aria-label={deepText(locale, "viae.tools.closeManage")}><X size={16}/></button></div><button onClick={() => rename(activeGroup)} type="button" className="flex items-center gap-2 rounded-lg border border-[#e0e4e8] px-3 py-2 text-xs"><Pencil size={14}/> {deepText(locale, "common.rename")}</button><p className="text-xs text-[#718195]">{memberLabel}</p><div className="flex flex-wrap items-center gap-2"><span className="text-[11px] text-[#8390a0]">{deepText(locale, "viae.mode")}</span>{(["outsider", "insider"] as const).map(value => <button key={value} type="button" disabled={isLoading || activeGroup.pov === value || (value === "insider" && !participantAvailable)} onClick={() => changeExistingMode(value)} className={`rounded-lg border px-3 py-1.5 text-xs disabled:opacity-60 ${activeGroup.pov === value ? "border-[#baa573] bg-[#fffaf0] text-[#695836]" : "border-[#e4e9ee] bg-white text-[#748395]"}`}>{value === "outsider" ? deepText(locale, "viae.tools.observe") : deepText(locale, "viae.tools.participate")}</button>)}</div><p className="text-[11px] leading-5 text-[#96a1ad]">{activeGroup.type === "direct" ? deepText(locale, "viae.tools.directRules") : deepText(locale, "viae.tools.groupRules")}</p>{activeGroup.type === "direct" && activeGroup.messages.length === 0 && <div className="flex flex-wrap gap-2">{eligibleManage.filter(c => !activeGroup.members.includes(c.id)).map(c => <button key={c.id} type="button" disabled={isLoading || activeGroup.members.length >= 2} onClick={() => updateGroup(activeGroup.id, g => ({ ...g, members: [...g.members, c.id], updatedAt: Date.now() }))} className="rounded-full border border-[#e4e9ee] px-2 py-1 text-[11px] text-[#748395] disabled:opacity-40">+ {characterDisplayName(c.id, c.name, locale)}</button>)}{activeGroup.members.length > 1 && <button type="button" disabled={isLoading} onClick={() => updateGroup(activeGroup.id, g => ({ ...g, members: g.members.slice(0, 1), defaultPovChar: g.members[0], updatedAt: Date.now() }))} className="rounded-full border border-[#e5d8d8] px-2 py-1 text-[11px] text-rose-600">{deepText(locale, "viae.tools.removeSecond")}</button>}</div>}{activeGroup.type === "group" && <div className="flex flex-wrap gap-2">{eligibleManage.map(c => <button key={c.id} type="button" disabled={isLoading} onClick={() => { const included = activeGroup.members.includes(c.id); if (included && activeGroup.members.length <= 2) { notify(deepText(locale, "viae.tools.minTwo")); return; } updateGroup(activeGroup.id, g => ({ ...g, members: included ? g.members.filter(id => id !== c.id) : [...g.members, c.id], updatedAt: Date.now() })); }} className={`rounded-full border px-3 py-1 text-xs disabled:opacity-50 ${activeGroup.members.includes(c.id) ? "border-[#baa573] bg-[#fffaf0] text-[#695836]" : "border-[#e4e9ee] text-[#748395]"}`}>{c.avatar} {characterDisplayName(c.id, c.name, locale)}</button>)}</div>}</div>}
             <section className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6 sm:px-8" aria-label="Viae 对话消息">
               <div className="flex items-center gap-3 text-[10px] text-[#9eabb7]"><div className="h-px flex-1 bg-[#e6e9eb]"/><Sparkles size={13} color={GOLD}/> WAYPOINT · 此刻 <div className="h-px flex-1 bg-[#e6e9eb]"/></div>
-              {isObserving && <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 rounded-xl border border-[#e7ddcb] bg-[#fffdf8] px-4 py-2 text-[11px] text-[#806944]"><Compass size={14}/><span>旁观 · 当前以 <strong>{viewChar?.name || "角色"}</strong> 的手机视角观察；你的输入只会作为剧情提示。</span></div>}
-              {activeGroup.messages.length === 0 && <div className="mx-auto max-w-md py-16 text-center"><div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f1f4f6]"><PathEmblem size={42}/></div><h3 className="font-serif text-lg text-[#2a3d58]">{activeGroup.name}</h3><p className="mt-3 text-xs leading-7 text-[#8996a5]">{activeGroup.type === "direct" ? `在这条小径上，和${who(activeGroup.members[0])?.name || "角色"}聊聊吧。` : "在这个路口，让不同的声音自然交会。"}<br/>每条道路都有自己独立的回忆。</p></div>}
+              {isObserving && <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 rounded-xl border border-[#e7ddcb] bg-[#fffdf8] px-4 py-2 text-[11px] text-[#806944]"><Compass size={14}/><span>旁观 · 当前以 <strong>{viewChar?.name || deepText(locale, "common.character")}</strong> 的手机视角观察；你的输入只会作为剧情提示。</span></div>}
+              {activeGroup.messages.length === 0 && <div className="mx-auto max-w-md py-16 text-center"><div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f1f4f6]"><PathEmblem size={42}/></div><h3 className="font-serif text-lg text-[#2a3d58]">{activeGroup.name}</h3><p className="mt-3 text-xs leading-7 text-[#8996a5]">{activeGroup.type === "direct" ? `在这条小径上，和${who(activeGroup.members[0])?.name || "角色"}聊聊吧。` : deepText(locale, "viae.actions.noHistory")}<br/>{deepText(locale, "viae.actions.pathMemory")}</p></div>}
               {activeGroup.messages.map((message, index) => {
                 const isUser = message.role === "user";
                 const isDirection = isUser && (message.kind === "director" || (isObserving && !message.kind));
                 const text = asText(message.content);
                 const partial = !isUser && isLoading && index === activeGroup.messages.length - 1 && !/<\/(?:viae_chat|lime_chat)>/i.test(text);
-                const segments = isUser ? [{ charId: "", text }] : partial ? [{ charId: "", text: "角色正在回复…" }] : parseSpeakers(text);
+                const segments = isUser ? [{ charId: "", text }] : partial ? [{ charId: "", text: deepText(locale, "viae.actions.loading") }] : parseSpeakers(text);
                 return <div key={message.id || index} className={`group flex flex-col gap-2 ${isDirection ? "items-center" : isUser ? "items-end" : "items-start"}`}>
-                  {isDirection ? <div className="max-w-[94%] rounded-xl border border-[#e9dfcb] bg-[#fffdf8] px-5 py-3 text-center shadow-[0_2px_12px_rgba(172,140,88,0.05)] sm:max-w-[80%]"><div className="mb-1 flex items-center justify-center gap-2 text-[10px] font-semibold tracking-widest text-[#aa8b50]"><Sparkles size={13}/> SCENE DIRECTION / 剧情提示 <span className="font-normal text-[#ac9d82]">{time(message.createdAt)}</span></div><p className="whitespace-pre-wrap break-words text-left text-[13px] leading-6 text-[#685a45]">{text}</p></div> : segments.map((part, i) => {
+                  {isDirection ? <div className="max-w-[94%] rounded-xl border border-[#e9dfcb] bg-[#fffdf8] px-5 py-3 text-center shadow-[0_2px_12px_rgba(172,140,88,0.05)] sm:max-w-[80%]"><div className="mb-1 flex items-center justify-center gap-2 text-[10px] font-semibold tracking-widest text-[#aa8b50]"><Sparkles size={13}/> SCENE DIRECTION / {deepText(locale, "viae.actions.direction")} <span className="font-normal text-[#ac9d82]">{time(message.createdAt)}</span></div><p className="whitespace-pre-wrap break-words text-left text-[13px] leading-6 text-[#685a45]">{text}</p></div> : segments.map((part, i) => {
                     const char = who(part.charId);
                     const content = part.text.replace(/<\/?(?:viae_chat|lime_chat)>/gi, "");
                     const isPhoneOwner = isObserving && !isUser && part.charId === (viewChar?.id || activeGroup.members[0]);
@@ -492,7 +492,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                     return <div key={i} className={`flex max-w-[94%] items-end gap-2 sm:max-w-[80%] ${isOutgoing ? "flex-row-reverse" : "flex-row"} ${isPhoneOwner ? "self-end" : ""}`}>
                       {!isUser && !isPhoneOwner && <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e1e7ea] bg-white text-lg">{char?.avatar || "✦"}</span>}
                       <div className="min-w-0"><div className={`mb-1 flex items-center gap-2 text-[10px] text-[#93a0ac] ${isOutgoing ? "justify-end" : ""}`}>
-                        <span>{isUser ? "你" : char?.name || (partial ? "正在回复" : "Viae")}</span>
+                        <span>{isUser ? deepText(locale, "common.you") : char?.name || (partial ? deepText(locale, "viae.actions.loading") : "Viae")}</span>
                         <span>{time(message.createdAt)}</span>
                         {/* AI/character-bubble editing intentionally paused:
                             a future implementation must reconcile subsequent replies and STM/LTM. */}
@@ -509,32 +509,32 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
                         className="w-full resize-y rounded-lg border border-[#cbd6e4] bg-white px-3 py-2 text-sm text-[#203751] outline-none focus:border-[#9eaccc]"/>
                       <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => setEditingBubble(null)}
-                          className="rounded-lg border border-[#d8e0eb] bg-white px-3 py-1.5 text-xs text-[#6c7d91]">取消</button>
+                          className="rounded-lg border border-[#d8e0eb] bg-white px-3 py-1.5 text-xs text-[#6c7d91]">{deepText(locale, "common.cancel")}</button>
                         <button type="button" disabled={isLoading || !editingBubble.draft.trim()}
                           onClick={() => void confirmBubbleEdit()}
-                          className="rounded-lg bg-[#637ba5] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">保存修改</button>
+                          className="rounded-lg bg-[#637ba5] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">{deepText(locale, "viae.actions.saveEdit")}</button>
                       </div>
                     </div>
                   )}
                   {!isUser && message.needsRegeneration && (
                     <div role="status" className="ml-0 flex max-w-xl items-center gap-2 rounded-xl border border-[#dfcfb0] bg-[#fffbf2] px-3 py-2 text-[11px] text-[#806943] sm:ml-11">
                       <AlertTriangle size={14} className="shrink-0"/>
-                      <span>上一条消息已编辑；此回复尚未重新生成。可使用下方刷新按钮。</span>
+                      <span>{deepText(locale, "viae.actions.stale")}</span>
                     </div>
                   )}
                   {!isUser && message.metadataRepairMissing && index === activeGroup.messages.length - 1 && (
                     <div role="status" className="ml-0 flex max-w-xl items-center gap-3 rounded-xl border border-[#d8c49d] bg-[#fffaef] px-3 py-2.5 text-xs text-[#796039] sm:ml-11">
                       <AlertTriangle size={15} className="shrink-0"/>
-                      <span className="flex-1">本轮消息或记忆状态不完整。</span>
+                      <span className="flex-1">{deepText(locale, "viae.actions.incomplete")}</span>
                       <button type="button" disabled={isLoading} onClick={() => void repairMessage(index)}
-                        className="rounded-lg border border-[#d8c49d] bg-white px-3 py-1.5 font-semibold disabled:opacity-40">{isLoading ? "补齐中…" : "补齐状态"}</button>
+                        className="rounded-lg border border-[#d8c49d] bg-white px-3 py-1.5 font-semibold disabled:opacity-40">{isLoading ? deepText(locale, "viae.actions.repairing") : deepText(locale, "viae.actions.repair")}</button>
                     </div>
                   )}
                   <div className={`flex items-center gap-3 text-[#9ca7b5] opacity-70 transition group-hover:opacity-100 ${isDirection ? "justify-center" : isUser ? "pr-1" : "pl-11"}`}>
                     {/* TTS is paused while provider adapters are being redesigned. */}
                     {!isUser && !isLoading && index === activeGroup.messages.length - 1 && <button type="button" onClick={() => void confirmRefresh()} title={deepText(locale, "common.retry")} aria-label={deepText(locale, "common.retry")}><RotateCcw size={14}/></button>}
                     {isUser && !isLoading && <button type="button" onClick={() => startBubbleEdit(message.id, index, text)}
-                      title="编辑消息" aria-label="编辑这条消息"><Pencil size={14}/></button>}
+                      title={deepText(locale, "viae.actions.edit")} aria-label={deepText(locale, "viae.actions.editOwn")}><Pencil size={14}/></button>}
                     <button type="button" onClick={() => { void navigator.clipboard.writeText(text); setCopyIndex(index); }} title={deepText(locale, "common.copy")} aria-label={deepText(locale, "common.copy")}>{copyIndex === index ? <Check size={14}/> : <Copy size={14}/>}</button>
                     {!isLoading && <button type="button" onClick={async () => { if (await dialog.confirm(deepText(locale, "viae.deleteMessage"))) deleteMessage(index); }} title={deepText(locale, "common.delete")} aria-label={deepText(locale, "common.delete")}><Trash2 size={14}/></button>}
                   </div>
@@ -542,7 +542,7 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
               })}
               <div ref={bottom}/>
             </section>
-            <form onSubmit={e => { e.preventDefault(); void send(); }} className="border-t border-[#e9ecef] bg-white px-4 py-4 sm:px-7"><div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-[#e1e7eb] bg-[#fdfdfc] px-3 py-2 transition focus-within:border-[#bba573] focus-within:shadow-[0_0_0_3px_rgba(187,165,115,0.09)]"><textarea disabled={isLoading} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} rows={2} placeholder={isObserving ? "输入场外剧情提示（角色不会直接回复你）…" : activeGroup.type === "direct" ? "在小径上说点什么…" : "在路口留下你的消息…"} className="min-h-11 max-h-36 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[#243850] outline-none placeholder:text-[#a1adb7]"/><button type={isLoading ? "button" : "submit"} disabled={!isLoading && (!input.trim() || !providerConfigured)} onClick={isLoading ? () => void confirmStopGeneration() : undefined} aria-label={isLoading ? "停止生成" : "发送消息"} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-40 ${isLoading ? "bg-rose-500" : "bg-[#172d49] hover:bg-[#274461]"}`}>{isLoading ? <Square size={17}/> : <Send size={17}/>}</button></div><p className="mx-auto mt-2 max-w-3xl truncate text-[10px] text-[#9aa6b1]">{providerConfigured ? `${providers.find(p => p.id === provider)?.label || provider} · ${customModel.trim() || model}` : "请先在设置中配置 API 供应商"} · {isObserving ? "旁观剧情提示" : "参与消息"} · Enter 发送 / Shift+Enter 换行</p></form>
+            <form onSubmit={e => { e.preventDefault(); void send(); }} className="border-t border-[#e9ecef] bg-white px-4 py-4 sm:px-7"><div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-[#e1e7eb] bg-[#fdfdfc] px-3 py-2 transition focus-within:border-[#bba573] focus-within:shadow-[0_0_0_3px_rgba(187,165,115,0.09)]"><textarea disabled={isLoading} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} rows={2} placeholder={isObserving ? "输入场外剧情提示（角色不会直接回复你）…" : activeGroup.type === "direct" ? "在小径上说点什么…" : "在路口留下你的消息…"} className="min-h-11 max-h-36 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[#243850] outline-none placeholder:text-[#a1adb7]"/><button type={isLoading ? "button" : "submit"} disabled={!isLoading && (!input.trim() || !providerConfigured)} onClick={isLoading ? () => void confirmStopGeneration() : undefined} aria-label={isLoading ? "停止生成" : "发送消息"} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-40 ${isLoading ? "bg-rose-500" : "bg-[#172d49] hover:bg-[#274461]"}`}>{isLoading ? <Square size={17}/> : <Send size={17}/>}</button></div><p className="mx-auto mt-2 max-w-3xl truncate text-[10px] text-[#9aa6b1]">{providerConfigured ? `${providers.find(p => p.id === provider)?.label || provider} · ${customModel.trim() || model}` : "请先在设置中配置 API 供应商"} · {isObserving ? deepText(locale, "viae.actions.observerHint") : deepText(locale, "viae.actions.participantHint")} · {deepText(locale, "viae.actions.lineBreak")}</p></form>
             <MemoryVaultModal open={openMemory} onClose={() => setOpenMemory(false)} sessionId={`${session.id}:${activeGroup.id}`} stm={activeGroup.stm} ltm={activeGroup.ltm} tone="viae" onSave={({ stm, ltm }) => { updateGroup(activeGroup.id, g => ({ ...g, stm, ltm, turnCount: stm.split(/\n/).filter(Boolean).length, updatedAt: Date.now() })); notify("Viae Memory Vault 已保存"); }}/>
           </>
         ) : (
