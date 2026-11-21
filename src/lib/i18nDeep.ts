@@ -2,6 +2,17 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "modal.notesSaved": ["会话设定保存成功。", "對話設定儲存成功。", "Session notes saved.", "セッション設定を保存しました。", "세션 설정이 저장되었습니다."],
+  "modal.notesScope": ["仅用于当前会话，不会影响其他会话。", "僅用於目前對話，不影響其他對話。", "Applies to this session only; other sessions are unaffected.", "このセッションにのみ適用され、他のセッションには影響しません。", "현재 세션에만 적용되며 다른 세션에는 영향을 주지 않습니다."],
+  "modal.notesPlaceholder": ["写下这个会话的背景、规则、补充说明……", "寫下這段對話的背景、規則與補充說明……", "Enter session background, rules and notes…", "このセッションの背景、ルール、補足事項を記入…", "세션의 배경, 규칙, 추가 설명을 입력하세요…"],
+  "modal.saveNotes": ["保存设定", "儲存設定", "Save notes", "設定を保存", "설정 저장"],
+  "modal.editMessage": ["编辑消息", "編輯訊息", "Edit message", "メッセージを編集", "메시지 수정"],
+  "modal.closeEdit": ["关闭编辑弹窗", "關閉編輯視窗", "Close editor", "編集画面を閉じる", "편집 창 닫기"],
+  "modal.confirmRetry": ["确认重试", "確認重試", "Confirm retry", "再試行を確定", "재시도 확인"],
+  "modal.adopt": ["采纳剧情建议", "採用劇情建議", "Adopt suggestion", "展開案を採用", "전개 제안 채택"],
+  "modal.preview": ["预览内容", "預覽內容", "Preview content", "内容をプレビュー", "내용 미리보기"],
+  "modal.insertHelp": ["确认后只填入输入框，你仍可继续修改。", "確認後只會填入輸入框，仍可繼續修改。", "Confirm to insert into the composer without sending; you can still edit it.", "確定すると送信せず入力欄に挿入します。引き続き編集できます。", "확인하면 전송하지 않고 입력창에만 넣으며 계속 수정할 수 있습니다."],
+  "modal.sendHelp": ["确认后会立即发送这段建议。", "確認後會立即送出這段建議。", "Confirm to send this suggestion immediately.", "確定するとこの提案をすぐに送信します。", "확인하면 이 제안을 즉시 전송합니다."],
   "sessionMenu.thinking": ["思考过程", "思考過程", "Thought process", "思考過程", "사고 과정"],
   "sessionMenu.root": ["最外层", "最外層", "Top level", "最上位", "최상위"],
   "sessionMenu.bindProject": ["绑定 IDE 项目", "綁定 IDE 專案", "Bind IDE project", "IDE プロジェクトを指定", "IDE 프로젝트 연결"],
