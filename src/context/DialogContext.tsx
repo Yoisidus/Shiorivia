@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AlertTriangle, BookOpen, CheckCircle2, Code2, GitCompareArrows, Info, MessageCircle, PenLine, Route, X, XCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
+import { useLanguage } from "./LanguageContext";
+import { deepText } from "../lib/i18nDeep";
 
 export type DialogTone = "officina" | "story" | "umbra" | "tela" | "viae" | "charta";
 export type DialogOptions = { title?: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; tone?: DialogTone; preview?: string };
@@ -97,6 +99,7 @@ export function useAppDialog(): DialogApi {
 }
 
 export function DialogProvider({ children }: { children: ReactNode }) {
+  const { locale } = useLanguage();
   const [tone, setTone] = useState<DialogTone>("officina");
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -176,7 +179,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       const result = await enqueue("prompt", message, options, initial);
       return typeof result === "string" ? result : null;
     },
-    reviewEdits: async files => (await enqueue("review", "", { title: "审阅 IDE 代码修改", confirmLabel: "应用全部修改", cancelLabel: "取消修改", tone: "officina" }, undefined, files)) === true,
+    reviewEdits: async files => (await enqueue("review", "", { title: deepText(locale, "dialog.review"), confirmLabel: deepText(locale, "dialog.applyAll"), cancelLabel: deepText(locale, "dialog.cancelEdits"), tone: "officina" }, undefined, files)) === true,
     notify,
     setTone,
     tone,
@@ -198,9 +201,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const FeedbackIcon = feedback?.type === "success" ? CheckCircle2
     : feedback?.type === "error" ? XCircle
     : feedback?.type === "warning" ? AlertTriangle : Info;
-  const feedbackTitle = feedback?.type === "success" ? "已完成"
-    : feedback?.type === "error" ? "操作未完成"
-    : feedback?.type === "warning" ? "请注意" : "提示";
+  const feedbackTitle = feedback?.type === "success" ? deepText(locale, "dialog.done")
+    : feedback?.type === "error" ? deepText(locale, "dialog.failed")
+    : feedback?.type === "warning" ? deepText(locale, "dialog.warning") : deepText(locale, "dialog.notice");
   const Icon = currentTone === "officina" ? Code2 : currentTone === "story" ? BookOpen
     : currentTone === "umbra" ? MessageCircle : currentTone === "tela" ? PenLine
       : currentTone === "viae" ? Route : BookOpen;
@@ -247,38 +250,38 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 <div className={`rounded-xl border p-2 ${theme.accent}`}>{active.options.destructive ? <AlertTriangle size={18} className="text-rose-500"/> : <Icon size={18} className={theme.ink}/>}</div>
                 <div className="min-w-0">
                   <p className={`text-[10px] font-bold tracking-[0.19em] ${theme.ink}`}>{theme.title} · {theme.kicker}</p>
-                  <h2 id="shiorivia-dialog-title" className="mt-1 text-base font-semibold">{active.options.title || (active.kind === "alert" ? "提示" : active.kind === "prompt" ? "输入内容" : active.kind === "review" ? "审阅代码修改" : "操作确认")}</h2>
+                  <h2 id="shiorivia-dialog-title" className="mt-1 text-base font-semibold">{active.options.title || (active.kind === "alert" ? deepText(locale, "dialog.notice") : active.kind === "prompt" ? deepText(locale, "dialog.input") : active.kind === "review" ? deepText(locale, "dialog.review") : deepText(locale, "dialog.confirm"))}</h2>
                 </div>
               </div>
-              <button type="button" aria-label="关闭弹窗" onClick={() => finish(false)} className="rounded-lg p-2 opacity-60 transition hover:bg-black/10 hover:opacity-100"><X size={18}/></button>
+              <button type="button" aria-label={deepText(locale, "dialog.close")} onClick={() => finish(false)} className="rounded-lg p-2 opacity-60 transition hover:bg-black/10 hover:opacity-100"><X size={18}/></button>
             </header>
             <div className="min-h-0 overflow-y-auto px-5 py-5">
               {active.message && <p className="whitespace-pre-wrap break-words text-sm leading-7">{active.message}</p>}
               {active.options.preview && <div className={`mt-4 max-h-[42dvh] overflow-y-auto whitespace-pre-wrap break-words rounded-xl border px-4 py-3 text-sm leading-7 shadow-inner ${currentTone === "story" ? "border-[#e8bfd2] bg-[#fff1f7] text-[#70445d]" : currentTone === "tela" ? "border-[#e1cba6] bg-[#fff8eb] text-[#684e35]" : "border-slate-200 bg-white/75"}`}>{active.options.preview}</div>}
               {active.kind === "prompt" && (
-                <input autoFocus aria-label={active.options.title || "输入内容"} value={input} onChange={e => setInput(e.target.value)}
+                <input autoFocus aria-label={active.options.title || deepText(locale, "dialog.input")} value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); finish(true, input); } }}
                   className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-300"/>
               )}
               {active.kind === "review" && (
                 <div className="space-y-4">
-                  <p className="text-xs text-[#536b86]">修改只作用于绑定的 IDE 项目。下方展示每一处变更，确认后还会再次校验文件版本。</p>
+                  <p className="text-xs text-[#536b86]">{deepText(locale, "dialog.reviewHelp")}</p>
                   {(active.files || []).map(file => (
                     <section key={file.path} className="overflow-hidden rounded-xl border border-[#bdd4eb] bg-white">
                       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#bdd4eb] bg-[#e6f2fd] px-4 py-2.5">
                         <div className="flex min-w-0 items-center gap-2"><GitCompareArrows size={15} className="text-[#5081b6]"/><span className="truncate font-mono text-xs text-[#294f78]">{file.path}</span></div>
-                        <span className="text-[10px] text-[#607e9e]">{file.edits.length} 处修改</span>
+                        <span className="text-[10px] text-[#607e9e]">{file.edits.length} {deepText(locale, "dialog.changes")}</span>
                       </header>
                       <div className="space-y-3 px-3 py-3">
                         {file.edits.map((edit, index) => (
                           <div key={index} className="overflow-hidden rounded-lg border border-[#d6e2ee]">
                             <div className="bg-[#f1f6fc] px-3 py-1.5 text-[11px] text-[#59718e]">
-                              {edit.op === "insert_before" ? "在行前插入" : edit.op === "insert_after" ? "在行后插入" : edit.op === "replace" ? "替换" : "删除"}
+                              {edit.op === "insert_before" ? deepText(locale, "dialog.before") : edit.op === "insert_after" ? deepText(locale, "dialog.after") : edit.op === "replace" ? deepText(locale, "dialog.replace") : deepText(locale, "common.delete")}
                               {" · L"}{edit.startLine}{edit.endLine && edit.endLine !== edit.startLine ? `–${edit.endLine}` : ""}
                             </div>
                             <pre className={`overflow-x-auto whitespace-pre p-3 font-mono text-xs leading-5 ${edit.op.startsWith("insert_") ? "bg-[#f0f6fc] text-[#496786]" : "bg-[#fff0f0] text-[#a34b54]"}`}>{edit.expected.split("\n").map((line, i) => <span key={i} className="block">{edit.op.startsWith("insert_") ? "  " : "- "}{line || " "}</span>)}</pre>
                             {edit.text !== undefined && <pre className="overflow-x-auto whitespace-pre border-t border-[#cce4d6] bg-[#edf9f1] p-3 font-mono text-xs leading-5 text-[#24764e]">{edit.text.split("\n").map((line, i) => <span key={i} className="block">+ {line || " "}</span>)}</pre>}
-                            {(edit.op === "insert_before" || edit.op === "insert_after") && <div className="bg-[#f1f6fc] px-3 py-1 text-[10px] text-[#607f9b]">蓝色行是定位锚点，不会被删除。</div>}
+                            {(edit.op === "insert_before" || edit.op === "insert_after") && <div className="bg-[#f1f6fc] px-3 py-1 text-[10px] text-[#607f9b]">{deepText(locale, "dialog.anchorInfo")}</div>}
                           </div>
                         ))}
                       </div>
@@ -289,10 +292,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
             </div>
             <footer className={`flex shrink-0 justify-end gap-2 border-t px-5 py-4 ${theme.header}`}>
               {active.kind !== "alert" && <button type="button" onClick={() => finish(false)}
-                className={`rounded-xl border px-4 py-2 text-xs font-semibold transition ${theme.cancel}`}>{active.options.cancelLabel || "取消"}</button>}
+                className={`rounded-xl border px-4 py-2 text-xs font-semibold transition ${theme.cancel}`}>{active.options.cancelLabel || deepText(locale, "common.cancel")}</button>}
               <button type="button" autoFocus={active.kind !== "prompt"} onClick={() => finish(true, input)}
                 className={`rounded-xl px-5 py-2 text-xs font-semibold shadow-sm transition ${active.options.destructive ? "bg-rose-700 text-white hover:bg-rose-600" : theme.button}`}>
-                {active.options.confirmLabel || (active.kind === "alert" ? "知道了" : active.kind === "prompt" ? "确定" : "确认")}
+                {active.options.confirmLabel || (active.kind === "alert" ? deepText(locale, "dialog.ok") : active.kind === "prompt" ? deepText(locale, "dialog.accept") : deepText(locale, "dialog.accept"))}
               </button>
             </footer>
           </section>
