@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
     Lock, Check, FileCode, Plus, Trash2, Copy,
     Search, Terminal, X, Maximize2, Minimize2,
-    Sidebar, Play, RefreshCw, Layers, MoreHorizontal, Download, Sparkles, FolderPlus, Folder, HardDrive, ChevronDown
+    Sidebar, RefreshCw, MoreHorizontal, Download, Sparkles, FolderPlus, Folder, HardDrive, ChevronDown
 } from "lucide-react";
 import { CodeFile } from "../types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,44 +66,6 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
         // A parent rerender must not re-fetch and silently discard unsaved edits.
         // The project binding, not the new identity of an empty {} prop, controls sync.
     }, [projectRoot]);
-
-    const [isRunning, setIsRunning] = useState(false);
-    const [consoleOutput, setConsoleOutput] = useState<string | null>(null);
-    const [showPreview, setShowPreview] = useState(false); 
-
-    const handleRun = async () => {
-        if (!activeFile) return;
-        const file = files[activeFile];
-
-        if (file.language === 'html' || file.name.endsWith('.html')) {
-            setShowPreview(true);
-            setConsoleOutput(null); 
-            return;
-        }
-
-        if (file.language === 'python' || file.name.endsWith('.py')) {
-            setIsRunning(true);
-            setShowPreview(false);
-            setConsoleOutput("Running..."); 
-
-            try {
-                const res = await fetch('/api/run', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: file.content, language: 'python' })
-                });
-                const data = await res.json();
-                setConsoleOutput(data.output || data.error || "No Output");
-            } catch (e: any) {
-                setConsoleOutput(`Error: ${e.message}`);
-            } finally {
-                setIsRunning(false);
-            }
-            return;
-        }
-
-        alert("目前仅支持预览 HTML 或运行 Python 哦~");
-    };
 
     const handleSave = async () => {
         if (!window.confirm("确认保存所修改的工程文件吗？")) return;
@@ -240,17 +202,6 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
 
                 <div className="flex gap-2 items-center">
 
-                    <button
-                        onClick={handleRun}
-                        disabled={isRunning}
-                        className={`p-1.5 rounded transition-colors ${isRunning ? 'text-[#a6b9fc] bg-[#39476b]' : 'hover:bg-white/10 text-[#a6b9fc]'}`}
-                        title="Run Code"
-                    >
-                        {isRunning ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />}
-                    </button>
-
-                    <div className="w-px h-4 bg-gray-600 mx-1"></div>
-
                     {isEditing && (
                         <button onClick={handleCancel} className="p-1.5 hover:bg-white/10 rounded text-red-400" title="Discard">
                             <X size={14} />
@@ -373,38 +324,6 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                                 style={{ fontFamily: '"Fira Code", "Consolas", monospace', fontSize: isFullScreen ? '14px' : '12px' }}
                             />
 
-                            <AnimatePresence>
-                                {(consoleOutput !== null || showPreview) && (
-                                    <motion.div
-                                        initial={{ height: 0 }} animate={{ height: "40%" }} exit={{ height: 0 }}
-                                        className="border-t border-slate-700 bg-[#080e20] flex flex-col shrink-0"
-                                    >
-                                        <div className="flex justify-between items-center px-4 py-1 bg-[#1c2949] border-b border-[#879bcc]/20">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-2">
-                                                <Layers size={12} /> {showPreview ? "Web Preview" : "Console Output"}
-                                            </span>
-                                            <button onClick={() => { setConsoleOutput(null); setShowPreview(false) }} className="text-gray-500 hover:text-white transition-colors">
-                                                <X size={12} />
-                                            </button>
-                                        </div>
-
-                                        <div className="flex-1 overflow-auto relative p-0">
-                                            {showPreview && files[activeFile] ? (
-                                                <iframe
-                                                    srcDoc={files[activeFile].content}
-                                                    className="w-full h-full bg-white"
-                                                    sandbox="allow-scripts" 
-                                                    title="preview"
-                                                />
-                                            ) : (
-                                                <pre className="p-4 text-xs font-mono text-[#adbbec] whitespace-pre-wrap select-text font-bold">
-                                                    {consoleOutput}
-                                                </pre>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
                         </div>
                     ) : (
                         <div className="flex-1 flex items-center justify-center text-slate-600 flex-col gap-2 select-none">
