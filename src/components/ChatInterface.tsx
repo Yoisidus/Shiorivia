@@ -282,7 +282,7 @@ export const ChatInterface = ({
     isGlobalGenerating,
     toggleWardrobe,
     apiProvider, setApiProvider,
-    debugMode, setDebugMode,
+    debugMode, setDebugMode, showDrawDebugTags = false,
     onGenerateDraw, imageSettings, useImageGen, onCompleteEngineeringOutput,
     triggerEffect,
 
@@ -705,7 +705,7 @@ export const ChatInterface = ({
                                         onGenerate={() => void confirmDraw(i)} />
                                 )}
 
-                                {debugMode && rawDrawContent && msg.role === 'assistant' && (
+                                {debugMode && showDrawDebugTags && rawDrawContent && msg.role === 'assistant' && (
                                     <div className="w-full mt-2 p-3 bg-[#1e1e1e] rounded-lg border border-yellow-500/30 text-left font-mono text-[10px] shadow-inner overflow-hidden select-text">
                                         <div className="flex items-center justify-between mb-2 pb-1 border-b border-white/10 text-yellow-500">
                                             <span className="flex items-center gap-2 font-bold tracking-wider">
