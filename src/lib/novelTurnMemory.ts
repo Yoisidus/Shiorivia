@@ -11,7 +11,7 @@ export function novelTurnMemoryInstruction(input: {
   const consolidation = count >= 6;
   return `
 [TELA CHAPTER MEMORY — REQUIRED, NOT VISIBLE TO THE READER]
-This module specifies the memory CONTENT and consolidation phase only. The authoritative chapter output contract supplies the tag format and position.
+Use the chapter's completed events to update memory; preserve its established facts. Follow the single TELA OUTPUT CONTRACT for the placement of this private block.
 - STM summarizes what actually happened during THIS chapter, not what might happen in the next chapter. Record key events, participating characters, location changes, important promises, reactions and consequences in one concise entry of approximately 30–120 Chinese characters (or equivalent language length).
 - Current phase: ${consolidation ? "SEVENTH CHAPTER — CONSOLIDATE LTM" : "CHAPTER " + (count + 1) + " / 6 — ADD STM"}.
 ${consolidation
