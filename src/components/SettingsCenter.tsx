@@ -181,7 +181,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                     onChange={event => onContextWindowChange(Number(event.target.value) as ContextWindowTokens)}
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-400">
                     {CONTEXT_WINDOW_OPTIONS.map(tokens => <option key={tokens} value={tokens}>
-                      {tokens / 1024}K Token{tokens === 32768 ? " · 默认" : ""}
+                      {tokens / 1024}K Token{tokens === 262144 ? " · 默认" : ""}
                     </option>)}
                   </select>
                   <p className="mt-2 text-xs leading-5 text-slate-500">
