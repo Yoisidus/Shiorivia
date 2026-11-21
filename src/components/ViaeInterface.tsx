@@ -20,6 +20,7 @@ import { storyCastAllowed } from "../lib/storyCast";
 import type { ChartaWorld } from "../lib/chartaWorld";
 import type { ChartaSelf } from "../lib/chartaSelf";
 import { useLanguage } from "../context/LanguageContext";
+import { useAppDialog } from "../context/DialogContext";
 import { characterDisplayName } from "../lib/characterNames";
 import { deepText } from "../lib/i18nDeep";
 
@@ -92,6 +93,7 @@ interface ViaeProps {
 
 export function ViaeInterface({ session, updateSession, characters, customCharacters = [], worlds = [], activeSelf = null, onExit, onSettings, providers, provider, onProviderChange, model, customModel, onModelChange, onCustomModelChange, notify, terminalRequestLogEnabled = false, terminalLogEnabled = false, contextWindowTokens = 32768 }: ViaeProps) {
   const { locale } = useLanguage();
+  const dialog = useAppDialog();
   const { activeGroup, input, setInput, isLoading, send, stop, deleteMessage } = useViaeEngine({
     session, updateSession, provider, model: customModel.trim() || model, notify, customCharacters, activeSelf, terminalRequestLogEnabled, terminalLogEnabled, contextWindowTokens,
   });
@@ -191,12 +193,12 @@ export function ViaeInterface({ session, updateSession, characters, customCharac
     updateSession(current => ({ ...current, limeGroups: [group, ...(current.limeGroups || [])], limeGroupId: group.id, updatedAt: Date.now() }));
     setCreating(false); setSelected([]); setDraftName(""); setAuContext("");
   };
-  const removeGroup = (id: string) => {
-    if (isLoading || !window.confirm("删除这条道路及其中的消息和记忆？此操作无法撤销。")) return;
+  const removeGroup = async (id: string) => {
+    if (isLoading || !await dialog.confirm("删除这条道路及其中的消息和记忆？此操作无法撤销。")) return;
     updateSession(current => ({ ...current, limeGroups: (current.limeGroups || []).filter(g => g.id !== id), limeGroupId: current.limeGroupId === id ? null : current.limeGroupId, updatedAt: Date.now() }));
   };
-  const rename = (group: ViaeConversation) => {
-    const name = window.prompt("为这段道路重新命名", group.name)?.trim();
+  const rename = async (group: ViaeConversation) => {
+    const name = await dialog.prompt("为这段道路重新命名", group.name)?.trim();
     if (name) updateGroup(group.id, g => ({ ...g, name: name.slice(0, 70), updatedAt: Date.now() }));
   };
   const toggleMember = (id: string) => {
