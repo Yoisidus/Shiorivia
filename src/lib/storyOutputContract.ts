@@ -6,8 +6,13 @@
 export function storyOutputContract(input: {
   danmakuEnabled: boolean;
   danmakuCount: number;
+  role: "participant" | "observer";
+  hasPov: boolean;
 }): string {
   const count = Math.min(24, Math.max(1, Math.round(input.danmakuCount || 8)));
+  const protagonistExample = input.role === "observer" && !input.hasPov
+    ? "null"
+    : '{"name":"...","timeDesc":"...","environment":"...","temperature":"...","clothing":"...","sensation":"...","innerState":"..."}';
   const danmakuExample = input.danmakuEnabled
     ? '["针对当前剧情的机智短评", "从另一角度吐槽的短评"]'
     : '[]';
@@ -17,14 +22,14 @@ export function storyOutputContract(input: {
 After writing the immersive story prose, append exactly ONE complete <game_state> JSON object, outside <thinking> and after any <session_title> metadata. It must be the LAST output block. Save sufficient output room for the entire object.
 These fields describe current dynamic state; static biography, established worldline and historical canon belong to supplied setting data, not generated state.
 
-Required JSON shape (examples are placeholders, NOT actual story facts):
+Required JSON shape (placeholder values show types only, NOT actual story facts; replace every example with current scene data and NEVER emit placeholder strings):
 <game_state>
 {
-  "protagonist": null,
+  "protagonist": ${protagonistExample},
   "sceneCastIds": [],
   "nextSceneCastIds": [],
   "character": [],
-  "suggestions": {"fun": "", "rational": "", "radical": ""},
+  "suggestions": {"fun": "有趣且可信的后续行动", "rational": "合乎情理的后续行动", "radical": "大胆但不违背角色的后续行动"},
   "danmaku": ${danmakuExample},
   "timeline": {"major": "", "medium": "", "minor": ""},
   "music": null
