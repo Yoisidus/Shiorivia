@@ -14,6 +14,7 @@ import { ThinkingBlock } from "./Common";
 import { buildDrawRequest } from "../lib/drawRequest";
 import { CHARACTERS } from "../types";
 import { useLanguage } from "../context/LanguageContext";
+import { useAppDialog } from "../context/DialogContext";
 import { characterDisplayName } from "../lib/characterNames";
 import { parseStoryWorldline } from "../lib/storyWorldline";
 import { MiniPlayer } from "./MiniPlayer";
@@ -151,15 +152,16 @@ const parseDialogue = (fullText: string, defaultCharId: string): DialogueLine[] 
 };
 
 const DialoguePlayer = ({ content, defaultCharId, onPlay, msgIndex, currentLock }: any) => {
+    const dialog = useAppDialog();
     const lines = parseDialogue(content, defaultCharId);
 
     if (lines.length === 0) return <span className="text-[10px] text-gray-300 px-2">No Dialogue</span>;
 
-    const handleClick = (text: string, charId: string, idx: number) => {
+    const handleClick = async (text: string, charId: string, idx: number) => {
         if (currentLock) return;
 
         const charName = CHARACTERS.find(c => c.id === charId)?.name || charId;
-        if (!window.confirm(`确定要生成 [${charName}] 的语音吗？`)) {
+        if (!await dialog.confirm(`确定要生成 [${charName}] 的语音吗？`)) {
             return;
         }
 
@@ -268,6 +270,7 @@ export const ChatInterface = ({
 }: any) => {
 
     const { locale } = useLanguage();
+    const dialog = useAppDialog();
     const requiresWorldline = currentSession?.memoryMode === "sliding" && !parseStoryWorldline(currentSession.storyWorldline);
     const requiresEngineer = currentSession?.memoryMode === "infinite" && !currentSession.characterId;
     const requiresChatWorldline = currentSession?.memoryMode === "chat" && !parseStoryWorldline(currentSession.storyWorldline);
@@ -286,7 +289,7 @@ export const ChatInterface = ({
     const confirmDraw = async (index: number) => {
         if (drawingIndex !== null) return;
         if (!useImageGen) { showToast('请先在设置中启用生图功能'); return; }
-        if (!window.confirm('确认按当前设置生成这幅插图吗？')) return;
+        if (!await dialog.confirm('确认按当前设置生成这幅插图吗？')) return;
         setDrawingIndex(index);
         try { await onGenerateDraw(index); }
         catch (error) { showToast(`插图生成失败：${error instanceof Error ? error.message : '未知错误'}`); }
