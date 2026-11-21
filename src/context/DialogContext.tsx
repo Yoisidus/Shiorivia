@@ -174,23 +174,23 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               )}
               {active.kind === "review" && (
                 <div className="space-y-4">
-                  <p className="text-xs text-[#b7c7e9]">修改只作用于绑定的 IDE 项目。下方展示每一处变更，确认后还会再次校验文件版本。</p>
+                  <p className="text-xs text-[#536b86]">修改只作用于绑定的 IDE 项目。下方展示每一处变更，确认后还会再次校验文件版本。</p>
                   {(active.files || []).map(file => (
-                    <section key={file.path} className="overflow-hidden rounded-xl border border-[#3c527b] bg-[#0a1328]">
-                      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#3c527b] bg-[#172541] px-4 py-2.5">
-                        <div className="flex min-w-0 items-center gap-2"><GitCompareArrows size={15} className="text-[#a3b8ef]"/><span className="truncate font-mono text-xs text-[#d5e3ff]">{file.path}</span></div>
-                        <span className="text-[10px] text-[#a5b9e2]">{file.edits.length} 处修改</span>
+                    <section key={file.path} className="overflow-hidden rounded-xl border border-[#bdd4eb] bg-white">
+                      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#bdd4eb] bg-[#e6f2fd] px-4 py-2.5">
+                        <div className="flex min-w-0 items-center gap-2"><GitCompareArrows size={15} className="text-[#5081b6]"/><span className="truncate font-mono text-xs text-[#294f78]">{file.path}</span></div>
+                        <span className="text-[10px] text-[#607e9e]">{file.edits.length} 处修改</span>
                       </header>
                       <div className="space-y-3 px-3 py-3">
                         {file.edits.map((edit, index) => (
-                          <div key={index} className="overflow-hidden rounded-lg border border-[#273b5d]">
-                            <div className="bg-[#17233a] px-3 py-1.5 text-[11px] text-[#a6b9dc]">
+                          <div key={index} className="overflow-hidden rounded-lg border border-[#d6e2ee]">
+                            <div className="bg-[#f1f6fc] px-3 py-1.5 text-[11px] text-[#59718e]">
                               {edit.op === "insert_before" ? "在行前插入" : edit.op === "insert_after" ? "在行后插入" : edit.op === "replace" ? "替换" : "删除"}
                               {" · L"}{edit.startLine}{edit.endLine && edit.endLine !== edit.startLine ? `–${edit.endLine}` : ""}
                             </div>
-                            <pre className={`overflow-x-auto whitespace-pre p-3 font-mono text-xs leading-5 ${edit.op.startsWith("insert_") ? "bg-[#18253c] text-[#b6c9e6]" : "bg-[#291b2b] text-[#f2b6bf]"}`}>{edit.expected.split("\n").map((line, i) => <span key={i} className="block">{edit.op.startsWith("insert_") ? "  " : "- "}{line || " "}</span>)}</pre>
-                            {edit.text !== undefined && <pre className="overflow-x-auto whitespace-pre border-t border-[#314c43] bg-[#142b2a] p-3 font-mono text-xs leading-5 text-[#abefca]">{edit.text.split("\n").map((line, i) => <span key={i} className="block">+ {line || " "}</span>)}</pre>}
-                            {(edit.op === "insert_before" || edit.op === "insert_after") && <div className="bg-[#17233a] px-3 py-1 text-[10px] text-[#a6b9dc]">红色行是定位锚点，不会被删除。</div>}
+                            <pre className={`overflow-x-auto whitespace-pre p-3 font-mono text-xs leading-5 ${edit.op.startsWith("insert_") ? "bg-[#f0f6fc] text-[#496786]" : "bg-[#fff0f0] text-[#a34b54]"}`}>{edit.expected.split("\n").map((line, i) => <span key={i} className="block">{edit.op.startsWith("insert_") ? "  " : "- "}{line || " "}</span>)}</pre>
+                            {edit.text !== undefined && <pre className="overflow-x-auto whitespace-pre border-t border-[#cce4d6] bg-[#edf9f1] p-3 font-mono text-xs leading-5 text-[#24764e]">{edit.text.split("\n").map((line, i) => <span key={i} className="block">+ {line || " "}</span>)}</pre>}
+                            {(edit.op === "insert_before" || edit.op === "insert_after") && <div className="bg-[#f1f6fc] px-3 py-1 text-[10px] text-[#607f9b]">蓝色行是定位锚点，不会被删除。</div>}
                           </div>
                         ))}
                       </div>
