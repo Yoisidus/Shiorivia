@@ -10,6 +10,8 @@ import { asChartaPromptData, type ChartaCharacter } from "../lib/charta";
 import { asChartaSelfPromptData, type ChartaSelf } from "../lib/chartaSelf";
 import { viaeWorldline } from "../lib/viaeWorldline";
 import { applyWorldlineAdvance, stripWorldlineAdvance } from "../lib/worldlineAdvanceProtocol";
+import { parseStoryTurnMemory, stripStoryTurnMemory } from "../lib/storyTurnMemory";
+import { nextConversationMemory } from "../lib/conversationTurnMemory";
 
 const newId = () => typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -116,7 +118,7 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
         const { done, value } = await reader.read();
         if (done) break;
         fullText += decoder.decode(value, { stream: true });
-        const currentText = stripWorldlineAdvance(fullText);
+        const currentText = stripStoryTurnMemory(stripWorldlineAdvance(fullText));
         patchGroup(groupId, group => ({
           ...group,
           messages: group.messages.map(message => message.id === requestId ? { ...message, content: currentText } : message),
@@ -124,55 +126,83 @@ export function useViaeEngine({ session, updateSession, provider, model, notify,
       }
       fullText += decoder.decode();
       const rawOutput = fullText;
-      fullText = stripWorldlineAdvance(fullText);
-      if (!fullText.trim()) throw new Error("模型没有返回内容");
+      const inlineMemory = parseStoryTurnMemory(rawOutput);
+      fullText = stripStoryTurnMemory(stripWorldlineAdvance(rawOutput));
+      if (!fullText.trim()) throw new Error("模型没有返回聊天内容");
+
+      const originalStm = String(activeGroup.stm || "");
+      const originalLtm = String(activeGroup.ltm || "");
+      const inlineApplied = !regenerate && inlineMemory?.stm
+        ? nextConversationMemory({ stm: originalStm, ltm: originalLtm }, inlineMemory) : null;
       patchGroup(groupId, group => {
         const currentWorldline = viaeWorldline(group);
         const advanced = applyWorldlineAdvance(currentWorldline, rawOutput);
         const nextWorldline = advanced && advanced.period !== currentWorldline.period ? advanced : currentWorldline;
+        const unchanged = (group.stm || "") === originalStm && (group.ltm || "") === originalLtm;
         return {
           ...group,
           storyWorldline: nextWorldline,
           timeline: nextWorldline.kind === "canon" ? nextWorldline.period.replace(/^T-/, "") : "AU",
+          ...(inlineApplied && unchanged ? { stm: inlineApplied.stm, ltm: inlineApplied.ltm,
+            turnCount: inlineApplied.turnCount } : {}),
           messages: group.messages.map(message => message.id === requestId ? { ...message, content: fullText } : message),
         };
       });
 
-      // Memory is per LIME conversation. A failure to summarize never loses chat messages.
-      // Do not append a duplicate memory slot when replacing the last answer.
-      if (!regenerate) try {
-        const memo = await fetch("/api/summarize", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: `${activeGroup.pov === "outsider" ? "Scene direction" : "User"}: ${text || '(regenerated reply)'}\nViae: ${fullText}`, mode: "micro", provider, model, uiLanguage: locale }),
-        });
-        if (!memo.ok) throw new Error("Viae micro-memory unavailable");
-        const data = await memo.json();
-        const summary = typeof data.summary === "string" ? data.summary.trim() : "";
-        if (summary) {
-          const stmEntries = [...parseLocalMemoryEntries(activeGroup.stm), `• ${summary}`];
-          let consolidated: string | null = null;
-          if (stmEntries.length >= LOCAL_STM_SLOTS) {
-            const macro = await fetch("/api/summarize", {
+      // Normally memory arrives inside the same model response. No additional
+      // summarizer request is needed unless the protocol was omitted, or a
+      // seventh-turn consolidation lacked its LTM.
+      const needFallback = !regenerate &&
+        (!inlineMemory?.stm || (parseLocalMemoryEntries(originalStm).length >= LOCAL_STM_SLOTS && !inlineMemory.ltm));
+      if (needFallback) {
+        try {
+          let summary = inlineMemory?.stm?.trim() || "";
+          if (!summary) {
+            const memo = await fetch("/api/summarize", {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text: formatLocalMemoryEntries(stmEntries), previousLtm: activeGroup.ltm || "", mode: "macro", provider, model, uiLanguage: locale }),
+              signal: controller.signal,
+              body: JSON.stringify({
+                text: (activeGroup.pov === "outsider" ? "Scene direction: " : "User: ") +
+                  (text || "(regenerated reply)") + "\nViae: " + fullText,
+                mode: "micro", provider, model, uiLanguage: locale,
+              }),
             });
-            if (macro.ok) {
-              const value = await macro.json();
-              if (typeof value.summary === "string" && value.summary.trim()) consolidated = value.summary.trim();
-            }
+            if (!memo.ok) throw new Error("Viae micro-memory unavailable");
+            const data = await memo.json();
+            summary = typeof data.summary === "string" ? data.summary.trim() : "";
           }
-          patchGroup(groupId, group => {
-            // Don't overwrite manually edited memory or another in-flight update.
-            if ((group.stm || "") !== (activeGroup.stm || "") || (group.ltm || "") !== (activeGroup.ltm || "")) {
-              const latest = [...parseLocalMemoryEntries(group.stm), `• ${summary}`];
-              return { ...group, stm: formatLocalMemoryEntries(latest), turnCount: latest.length };
+          if (summary) {
+            const batch = [...parseLocalMemoryEntries(originalStm), "• " + summary];
+            let consolidated = "";
+            if (batch.length > LOCAL_STM_SLOTS) {
+              const macro = await fetch("/api/summarize", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
+                body: JSON.stringify({
+                  text: formatLocalMemoryEntries(batch), previousLtm: originalLtm,
+                  mode: "macro", provider, model, uiLanguage: locale,
+                }),
+              });
+              if (macro.ok) {
+                const data = await macro.json();
+                consolidated = typeof data.summary === "string" ? data.summary.trim() : "";
+              }
             }
-            return consolidated
-              ? { ...group, stm: "", ltm: consolidated, turnCount: 0 }
-              : { ...group, stm: formatLocalMemoryEntries(stmEntries), turnCount: stmEntries.length };
-          });
+            patchGroup(groupId, group => {
+              // Never overwrite a different generation, manual edits or newer
+              // memories while a delayed compatibility summary finishes.
+              if (group.messages[group.messages.length - 1]?.id !== requestId) return group;
+              const expectedStm = inlineApplied?.stm ?? originalStm;
+              if ((group.stm || "") !== expectedStm || (group.ltm || "") !== originalLtm) return group;
+              if (consolidated) return { ...group, stm: "", ltm: consolidated, turnCount: 0 };
+              if (inlineApplied) return group; // Preserve seventh STM if macro fails.
+              return { ...group, stm: formatLocalMemoryEntries(batch), turnCount: batch.length };
+            });
+          }
+        } catch (error) {
+          if (!controller.signal.aborted) console.warn("Viae memory fallback skipped:", error);
         }
-      } catch (error) { console.warn("Viae memory summary skipped", error); }
+      }
     } catch (error) {
       if (controller.signal.aborted) {
         if (!fullText.trim()) patchGroup(groupId, group => ({ ...group, messages: group.messages.filter(msg => msg.id !== requestId) }));
