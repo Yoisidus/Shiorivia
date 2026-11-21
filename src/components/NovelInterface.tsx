@@ -29,6 +29,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { characterDisplayName } from "../lib/characterNames";
 import { localText } from "../lib/i18nLocal";
 import { deepText } from "../lib/i18nDeep";
+import { useAppDialog } from "../context/DialogContext";
 import { IllustratedImage, ImageLightbox } from "./IllustrationImage";
 import { stripNovelState } from "../lib/novelState";
 import { extractNovelSuggestions, stripNovelSuggestions } from "../lib/novelSuggestions";
@@ -183,6 +184,7 @@ export const NovelInterface = ({
     storyWorlds = [], customCharacters = [], customSelves = [], activeNovelSelf = null, onOpenCharta,
 }: any) => {
     const { locale } = useLanguage();
+    const dialog = useAppDialog();
     const [leftOpen, setLeftOpen] = useState(true);
     const [rightOpen, setRightOpen] = useState(true);
     const [showMemoryVault, setShowMemoryVault] = useState(false);
@@ -263,9 +265,9 @@ export const NovelInterface = ({
         message.role === "assistant" && typeof message.content === "string"
           && !message.content.includes("（...正在") && Boolean(message.content.trim()));
     const inputsLocked = hasNovelChapters && !manualStateEdit;
-    const allowSceneEdit = () => {
+    const allowSceneEdit = async () => {
         if (isLoading) return;
-        if (!hasNovelChapters || window.confirm("本章已经开始。确定手动覆盖 AI 自动更新的 Environment / Event 吗？修改后会在下一章使用。")) {
+        if (!hasNovelChapters || await dialog.confirm("本章已经开始。确定手动覆盖 AI 自动更新的 Environment / Event 吗？修改后会在下一章使用。")) {
             setManualStateEdit(true);
         }
     };
@@ -411,10 +413,10 @@ export const NovelInterface = ({
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [currentSession?.messages, isLoading]);
 
-    const handleGenerate = (type: 'new' | 'continue', optionText?: string) => {
+    const handleGenerate = async (type: 'new' | 'continue', optionText?: string) => {
         if (isLoading) return;
         if (!activeModel.trim()) {
-            window.alert("请先选择当前供应商的模型，确认后再编织篇章。");
+            void dialog.alert("请先选择当前供应商的模型，确认后再编织篇章。");
             return;
         }
         if (!novelWorldline) {
@@ -440,7 +442,7 @@ export const NovelInterface = ({
             const chapterCount = currentSession.messages.filter((m: any) => m.role === 'assistant' && !m.content.includes("（...正在")).length;
 
             if (chapterCount > 0) {
-                if (confirm("⚠️ 当前梦境已有剧情，是否保存并开启一段【全新的梦境】？\n(这会创建一个新的会话)")) {
+                if (await dialog.confirm("⚠️ 当前梦境已有剧情，是否保存并开启一段【全新的梦境】？\n(这会创建一个新的会话)")) {
                     createNewSession(selectedCharIds[0] || "sakiko", 'novel');
                     return;
                 } else {
