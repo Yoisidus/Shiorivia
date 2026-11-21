@@ -353,7 +353,7 @@ Use this worldline as the novel's established background. Do not replace it with
 [MANDATORY FORMATTING RULES]:
 1. **METADATA — EVERY CHAPTER, NO EXCEPTIONS**: The FIRST LINE of EVERY response, including Chapter 2 and every continuation, MUST be exactly <meta title="NOVEL_TITLE" chapter="CHAPTER_TITLE" /> with real, non-empty titles in the UI language. Use the novel's established overall title for NOVEL_TITLE. Read the previous chapter's title in the conversation: if this chapter stays in essentially the same scene/theme, you MAY reuse that CHAPTER_TITLE; when the chapter's main event, focus or location materially shifts, write a distinct, meaningful new CHAPTER_TITLE. Do NOT omit the tag just because the novel is continuing. Output <meta> ONCE at the start, never after the prose.
 2. **ILLUSTRATION**: ${imageToolSelected ? "The image-generation tool was SELECTED for this turn. Only when an illustration would genuinely improve the scene may you output ONE valid JSON <draw>...</draw> tag using the provided visualizer protocol." : "Image generation is DISABLED. Do NOT output <draw>, <draw_log>, image descriptions intended as tool commands, image JSON or illustration instructions."}
-3. **Music**: ${autoDjEnabled ? 'Optional: output <audio>{"trackId": "ID"}</audio> only when the music context calls for a change.' : "Do not output audio control tags."}
+3. **Music**: ${autoDjEnabled ? 'Auto DJ is enabled: use only an exact song title/artist from the supplied playlist, and output <audio>{"name":"Song Title","artist":"Artist"}</audio> ONLY when the scene genuinely matches; omit <audio> when no suitable song exists.' : "Do not output audio control tags."}
 4. **NOVEL CHOICES — REQUIRED**: Finish the literary prose with exactly three grounded, distinct, clickable next-plot suggestions in ONE <novel_choices> JSON block; never print them as ordinary chapter paragraphs or markdown lists. Shape: <novel_choices>{"fun":"...","rational":"...","radical":"..."}</novel_choices>. Each VALUE must be a concrete, compelling potential NEXT action/event in the active UI language. 'fun' is playful/unexpected but plausible, 'rational' is smart/cautious with consequences, 'radical' is a bold/high-risk but psychologically believable choice. All three must respect the chosen worldline, agency, motivations and established canon; NEVER force OOC behavior or pre-decide a participant protagonist's major actions. Do not reveal future facts.
 5. **NOVEL STATE — REQUIRED**: After the prose and <novel_choices> block, append ONE complete <novel_state> JSON object. It must be the very LAST block in every novel response. Keep it outside any draw/audio/markdown fences.
 <novel_state>{"environment":"current location, weather, temperature and significant surroundings as established by THIS chapter","event":"what is happening NOW at the chapter's endpoint, not the whole historical plot","nextSceneCastIds":["character IDs expected in the NEXT chapter"]}</novel_state>
@@ -415,7 +415,7 @@ Use this worldline as the novel's established background. Do not replace it with
         }
       }
 
-      if (autoDjEnabled) finalSystemPrompt += buildMusicMenu();
+      if (autoDjEnabled) finalSystemPrompt += buildMusicMenu() || "\n[AUTO DJ] The playlist is empty. Do not output music configuration or audio tags.\n";
 
     } else if (memoryMode === "lime") { // Persisted VIAE mode ID, kept for older saves.
       console.log("🛤️ Mode: Viae / Semita / Compitum");
@@ -732,7 +732,7 @@ Do not emit a project tag in plain conversation. Do not use a path outside Shior
       finalSystemPrompt += VISUAL_INSTRUCTION;
 
       if (autoDjEnabled) {
-        finalSystemPrompt += `\n${buildMusicMenu()}\n`;
+        finalSystemPrompt += `\n${buildMusicMenu() || "[AUTO DJ] The playlist is empty. Set game_state.music to null; never invent music."}\n`;
       }
 
       finalSystemPrompt += `\n${STORY_POST_PROMPT}`;
