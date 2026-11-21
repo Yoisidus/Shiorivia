@@ -63,8 +63,8 @@ const SidebarRightComponent = ({
     const isChatMode = currentSession?.memoryMode === "chat";
     const hasChatWorldline = isChatMode && !!currentSession?.storyWorldline;
     const roleLocked = isEngineeringCharacterLocked(currentSession);
-    const worldNameFor = (worldId: string | null | undefined): string => !worldId ? "通用角色"
-        : worldId === "bang-dream" ? "BanG Dream!" : worlds.find((w: any) => w.id === worldId)?.name || "未知世界观";
+    const worldNameFor = (worldId: string | null | undefined): string => !worldId ? deepText(locale, "sidebar.persona.worldNeutral")
+        : worldId === "bang-dream" ? "BanG Dream!" : worlds.find((w: any) => w.id === worldId)?.name || deepText(locale, "sidebar.persona.unknownWorld");
     const charWorldId = (id: string): string | null =>
         customCharacters.find((char: any) => char.id === id)?.worldId || (CHAR_DATA.some(char => char.id === id) ? "bang-dream" : null);
     const personaCatalog = (dbChars?.length ? dbChars : CHAR_DATA) as Array<{ id: string; name: string; avatar: string; hex: string; sub: string }>;
@@ -177,23 +177,23 @@ const SidebarRightComponent = ({
                         {isStoryMode ? (
                             <div className="p-3 space-y-4">
                                 <div className="rounded-xl border border-[#e4e8e5] bg-[#fafcf9] p-3 space-y-3">
-                                    <div className="text-[10px] font-bold tracking-widest text-[#6f8678]">故事身份 · STORY ROLE</div>
+                                    <div className="text-[10px] font-bold tracking-widest text-[#6f8678]">{deepText(locale, "sidebar.story.role")} · STORY ROLE</div>
                                     <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <button type="button" disabled={storyStarted} onClick={() => onStoryRoleChange("observer")} className={`rounded-lg border p-2 ${storyRole === "observer" ? "border-[#7d9c8a] bg-[#e8f0e9] text-[#365943]" : "border-[#dce6dd] text-[#77887c]"} disabled:opacity-70`}>旁观模式</button>
-                                        <button type="button" disabled={storyStarted || !activeStorySelf} onClick={() => onStoryRoleChange("participant")} title={!activeStorySelf ? "先在 Charta 创建并启用自设" : ""} className={`rounded-lg border p-2 ${storyRole === "participant" ? "border-[#7d9c8a] bg-[#e8f0e9] text-[#365943]" : "border-[#dce6dd] text-[#77887c]"} disabled:opacity-50`}>参与模式</button>
+                                        <button type="button" disabled={storyStarted} onClick={() => onStoryRoleChange("observer")} className={`rounded-lg border p-2 ${storyRole === "observer" ? "border-[#7d9c8a] bg-[#e8f0e9] text-[#365943]" : "border-[#dce6dd] text-[#77887c]"} disabled:opacity-70`}>{deepText(locale, "sidebar.story.observer")}</button>
+                                        <button type="button" disabled={storyStarted || !activeStorySelf} onClick={() => onStoryRoleChange("participant")} title={!activeStorySelf ? deepText(locale, "sidebar.story.needSelf") : ""} className={`rounded-lg border p-2 ${storyRole === "participant" ? "border-[#7d9c8a] bg-[#e8f0e9] text-[#365943]" : "border-[#dce6dd] text-[#77887c]"} disabled:opacity-50`}>{deepText(locale, "sidebar.story.participant")}</button>
                                     </div>
-                                    {storyRole === "participant" ? <p className="text-xs leading-5 text-[#75877b]">使用身份：<span style={{ color: storySelf?.hex || "#799783" }}>{storySelf ? selfName(storySelf, locale) : "自设不存在，请新建故事"}</span></p>
-                                    : <div className="space-y-2"><p className="text-[11px] leading-5 text-[#7d8e82]">以旁观者身份开始，不预设用户姓名。从第一轮结束后起，随时可选择已出场角色作为主视角；未选择不会自动锁定。</p>
-                                        {storyStarted && <label className="block text-xs text-[#718678]">当前主视角<select value={currentSession?.storyPovId || ""} disabled={(currentSession?.storyPovLocked && Boolean(currentSession?.storyPovId)) || isGenerating} onChange={e => onStoryPovChange(e.target.value)} className="mt-1 w-full rounded-lg border border-[#dce6dd] bg-white p-2 text-xs disabled:opacity-60"><option value="">尚未选择 · 第三人称旁观</option>{possiblePovs.map((char: any) => <option key={char.id} value={char.id}>{characterDisplayName(char.id, char.name, locale)}</option>)}</select></label>}
-                                        {currentSession?.storyPovLocked && currentSession?.storyPovId && <p className="flex items-center gap-1 text-[10px] text-[#a18c6f]"><Lock size={11}/>视角已在下一轮发送时锁定</p>}
+                                    {storyRole === "participant" ? <p className="text-xs leading-5 text-[#75877b]">{deepText(locale, "sidebar.story.identity")}<span style={{ color: storySelf?.hex || "#799783" }}>{storySelf ? selfName(storySelf, locale) : deepText(locale, "sidebar.story.selfMissing")}</span></p>
+                                    : <div className="space-y-2"><p className="text-[11px] leading-5 text-[#7d8e82]">{deepText(locale, "sidebar.story.observerHelp")}</p>
+                                        {storyStarted && <label className="block text-xs text-[#718678]">{deepText(locale, "sidebar.story.pov")}<select value={currentSession?.storyPovId || ""} disabled={(currentSession?.storyPovLocked && Boolean(currentSession?.storyPovId)) || isGenerating} onChange={e => onStoryPovChange(e.target.value)} className="mt-1 w-full rounded-lg border border-[#dce6dd] bg-white p-2 text-xs disabled:opacity-60"><option value="">{deepText(locale, "sidebar.story.noPov")}</option>{possiblePovs.map((char: any) => <option key={char.id} value={char.id}>{characterDisplayName(char.id, char.name, locale)}</option>)}</select></label>}
+                                        {currentSession?.storyPovLocked && currentSession?.storyPovId && <p className="flex items-center gap-1 text-[10px] text-[#a18c6f]"><Lock size={11}/>{deepText(locale, "sidebar.story.povLocked")}</p>}
                                     </div>}
                                 </div>
 
                                 <button type="button" onClick={() => setWorldlineOpen(true)} className="group relative w-full overflow-hidden rounded-2xl border border-[#dc7197]/55 bg-[#672b48] p-4 text-left shadow-[0_10px_25px_rgba(103,43,72,.16)] transition hover:border-[#f0b8cf] hover:shadow-lg">
                                     <span aria-hidden className="pointer-events-none absolute -right-7 -top-8 h-28 w-28 rounded-full border border-[#e2c996]/40" />
                                     <span aria-hidden className="pointer-events-none absolute right-0 top-1 h-16 w-16 rounded-full border border-[#e2c996]/20" />
-                                    <div className="relative flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-[11px] font-semibold tracking-[.15em] text-[#ffd1e3]" style={{fontFamily:'Bahnschrift,"Arial Narrow",sans-serif'}}>✧ WORLDLINE / 世界线</span><span className="text-[10px] text-[#f1b9d2] group-hover:text-white">展开航图 ↗</span></div>
-                                    <p className="relative mt-2 text-[11px] leading-5 text-[#ffe4ed]">{currentSession?.storyWorldline ? describeStoryWorldline(currentSession.storyWorldline, locale) : currentSession?.timeline?.major ? `旧时间线：${currentSession.timeline.major} / ${currentSession.timeline.medium || "未设定"}` : "尚未铭刻命运 · 请先选择世界线"}</p>
+                                    <div className="relative flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-[11px] font-semibold tracking-[.15em] text-[#ffd1e3]" style={{fontFamily:'Bahnschrift,"Arial Narrow",sans-serif'}}>✧ WORLDLINE / 世界线</span><span className="text-[10px] text-[#f1b9d2] group-hover:text-white">{deepText(locale, "sidebar.story.openWorld")}</span></div>
+                                    <p className="relative mt-2 text-[11px] leading-5 text-[#ffe4ed]">{currentSession?.storyWorldline ? describeStoryWorldline(currentSession.storyWorldline, locale) : currentSession?.timeline?.major ? `${deepText(locale, "sidebar.story.legacy")}${currentSession.timeline.major} / ${currentSession.timeline.medium || deepText(locale, "sidebar.story.notSet")}` : deepText(locale, "sidebar.story.worldMissing")}</p>
                                 </button>
                                 {currentSession && <StoryCastPicker key={currentSession.id} session={currentSession}
                                     worlds={worlds} customCharacters={customCharacters} busy={isGenerating}
@@ -273,10 +273,10 @@ const SidebarRightComponent = ({
                                     </label>}
                                     {isChatMode && !hasChatWorldline && <div className="rounded-xl border border-dashed border-[#cadad0] bg-[#f7faf8] px-4 py-5 text-center text-xs leading-6 text-[#728f80]">
                                         <TreeDeciduous size={20} className="mx-auto mb-2"/>
-                                        请先在左侧栏配置 Umbra 世界线。<br/>完成后这里会显示该世界线中的可聊天角色。
+                                        {deepText(locale, "sidebar.umbra.worldHelp")}<br/>{deepText(locale, "sidebar.umbra.characterHelp")}
                                     </div>}
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">{currentSession?.memoryMode === 'chat' ? 'Umbra · Characters' : 'Officina · Persona'}</div>
-                                    {isEngineeringMode && <p className="px-1 text-[11px] leading-5 text-slate-500">{roleLocked ? "角色已随首次发送锁定。新建工程会话可选择其他角色。" : "先选择角色；第一条消息发送前可自由更换，确认后本会话永久绑定。"}</p>}
+                                    {isEngineeringMode && <p className="px-1 text-[11px] leading-5 text-slate-500">{roleLocked ? deepText(locale, "sidebar.persona.lockedHelp") : deepText(locale, "sidebar.persona.selectHelp")}</p>}
                                     {filteredPersonas.map((char: any, index: number) => (
                                         <div
                                             key={char.id || index}
@@ -284,7 +284,7 @@ const SidebarRightComponent = ({
                                                 if ((isEngineeringMode && roleLocked) || isGenerating || activeCharacterId === char.id) return;
                                                 onCharSwitch(char.id);
                                             }}
-                                            title={isEngineeringMode && roleLocked && activeCharacterId !== char.id ? "当前工程会话的角色已锁定" : undefined}
+                                            title={isEngineeringMode && roleLocked && activeCharacterId !== char.id ? deepText(locale, "sidebar.persona.locked") : undefined}
                                             aria-disabled={isEngineeringMode && roleLocked && activeCharacterId !== char.id}
                                             className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all border relative overflow-hidden group ${isEngineeringMode && roleLocked && activeCharacterId !== char.id ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                                             style={{
@@ -305,8 +305,8 @@ const SidebarRightComponent = ({
                                             </div>
 
 
-                                            {isEngineeringMode && roleLocked && activeCharacterId === char.id && <span className="relative z-10 flex shrink-0 items-center gap-1 rounded-md bg-white/20 px-2 py-1 text-[10px] font-semibold" title="当前工程会话已绑定该角色">
-                                                <Lock size={12} /> 已绑定
+                                            {isEngineeringMode && roleLocked && activeCharacterId === char.id && <span className="relative z-10 flex shrink-0 items-center gap-1 rounded-md bg-white/20 px-2 py-1 text-[10px] font-semibold" title={deepText(locale, "sidebar.persona.boundTitle")}>
+                                                <Lock size={12} /> {deepText(locale, "sidebar.persona.bound")}
                                             </span>}
                                             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                         </div>
