@@ -990,7 +990,12 @@ export const useChatEngine = ({
             }
 
         } catch (e: any) {
-            if (e.name !== 'AbortError') showToast(e.message);
+            if (e.name !== 'AbortError') {
+                showToast(e.message);
+                if (currentSession.memoryMode === "infinite" && /(?:联网搜索|搜索供应商|web_search|web search|grounding)/i.test(String(e.message))) {
+                    await dialog.alert(String(e.message), { title: "联网搜索工具调用失败" });
+                }
+            }
         } finally {
             setIsLoading(false);
         }
