@@ -224,11 +224,11 @@ const CodeEditor = ({ repository, onUpdate, onClose, isFullScreen, toggleFullScr
                     </button>
 
                     <button type="button" disabled={busy || !projectRoot} onClick={() => void syncDisk()}
-                        className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-[#c1d1fa] hover:bg-white/10 disabled:opacity-40"
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-[#c1d1fa] hover:bg-white/10 disabled:opacity-40"
                         title={text("syncHint")}>
                         <RefreshCw size={14} className={busy ? "animate-spin" : ""}/><span className="hidden sm:inline text-[11px]">{text("sync")}</span>
                     </button>
-                    <button type="button" disabled={!projectRoot || busy} onClick={handleNewFolder} className="hidden sm:inline-flex p-1.5 hover:bg-white/10 rounded text-slate-300 disabled:opacity-40" title={text("newFolder")}><FolderPlus size={14}/></button>
+                    <button type="button" disabled={!projectRoot || busy} onClick={handleNewFolder} className="inline-flex p-1.5 hover:bg-white/10 rounded text-slate-300 disabled:opacity-40" title={text("newFolder")}><FolderPlus size={14}/></button>
                     {projectRoot && Object.keys(repository || {}).length > 0 && (
                         <button type="button" disabled={busy} onClick={importLegacyRepository}
                             className="hidden sm:inline-flex items-center gap-1 rounded-lg border border-indigo-300/30 px-2 py-1.5 text-[11px] text-[#b3c5f2] hover:bg-white/10 disabled:opacity-40"
