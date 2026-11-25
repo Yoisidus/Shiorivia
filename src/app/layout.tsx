@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black",
+    statusBarStyle: "default",
     title: "Shiorivia",
   },
 };
@@ -57,6 +57,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={`${inter.variable} ${serif.variable} ${mono.variable} font-sans`}>
+        <div className="ios-standalone-edge-sample" aria-hidden="true" />
         <Script 
           src="/lib/live2d.min.js" 
           strategy="beforeInteractive" 
