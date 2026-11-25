@@ -264,7 +264,7 @@ export function ChartaInterface({ characters, save, remove, usedIds, onExit, loa
     onExit();
   };
   // Unified archive cabinet renders the three editors in one detail pane.
-  return <main className="min-h-screen bg-[#f7f8f5] text-[#2c443a]" style={{ backgroundImage: "radial-gradient(ellipse at top right, #e8ede7, transparent 60%)" }}>
+  return <main className="standalone-safe-screen min-h-screen min-h-[100dvh] bg-[#f7f8f5] text-[#2c443a]" style={{ backgroundImage: "radial-gradient(ellipse at top right, #e8ede7, transparent 60%)" }}>
     <input ref={importRef} type="file" className="hidden" accept=".json,application/json" onChange={importFile} />
     <input ref={imageRef} type="file" className="hidden" accept="image/png,image/jpeg,image/webp" onChange={uploadImage} />
     <input ref={portraitRef} type="file" className="hidden" accept="image/png,image/jpeg,image/webp" onChange={uploadStandee} />
