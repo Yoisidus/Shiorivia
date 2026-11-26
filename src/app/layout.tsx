@@ -33,10 +33,11 @@ export const metadata: Metadata = {
     icon: "/icon.svg",
     apple: "/shiorivia-app-icon.png",
   },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Shiorivia",
+  // Avoid Next's default legacy status-bar-style meta: modern iOS samples the page.
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-title": "Shiorivia",
   },
 };
 
@@ -46,7 +47,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover", 
-  themeColor: "#08182e",
+  themeColor: "#f6f8f7",
 };
 
 export default function RootLayout({
@@ -58,6 +59,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className={`${inter.variable} ${serif.variable} ${mono.variable} font-sans`}>
         <div className="ios-standalone-edge-sample" aria-hidden="true" />
+        <div className="ios-browser-bottom-edge-sample" aria-hidden="true" />
         <Script 
           src="/lib/live2d.min.js" 
           strategy="beforeInteractive" 
