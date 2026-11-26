@@ -24,6 +24,8 @@ type Props = {
   open: boolean;
   onClose: () => void;
   values: Record<SettingKey, boolean>;
+  showMiniPlayer: boolean;
+  onToggleMiniPlayer: () => void;
   onToggle: (key: SettingKey) => void;
   debugMode: boolean;
   onToggleDebug: () => void;
@@ -113,7 +115,7 @@ function SwitchRow({ title, description, checked, onClick, icon: Icon }: {
   );
 }
 
-export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onToggleDebug, debugDrawTagsEnabled, onToggleDebugDrawTags, danmakuEnabled, onToggleDanmaku, danmakuCount, onDanmakuCountChange, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, contextWindowTokens, onContextWindowChange, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, webToolConfig, onWebToolConfigChange, providerAliases, onProviderAliasChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
+export function SettingsCenter({ open, onClose, values, onToggle, showMiniPlayer, onToggleMiniPlayer, debugMode, onToggleDebug, debugDrawTagsEnabled, onToggleDebugDrawTags, danmakuEnabled, onToggleDanmaku, danmakuCount, onDanmakuCountChange, terminalRequestLogEnabled, onToggleTerminalRequestLog, terminalLogEnabled, onToggleTerminalLog, engineeringTransitionEnabled, onToggleEngineeringTransition, curtainTransitionEnabled, onToggleCurtainTransition, geminiNarrativeStyleEnabled, onToggleGeminiNarrativeStyle, engineeringLoreRelationshipsEnabled, engineeringLoreExperiencesEnabled, onToggleEngineeringLoreRelationships, onToggleEngineeringLoreExperiences, onTestEffect, isStory, activeMode, contextWindowTokens, onContextWindowChange, storyTheme, onStoryThemeChange, activeProvider, providers, disabledProviders, onToggleProvider, autoSync, autoSyncInterval, onAutoSyncChange, onAutoSyncIntervalChange, webToolConfig, onWebToolConfigChange, providerAliases, onProviderAliasChange, imageSettings, onImageSettingsChange, providerCapabilities, onProviderCapabilitiesChange, falConfigured }: Props) {
   const dialog = useAppDialog();
   const [activeTab, setActiveTab] = useState<Tab>("general");
   const { refreshLibrary, allTracks } = useMusic();
@@ -368,6 +370,7 @@ export function SettingsCenter({ open, onClose, values, onToggle, debugMode, onT
                 <h2 className="mb-2 text-xl font-bold">{t("settings.media")}</h2>
                 <p className="mb-8 text-sm text-slate-400">{t("settings.media.description")}</p>
                 <SectionTitle>{t("settings.voiceAndMusic")}</SectionTitle>
+                <SwitchRow title={deepText(locale, "settings.miniPlayer")} description={deepText(locale, "settings.miniPlayerHelp")} checked={showMiniPlayer} onClick={onToggleMiniPlayer} icon={Music2} />
                 <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-400"><Mic size={18}/><span>{t("settings.tts")} · {deepText(locale, "settings.developing")}</span></div>
                 {(activeMode === "sliding" || activeMode === "novel") && <SwitchRow
                   title={t("settings.autoDJ")}

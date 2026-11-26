@@ -293,6 +293,7 @@ export const ChatInterface = ({
     setManualOutfitId,
     createNewSession,
     onOpenHub, onOpenSettings, onOpenMemory,
+    showMiniPlayer = true,
     effectiveConfig,
     charName, outfits,
 }: any) => {
@@ -600,13 +601,13 @@ export const ChatInterface = ({
                 )}
             </AnimatePresence>
 
-            <div className="z-10 hidden md:block">
+            {showMiniPlayer && <div className="z-10 shrink-0">
                 <MiniPlayer
                     onExpand={() => setShowFullPlayer(true)}
                     rightSidebarOpen={rightSidebarOpen}
                     themeMode="light"
                 />
-            </div>
+            </div>}
 
             <div className="flex-1 overflow-y-auto p-4 md:p-8 md:pr-[350px] space-y-8 scroll-smooth">
                 {currentSession?.messages.map((msg: any, i: number) => {

@@ -2,6 +2,9 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "settings.miniPlayer": ["显示迷你播放器", "顯示迷你播放器", "Show mini player", "ミニプレーヤーを表示", "미니 플레이어 표시"],
+  "settings.miniPlayerHelp": ["全局控制故事、工程、聊天和小说模式中的迷你播放器；关闭不会停止音乐播放。", "全域控制故事、工程、聊天和小說模式中的迷你播放器；關閉不會停止音樂播放。", "Show the mini player in Story, Engineering, Chat and Novel modes. Turning it off does not stop music.", "物語・エンジニアリング・チャット・小説モードのミニプレーヤーを一括設定します。非表示にしても音楽は止まりません。", "스토리, 엔지니어링, 채팅 및 소설 모드의 미니 플레이어를 전역으로 설정합니다. 숨겨도 음악은 계속 재생됩니다."],
+  "music.miniIdle": ["选择音乐", "選擇音樂", "Choose music", "音楽を選ぶ", "음악 선택"],
   "viae.actionOpen": ["开启", "開啟", "Start", "始める", "시작"],
   "viae.actionCreate": ["创建", "建立", "Create", "作成", "만들기"],
   "music.ui.builtinLibrary": ["内置曲库", "內建曲庫", "Built-in library", "内蔵ライブラリ", "내장 음악 라이브러리"],
