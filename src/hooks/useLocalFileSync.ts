@@ -41,7 +41,7 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
         }
         try {
 
-        if (mode === 'auto' && (isGlobalGenerating || !preferences.autoSync || conflictModal.isOpen)) return;
+        if (mode === 'auto' && (isGlobalGenerating || !preferences.autoSync || conflictModal.isOpen || manualSyncInFlight.current)) return;
 
         // A smaller message count is normal after deletions, regeneration or slot loads.
         // Severe losses are checked against the last saved snapshot below, not blocked forever.

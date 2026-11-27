@@ -2,6 +2,10 @@ import type { Locale } from "./locale";
 
 /** Localizable interface copy; never use these strings as persisted IDs. */
 const strings: Record<string, readonly [string, string, string, string, string]> = {
+  "engine.ideEdited": ["已局部修改 {count} 个 IDE 文件","已局部修改 {count} 個 IDE 檔案","Applied partial edits to {count} IDE files.","IDE の {count} ファイルを部分編集しました。","IDE 파일 {count}개를 부분 수정했습니다."],
+  "engine.ideWritten": ["已写入 IDE/{project} · {count} 个文件","已寫入 IDE/{project} · {count} 個檔案","Wrote {count} files to IDE/{project}.","IDE/{project} に {count} ファイルを書き込みました。","IDE/{project}에 파일 {count}개를 기록했습니다."],
+  "engine.ideWriteFailed": ["IDE 文件写入失败；代码已附在回复下方：","IDE 檔案寫入失敗；程式碼已附於回覆下方：","IDE write failed; code is attached below the reply: ","IDE のファイル保存に失敗しました。コードは返信の下に添付されています：","IDE 파일 쓰기 실패. 코드는 응답 아래에 첨부되었습니다: "],
+  "syncConflict.messages": ["条消息","則訊息","messages","件のメッセージ","개 메시지"],
   "local.storage.saveConfirm": ["💾 确定要将当前状态写入硬盘吗？\n(覆盖存档)","💾 確定要將目前狀態寫入磁碟嗎？\n（覆蓋存檔）","💾 Write the current state to disk?\n(Overwrite the saved data)","💾 現在の状態をディスクに保存しますか？\n（保存データを上書き）","💾 현재 상태를 디스크에 저장할까요?\n(저장 데이터 덮어쓰기)"],
   "local.storage.alreadySaved": ["当前内容已保存到本地，无需重复写入。","目前內容已儲存至本機，無需重複寫入。","The current data is already saved to disk.","現在のデータはすでにディスクに保存されています。","현재 데이터는 이미 디스크에 저장되어 있습니다."],
   "local.storage.saved": ["保存成功 · 已写入本地磁盘。","儲存成功 · 已寫入本機磁碟。","Saved successfully to disk.","ディスクへの保存が完了しました。","디스크에 저장했습니다."],

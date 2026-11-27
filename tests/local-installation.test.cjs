@@ -56,3 +56,27 @@ test("local save messages use the active locale and VIAE-aware loss guard", () =
   assert.ok(source.includes('hasMajorMessageLoss(sessions, serverData?.sessions || [])'));
   assert.ok(!source.includes('dialog.confirm("💾 确定'));
 });
+
+test("major deletion protection includes nested VIAE roads", () => {
+  const { countSavedMessages, hasMajorMessageLoss } = require("../src/lib/appendSync.ts");
+  const messages = n => Array.from({length:n}, () => ({role:"user",content:"x"}));
+  const ordinary = {id:"chat",messages:messages(80)};
+  const road = n => ({id:"viae",messages:[],limeGroups:[{id:"road",messages:messages(n)}]});
+  assert.equal(countSavedMessages([ordinary,road(12)]),92);
+  assert.equal(hasMajorMessageLoss([ordinary,road(5)],[ordinary,road(12)]),true);
+  assert.equal(hasMajorMessageLoss([ordinary,road(6)],[ordinary,road(12)]),false);
+  assert.equal(hasMajorMessageLoss([ordinary],[ordinary,road(12)]),true);
+  assert.equal(hasMajorMessageLoss([road(4)],[road(8)]),false);
+});
+
+test("localized dialog messages resolve in all five supported languages", () => {
+  const { deepText } = require("../src/lib/i18nDeep.ts");
+  for (const key of ["local.storage.saveConfirm","engine.officinaBind","engine.repairMetadata","engine.viaeRepairConfirm","engine.ideWriteFailed","syncConflict.messages"]) {
+    const values = ["zh-CN","zh-TW","en","ja","ko"].map(locale => deepText(locale,key));
+    for (const value of values) { assert.ok(value && value !== key, key); }
+    assert.ok(!/[\u3400-\u9fff]/.test(values[2]), key);
+    assert.notEqual(values[0],values[2],key);
+    assert.notEqual(values[0],values[3],key);
+    assert.notEqual(values[0],values[4],key);
+  }
+});
