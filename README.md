@@ -52,7 +52,12 @@ Shiorivia 是一个**本地优先的沉浸式 AI 交互与创作前端**。它�
 
 1. 安装 **Node.js 24**（仓库 `.nvmrc` 指定的开发版本）与 npm，克隆本仓库。
 2. 将 `.env.example` 复制为未纳入版本控制的 `.env.local`，配置至少一个模型服务商密钥；详见 [供应商设置](docs/local-api-providers.md)。
-3. 运行 `npm ci`，随后运行 `npm run dev`；或在 Windows 上使用 `start_shiorivia.bat`。打开 `http://localhost:3000`。
+3. 根据网络环境选择以下任一依赖下载源，然后运行 `npm run dev`，打开 `http://localhost:3000`。Windows 用户也可以直接运行 `start_shiorivia.bat`，首次安装或依赖锁文件更新时会提示选择下载源，并自动构建和启动正式模式。
+
+   - 官方源（默认）：`npm ci --registry=https://registry.npmjs.org`
+   - 中国大陆镜像（可选）：`npm ci --registry=https://registry.npmmirror.com`
+
+   两种方式共用同一锁文件，不修改全局 npm 配置。字体已通过本地依赖提供，构建与界面加载不再需要连接 Google Fonts。镜像可用性取决于网络及同步情况；GitHub 源码获取与模型 API 的连通性仍需分别确认。
 
 聊天存档保存在项目根目录的 `data_storage/`；Charta 档案与上传立绘保存在 `data_storage/charta/`。建议定期备份整个目录。需要联网调用第三方模型时，对话内容会发送给所选择的服务商；**本地优先不代表模型可以离线推理**。
 
@@ -92,7 +97,12 @@ Shiorivia 是一款**本機優先的沉浸式 AI 互動與創作前端**，將�
 
 1. 安裝 **Node.js 24**（`.nvmrc` 指定版本）及 npm，複製本儲存庫。
 2. 將 `.env.example` 複製為 `.env.local`，設定至少一組 AI 服務金鑰；參閱[供應商設定](docs/local-api-providers.md)。請勿提交密鑰。
-3. 執行 `npm ci` 與 `npm run dev`，或在 Windows 使用 `start_shiorivia.bat`，然後開啟 `http://localhost:3000`。
+3. 依網路環境選擇以下任一下載來源，再執行 `npm run dev` 並開啟 `http://localhost:3000`。Windows 亦可直接執行 `start_shiorivia.bat`；首次安裝或鎖定檔更新時會提示選擇來源，並自動建置及啟動正式模式。
+
+   - 官方來源（預設）：`npm ci --registry=https://registry.npmjs.org`
+   - 中國大陸鏡像（選用）：`npm ci --registry=https://registry.npmmirror.com`
+
+   兩者使用同一鎖定檔，不修改全域 npm 設定。字型已隨本機依賴提供，建置及介面載入不再連線至 Google Fonts。鏡像可用性取決於網路與同步狀態；GitHub 原始碼及模型 API 的連線仍需另行確認。
 
 對話存檔儲存在專案根目錄的 `data_storage/`；Charta 角色檔案及立繪儲存在 `data_storage/charta/`。請定期備份。呼叫外部模型時，相關內容會傳送至選定的服務商；**本機優先不等於離線推論**。
 
@@ -132,7 +142,12 @@ Switching the UI language updates built-in interface copy, **not existing user-a
 
 1. Install **Node.js 24** (the development version specified in `.nvmrc`) and npm, then clone this repository.
 2. Copy `.env.example` to the untracked `.env.local` and configure at least one provider key. See [provider setup](docs/local-api-providers.md). Never commit secrets.
-3. Run `npm ci` and `npm run dev`, or use `start_shiorivia.bat` on Windows. Open `http://localhost:3000`.
+3. Choose either dependency source below, run `npm run dev`, and open `http://localhost:3000`. On Windows, `start_shiorivia.bat` prompts for a source on first install or when the lockfile changes, then builds and starts the production server.
+
+   - Official registry (default): `npm ci --registry=https://registry.npmjs.org`
+   - Mainland China mirror (optional): `npm ci --registry=https://registry.npmmirror.com`
+
+   Both use the same lockfile and leave global npm settings unchanged. Fonts are bundled through local dependencies; builds and UI font loading no longer contact Google Fonts. Mirror availability depends on network and sync status. GitHub source access and model API connectivity must be checked separately.
 
 Chat saves live under `data_storage/` in the project root. Charta profiles and uploaded illustrations live under `data_storage/charta/`. Back up that directory regularly. Prompts sent to externally hosted models leave your computer for the provider you selected: **local-first storage is not offline model inference**.
 
@@ -172,7 +187,12 @@ UI は**簡体字中国語、繁体字中国語、英語、日本語、韓国語
 
 1. **Node.js 24**（`.nvmrc` の開発バージョン）と npm をインストールし、リポジトリをクローンします。
 2. `.env.example` を `.env.local` にコピーし、少なくとも一つの API キーを設定します。[接続先の説明](docs/local-api-providers.md)を参照してください。秘密情報は Git に登録しないでください。
-3. `npm ci`、`npm run dev` を順番に実行するか、Windows では `start_shiorivia.bat` を使用します。`http://localhost:3000` を開きます。
+3. ネットワーク環境に応じて以下の取得元を選び、`npm run dev` を実行して `http://localhost:3000` を開きます。Windows では `start_shiorivia.bat` も利用できます。初回インストール時やロックファイル更新時に取得元を選択し、本番モードをビルド・起動します。
+
+   - 公式レジストリ（既定）：`npm ci --registry=https://registry.npmjs.org`
+   - 中国本土向けミラー（任意）：`npm ci --registry=https://registry.npmmirror.com`
+
+   同じロックファイルを使用し、npm のグローバル設定は変更しません。フォントはローカル依存関係に含まれ、ビルドや表示時に Google Fonts へ接続しません。ミラーの利用可否は通信・同期状況に依存します。GitHub とモデル API への接続は別途確認してください。
 
 会話データはプロジェクト直下の `data_storage/`、Charta の設定と立ち絵は `data_storage/charta/` に保存されます。定期的にバックアップしてください。外部 AI モデルを利用すると、会話内容は選択したサービスに送信されます。**ローカル優先はオフライン推論を意味しません**。
 
@@ -212,7 +232,12 @@ UI는 **중국어 간체, 중국어 번체, 영어, 일본어, 한국어**를 �
 
 1. **Node.js 24**(`.nvmrc`의 개발 버전)와 npm을 설치한 뒤 저장소를 복제합니다.
 2. `.env.example`을 `.env.local`로 복사하여 하나 이상의 API 키를 설정합니다. [공급자 설정](docs/local-api-providers.md)을 참고하세요. 비밀 키는 Git에 올리지 마세요.
-3. `npm ci`, `npm run dev`를 실행하거나 Windows에서 `start_shiorivia.bat`를 사용하고 `http://localhost:3000`에 접속합니다.
+3. 네트워크 환경에 맞춰 아래 다운로드 소스 중 하나를 선택한 뒤 `npm run dev`를 실행하고 `http://localhost:3000`에 접속합니다. Windows에서는 `start_shiorivia.bat`를 사용할 수 있으며, 최초 설치 또는 잠금 파일 변경 시 소스를 선택하고 프로덕션 모드로 빌드 및 시작합니다.
+
+   - 공식 레지스트리(기본값): `npm ci --registry=https://registry.npmjs.org`
+   - 중국 본토 미러(선택): `npm ci --registry=https://registry.npmmirror.com`
+
+   두 소스는 동일한 잠금 파일을 사용하고 전역 npm 설정을 변경하지 않습니다. 글꼴은 로컬 의존성으로 제공되므로 빌드 및 UI 표시 시 Google Fonts에 연결하지 않습니다. 미러 사용 가능 여부는 네트워크와 동기화 상태에 따라 달라지며 GitHub 및 모델 API 연결은 별도로 확인해야 합니다.
 
 대화 저장 데이터는 프로젝트의 `data_storage/` 폴더에, Charta 캐릭터 설정과 일러스트는 `data_storage/charta/`에 보관됩니다. 폴더 전체를 정기적으로 백업하세요. 외부 모델 사용 시 대화 내용은 선택한 제공업체로 전송됩니다. **로컬 우선 저장 방식이 오프라인 AI 추론을 뜻하지는 않습니다**.
 

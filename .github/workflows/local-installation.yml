@@ -1,0 +1,22 @@
+name: Local installation and build
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: node --test tests/local-installation.test.cjs
+      - run: npm ci --registry=https://registry.npmjs.org
+      - run: npx tsc --noEmit
+      - run: npm run build

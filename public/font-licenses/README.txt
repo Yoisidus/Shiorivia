@@ -1,0 +1,1 @@
+Shiorivia Local bundles Inter, Noto Serif SC and JetBrains Mono through Fontsource packages. The font software is licensed under SIL Open Font License 1.1, independently of Shiorivia's AGPL-3.0 license. See the individual notices in this directory and the licenses shipped with each npm package.

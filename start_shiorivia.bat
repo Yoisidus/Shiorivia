@@ -45,18 +45,43 @@ if not exist "public\backgrounds\" (
 
 echo    - Directories ready.
 
-:: 3. 依赖安装检测
+:: 3. Check installed dependencies against the current lockfile.
 echo [3/5] Checking dependencies...
-if exist "node_modules\" goto :SKIP_INSTALL
+if not exist "node_modules\.bin\next.cmd" goto :INSTALL_DEPENDENCIES
+node -e "const f=require('fs'),c=require('crypto');try{const h=c.createHash('sha256').update(f.readFileSync('package-lock.json')).digest('hex');process.exit(f.readFileSync('node_modules/.shiorivia-lock-sha256','utf8').trim()===h?0:1)}catch{process.exit(1)}"
+if not errorlevel 1 goto :SKIP_INSTALL
 
-echo    - node_modules not found. Installing...
-call npm ci
-if %errorlevel% neq 0 (
-    echo [ERROR] npm install failed!
+:INSTALL_DEPENDENCIES
+echo.
+echo    - Installing dependencies from the current lockfile.
+echo    [1] Official npm registry ^(default^)
+echo    [2] Mainland China mirror ^(npmmirror^)
+echo.
+set "NPM_REGISTRY=https://registry.npmjs.org"
+choice /C 12 /N /T 30 /D 1 /M "Select download source [1/2] (default 1 after 30s): "
+if errorlevel 255 goto :REGISTRY_ERROR
+if not errorlevel 1 goto :REGISTRY_ERROR
+if errorlevel 2 set "NPM_REGISTRY=https://registry.npmmirror.com"
+echo    - Registry: !NPM_REGISTRY!
+call npm ci --registry="!NPM_REGISTRY!"
+if errorlevel 1 (
+    echo [ERROR] npm ci failed. Check your network and try the other source.
     pause
-    exit /b
+    exit /b 1
+)
+node -e "const f=require('fs'),c=require('crypto');f.writeFileSync('node_modules/.shiorivia-lock-sha256',c.createHash('sha256').update(f.readFileSync('package-lock.json')).digest('hex'))"
+if errorlevel 1 (
+    echo [ERROR] Could not record installed dependency version.
+    pause
+    exit /b 1
 )
 echo    - Dependencies installed.
+goto :SKIP_INSTALL
+
+:REGISTRY_ERROR
+echo [ERROR] Registry selection cancelled or unavailable.
+pause
+exit /b 1
 
 :SKIP_INSTALL
 

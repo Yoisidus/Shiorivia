@@ -1,21 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
+// Fontsource ships version-locked font assets with npm; builds need no Google Fonts access.
+import "@fontsource-variable/inter";
+import "@fontsource/noto-serif-sc/400.css";
+import "@fontsource/noto-serif-sc/700.css";
+import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
 import Script from "next/script"; 
 import { MusicProvider } from "../context/MusicContext";
 import { LanguageProvider } from "../context/LanguageContext";
 import { DialogProvider } from "../context/DialogContext";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const serif = Noto_Serif_SC({ 
-  subsets: ["latin"], 
-  weight: ["400", "700"],
-  variable: "--font-serif" 
-});
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono"
-});
 
 export const metadata: Metadata = {
   // Local Edition: relative Open Graph assets resolve against the local server.
@@ -57,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={`${inter.variable} ${serif.variable} ${mono.variable} font-sans`}>
+      <body className="font-sans">
         <div className="ios-standalone-edge-sample" aria-hidden="true" />
         <div className="ios-browser-bottom-edge-sample" aria-hidden="true" />
         <Script 
