@@ -1,11 +1,14 @@
+import { deepText } from "../lib/i18nDeep";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Session, ChatFolder } from "../types";
-import { collectAppendDeltas, completedTurns } from "../lib/appendSync";
+import { collectAppendDeltas, completedTurns, countSavedMessages, hasMajorMessageLoss } from "../lib/appendSync";
 import type { LocalSyncPreferences } from "../lib/localSyncPreferences";
 import { useAppDialog } from "../context/DialogContext";
+import { useLanguage } from "../context/LanguageContext";
 
 export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: string) => void, preferences: LocalSyncPreferences) => {
     const dialog = useAppDialog();
+    const { locale } = useLanguage();
     const [sessions, setSessions] = useState<Session[]>([]);
     const [folders, setFolders] = useState<ChatFolder[]>([]);
     const [globalWorldInfo, setGlobalWorldInfo] = useState("");
@@ -28,7 +31,7 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
     const serialize = (d: unknown) => JSON.stringify(d);
     const lastSnapshot = useRef("");
 
-    const countTotalMessages = (sess: Session[]) => sess.reduce((acc, s) => acc + (s.messages ? s.messages.length : 0), 0);
+    const countTotalMessages = countSavedMessages;
 
     const performSync = useCallback(async (mode: 'auto' | 'manual' | 'force_push' | 'force_pull') => {
         console.log(`[Sync] Triggered. Mode: ${mode}`); 
@@ -38,13 +41,13 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
         }
         try {
 
-        if (mode === 'auto' && (isGlobalGenerating || !preferences.autoSync)) return;
+        if (mode === 'auto' && (isGlobalGenerating || !preferences.autoSync || conflictModal.isOpen)) return;
 
         // A smaller message count is normal after deletions, regeneration or slot loads.
         // Severe losses are checked against the last saved snapshot below, not blocked forever.
 
         if (mode === 'manual') {
-            if (!await dialog.confirm("💾 确定要将当前状态写入硬盘吗？\n(覆盖存档)")) {
+            if (!await dialog.confirm(deepText(locale, "local.storage.saveConfirm"))) {
                 console.log(`[Sync] User cancelled.`);
                 return;
             }
@@ -103,6 +106,7 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
             }
 
             if (mode === 'auto') {
+                if (hasMajorMessageLoss(sessions, serverData?.sessions || [])) { setStatus('unsaved'); return; }
                 // Compare only appendable, completed messages against the last disk snapshot.
                 // Character metadata, edits and deletions NEVER write automatically.
                 const saved = lastSnapshot.current ? JSON.parse(lastSnapshot.current) : null;
@@ -117,15 +121,7 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
                 return;
             }
 
-            const currentCount = countTotalMessages(sessions);
-            const diskCount = countTotalMessages(serverData?.sessions || []);
-            const missingMostMessages = diskCount >= 10 && currentCount < diskCount * 0.5;
-            if (mode === 'auto' && missingMostMessages) {
-                // A drastic shrink needs an explicit manual decision; never autosave over it.
-                hasUnsavedChanges.current = true;
-                setStatus('unsaved');
-                return;
-            }
+            const missingMostMessages = hasMajorMessageLoss(sessions, serverData?.sessions || []);
             if (mode === 'manual' && missingMostMessages) {
                     setConflictModal({
                         isOpen: true,
@@ -141,7 +137,7 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
             
             if (mode === 'manual' && !hasChanges) {
                 console.log(`[Sync] Manual check - No changes.`);
-                dialog.notify("当前内容已保存到本地，无需重复写入。");
+                dialog.notify(deepText(locale, "local.storage.alreadySaved"));
                 hasUnsavedChanges.current = false; 
                 lastSavedMsgCount.current = countTotalMessages(sessions); 
                 setStatus('idle');
@@ -164,12 +160,12 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
                     hasUnsavedChanges.current = false;
 
                     setStatus('success');
-                    if (mode === 'manual') dialog.notify("保存成功 · 已写入本地磁盘。");
+                    if (mode === 'manual') dialog.notify(deepText(locale, "local.storage.saved"));
                     setTimeout(() => setStatus('idle'), 2000);
                 } else {
                     console.error(`[Sync] Save Failed: ${saveRes.status}`);
                     setStatus('error');
-                    if (mode === "manual") dialog.notify("保存失败，请检查本地服务和磁盘状态。");
+                    if (mode === "manual") dialog.notify(deepText(locale, "local.storage.failed"));
                 }
             } else {
                 setStatus('idle');
@@ -178,12 +174,12 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
         } catch (e) {
             console.error("[Sync] CRITICAL ERROR:", e);
             setStatus('error');
-            if (mode === "manual") dialog.notify("保存失败，请检查本地服务和磁盘状态。");
+            if (mode === "manual") dialog.notify(deepText(locale, "local.storage.failed"));
         }
         } finally {
             if (mode === "manual") manualSyncInFlight.current = false;
         }
-    }, [sessions, folders, globalWorldInfo, bgImage, initLoaded, lastServerTime, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating, dialog]);
+    }, [sessions, folders, globalWorldInfo, bgImage, initLoaded, lastServerTime, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating, dialog, locale, conflictModal.isOpen]);
 
     useEffect(() => {
         if (!initLoaded) return;
@@ -197,10 +193,10 @@ export const useLocalFileSync = (isGlobalGenerating: boolean, showToast: (msg: s
             return;
         }
         setStatus(current => current === 'syncing' ? current : 'unsaved');
-        if (!preferences.autoSync || isGlobalGenerating) return;
+        if (!preferences.autoSync || isGlobalGenerating || conflictModal.isOpen) return;
         const timer = setTimeout(() => { void performSync('auto'); }, 2500);
         return () => clearTimeout(timer);
-    }, [initLoaded, sessions, folders, globalWorldInfo, bgImage, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating]);
+    }, [initLoaded, sessions, folders, globalWorldInfo, bgImage, preferences.autoSync, preferences.autoSyncInterval, isGlobalGenerating, conflictModal.isOpen]);
 
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {

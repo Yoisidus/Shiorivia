@@ -39,3 +39,20 @@ test("IDE runtime file accesses do not trace the whole project", () => {
   assert.ok(source.includes("stat?.isSymbolicLink()"));
   assert.ok(source.includes("expectedVersion"));
 });
+
+test("sync conflict dialog is mounted once in the shared screen host", () => {
+  const source = read("src/app/page.tsx");
+  assert.equal((source.match(/<SyncConflictModal\b/g) || []).length, 1);
+  const host = source.indexOf("const renderWithTransition");
+  const modal = source.indexOf("<SyncConflictModal", host);
+  const firstMode = source.indexOf("if (showCharta && cloud.initLoaded)", host);
+  assert.ok(host >= 0 && modal > host && firstMode > modal);
+  assert.ok(source.indexOf("{screen}", host) < modal);
+});
+
+test("local save messages use the active locale and VIAE-aware loss guard", () => {
+  const source = read("src/hooks/useLocalFileSync.ts");
+  assert.ok(source.includes('deepText(locale, "local.storage.saveConfirm")'));
+  assert.ok(source.includes('hasMajorMessageLoss(sessions, serverData?.sessions || [])'));
+  assert.ok(!source.includes('dialog.confirm("💾 确定'));
+});
