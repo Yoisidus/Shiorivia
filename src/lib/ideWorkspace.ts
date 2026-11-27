@@ -5,6 +5,9 @@ import { createHash, randomUUID } from "node:crypto";
 import { applyIdeEditsToText } from "./ideEdits";
 import { validProjectName, validRelativePath, isWorkspaceTextFile } from "./idePathPolicy";
 
+// IDE projects are user-owned runtime data, not build-time dependencies.
+// The narrowly scoped Turbopack ignore annotations below affect tracing only;
+// all filesystem paths still pass the existing validation and symlink checks.
 export const IDE_ROOT = path.join(process.cwd(), "IDE");
 const MAX_FILE_BYTES = 512 * 1024;
 const MAX_PROJECT_FILES = 500;
@@ -24,7 +27,7 @@ async function safePath(project: unknown, relative = "", createParent = false): 
   const parts = relative ? validRelativePath(relative).split("/") : [];
   let current = root;
   for (const part of [p, ...parts]) {
-    current = path.join(current, part);
+    current = path.join(/*turbopackIgnore: true*/ current, part);
     let stat = await fs.lstat(current).catch(error => error.code === "ENOENT" ? null : Promise.reject(error));
     if (!stat && createParent && (part === p || part !== parts[parts.length - 1])) {
       await fs.mkdir(current).catch(error => { if (error.code !== "EEXIST") throw error; });
@@ -54,7 +57,7 @@ export async function createProject(project: unknown): Promise<string> {
 }
 export async function listWorkspaceFiles(project: unknown): Promise<TreeEntry[]> {
   const root = await safePath(project);
-  if (!(await fs.stat(root).catch(() => null))?.isDirectory()) throw new Error("项目不存在。");
+  if (!(await fs.stat(/*turbopackIgnore: true*/ root).catch(() => null))?.isDirectory()) throw new Error("项目不存在。");
   const result: TreeEntry[] = [];
   async function walk(folder: string, relative: string, depth: number): Promise<void> {
     if (depth >= MAX_DEPTH || result.length >= MAX_PROJECT_FILES) return;
@@ -81,9 +84,9 @@ export async function readWorkspaceFile(project: unknown, relative: unknown, sta
   const rel = validRelativePath(relative);
   if (!isWorkspaceTextFile(rel)) throw new Error("不支持读取此类文件。");
   const filename = await safePath(project, rel);
-  const stat = await fs.stat(filename);
+  const stat = await fs.stat(/*turbopackIgnore: true*/ filename);
   if (!stat.isFile() || stat.size > MAX_FILE_BYTES) throw new Error("文件过大或不是文本文件。");
-  const data = await fs.readFile(filename, "utf8");
+  const data = await fs.readFile(/*turbopackIgnore: true*/ filename, "utf8");
   if (data.includes("\u0000") || data.includes("\ufffd")) throw new Error("不支持二进制文件。");
   const lines = data.split(/\r?\n/);
   const start = Number.isSafeInteger(startLine) ? Math.max(1, startLine) : 1;
@@ -97,9 +100,9 @@ export async function searchWorkspace(project: unknown, query: unknown) {
   const matches: { path: string; line: number; excerpt: string }[] = [];
   for (const file of files) {
     if (matches.length >= 45) break;
-    const stat = await fs.stat(await safePath(project, file.path)).catch(() => null);
+    const stat = await fs.stat(/*turbopackIgnore: true*/ await safePath(project, file.path)).catch(() => null);
     if (!stat || stat.size > 100 * 1024) continue;
-    const content = await fs.readFile(await safePath(project, file.path), "utf8");
+    const content = await fs.readFile(/*turbopackIgnore: true*/ await safePath(project, file.path), "utf8");
     if (content.includes("\u0000")) continue;
     const lines = content.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
@@ -144,7 +147,7 @@ export async function previewWorkspaceEdit(project: unknown, relative: unknown, 
   const filename = await safePath(project, rel);
   const stat = await fs.lstat(filename);
   if (!stat.isFile() || stat.size > MAX_FILE_BYTES) throw new Error("目标必须是现有的文本文件。");
-  const original = await fs.readFile(filename, "utf8");
+  const original = await fs.readFile(/*turbopackIgnore: true*/ filename, "utf8");
   if (original.includes("\u0000") || original.includes("\ufffd")) throw new Error("不能编辑二进制文件。");
   const version = createHash("sha256").update(original, "utf8").digest("hex");
   const updated = applyIdeEditsToText(original, edits);
@@ -167,7 +170,7 @@ export async function applyWorkspaceEdit(project: unknown, relative: unknown, ed
   try {
     await fs.writeFile(temporary, preview.updated, { encoding: "utf8", flag: "wx", mode: before.mode });
     // Recheck right before replacement to avoid writing on an obsolete base.
-    const latest = await fs.readFile(filename, "utf8");
+    const latest = await fs.readFile(/*turbopackIgnore: true*/ filename, "utf8");
     if (createHash("sha256").update(latest, "utf8").digest("hex") !== expectedVersion)
       throw new Error("文件在确认过程中已变化，未写入修改。");
     await fs.rename(temporary, filename);
@@ -189,7 +192,7 @@ export async function workspaceSnapshot(project: unknown): Promise<Record<string
   for (const entry of tree) {
     try {
       const full = await safePath(project, entry.path);
-      const content = await fs.readFile(full, "utf8");
+      const content = await fs.readFile(/*turbopackIgnore: true*/ full, "utf8");
       if (content.includes("\u0000") || content.includes("\ufffd")) continue;
       result[entry.path] = { name: entry.path, language: path.extname(entry.path).slice(1) || "text", content };
     } catch { /* changed on disk during snapshot */ }

@@ -18,5 +18,6 @@ jobs:
           cache: npm
       - run: node --test tests/local-installation.test.cjs
       - run: npm ci --registry=https://registry.npmjs.org
-      - run: npx tsc --noEmit
       - run: npm run build
+      - run: npx tsc --noEmit
+        if: ${{ !cancelled() }}
