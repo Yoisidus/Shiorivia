@@ -1,4 +1,4 @@
-import { deepText } from "../lib/i18nDeep";
+import { deepText, novelChapterLabel } from "../lib/i18nDeep";
 import { useState, useRef, useEffect } from "react";
 import { CHARACTERS, Session } from "../types";
 import { formatLocalMemoryEntries, parseLocalMemoryEntries, LOCAL_STM_SLOTS } from "../lib/localMemory";
@@ -410,7 +410,7 @@ export const useChatEngine = ({
                     const previousTitle = earlier?.content?.match(/<meta\s+[^>]*chapter=["']([^"']+)["']/i)?.[1];
                     const chapterCount = msgs.filter((m: any) => m.role === "assistant" &&
                         typeof m.content === "string" && m.content.includes("<meta ")).length + 1;
-                    const fallbackTitle = previousTitle || `第 ${chapterCount} 章`;
+                    const fallbackTitle = previousTitle || novelChapterLabel(locale, chapterCount);
                     // Never schedule a second model request for a missing chapter
                     // title. Reuse the preceding chapter title only as a local
                     // last-resort fallback; normal models must emit their own.
