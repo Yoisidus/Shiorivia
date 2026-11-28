@@ -1022,6 +1022,7 @@ export default function Home() {
                 />
 
                 <ChatInterface
+                    activeSelf={selfLibrary.activeSelf}
                     showMiniPlayer={config.showMiniPlayer}
                     onOpenHub={() => setShowModeHub(true)}
                     onOpenSettings={() => setShowSettingsCenter(true)}
