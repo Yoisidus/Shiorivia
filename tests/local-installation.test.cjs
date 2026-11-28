@@ -112,3 +112,28 @@ test("Tela chapter numbering preserves intentionally empty English suffix", () =
   assert.ok(readSource("src/components/NovelArchiveActions.tsx").includes("extractNovelChapters(session.messages, locale)"));
   assert.ok(readSource("src/lib/novelDocx.ts").includes("meta?.[1]?.trim() || novelChapterLabel(locale, index + 1)"));
 });
+
+test("composer placeholders use localized character names and natural word order", () => {
+  const { chatComposerPlaceholder } = require("../src/lib/i18nDeep.ts");
+  const { characterDisplayName } = require("../src/lib/characterNames.ts");
+  const cases = [
+    ["zh-CN", "和千早 爱音聊聊天…"],
+    ["zh-TW", "和千早 愛音聊聊天…"],
+    ["en", "Chat with Chihaya Anon…"],
+    ["ja", "千早 愛音とおしゃべり…"],
+    ["ko", "Chihaya Anon에게 메시지 보내기…"],
+  ];
+  for (const [locale, expected] of cases) {
+    const name = characterDisplayName("anon", "千早 爱音", locale);
+    assert.equal(chatComposerPlaceholder(locale, "chat", name), expected);
+    assert.ok(!chatComposerPlaceholder(locale, "infinite", name).includes("{name}"));
+    assert.ok(!chatComposerPlaceholder(locale, "sliding", name).includes(name));
+  }
+  assert.equal(chatComposerPlaceholder("en", "infinite", characterDisplayName("uika", "三角 初华", "en")), "Speak to Misumi Uika…");
+  assert.equal(chatComposerPlaceholder("en", "chat", characterDisplayName("custom-id", "OC $&", "en")), "Chat with OC $&…");
+  assert.equal(chatComposerPlaceholder("en", "sliding", ""), "Start your dream…");
+  const source = read("src/components/ChatInterface.tsx");
+  assert.ok(source.startsWith('"use client";'));
+  assert.ok(source.includes("chatComposerPlaceholder(locale, currentSession?.memoryMode, characterDisplayName(currentCharacter.id, currentCharacter.name, locale))"));
+  assert.ok(source.includes('storyStateRepairing ? deepText(locale, "chat.waitRepair")'));
+});
