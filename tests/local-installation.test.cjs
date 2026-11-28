@@ -137,3 +137,27 @@ test("composer placeholders use localized character names and natural word order
   assert.ok(source.includes("chatComposerPlaceholder(locale, currentSession?.memoryMode, characterDisplayName(currentCharacter.id, currentCharacter.name, locale))"));
   assert.ok(source.includes('storyStateRepairing ? deepText(locale, "chat.waitRepair")'));
 });
+
+test("Officina file and edit labels follow the active UI locale", () => {
+  const { deepText } = require("../src/lib/i18nDeep.ts");
+  const cases = [
+    ["zh-CN", "文件", "正在生成…"],
+    ["zh-TW", "檔案", "正在產生…"],
+    ["en", "File", "Generating…"],
+    ["ja", "ファイル", "生成中…"],
+    ["ko", "파일", "생성 중…"],
+  ];
+  for (const [locale, file, generating] of cases) {
+    assert.equal(deepText(locale, "officina.display.file"), file);
+    assert.equal(deepText(locale, "officina.display.generating"), generating);
+    for (const key of ["preparingFile", "parsingEdits", "moreEdits", "editPreview", "preparingEdits"]) {
+      assert.notEqual(deepText(locale, "officina.display." + key), "officina.display." + key);
+    }
+  }
+  const readSource = read;
+  assert.ok(readSource("src/components/ChatInterface.tsx").includes("formatOfficinaStreamingDisplay(cleanDrawTag(answer), locale)"));
+  const source = readSource("src/lib/engineeringDisplay.ts");
+  assert.ok(source.includes('deepText(locale, "officina.display.file")'));
+  assert.ok(source.includes('deepText(locale, "officina.display.generating")'));
+  assert.ok(source.includes('deepText(locale, "officina.display.preparingEdits")), locale)'));
+});
