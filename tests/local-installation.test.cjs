@@ -80,3 +80,19 @@ test("localized dialog messages resolve in all five supported languages", () => 
     assert.notEqual(values[0],values[4],key);
   }
 });
+
+test("story and novel cast picker localizes built-in names without changing IDs or custom names", () => {
+  const source = read("src/components/StoryCastPicker.tsx");
+  const { characterDisplayName, CHARACTER_NAMES } = require("../src/lib/characterNames.ts");
+  assert.ok(source.startsWith('"use client";'));
+  assert.ok(source.includes('id: char.id, name: characterDisplayName(char.id, char.name, locale)'));
+  assert.ok(source.includes('id: char.id, name: nameForCharta(char, locale)'));
+  assert.ok(source.includes('[customCharacters, locale]'));
+  assert.ok(source.includes('catalog.find(char => char.id === id)?.name'));
+  for (const [id, names] of Object.entries(CHARACTER_NAMES)) {
+    for (const [locale, expected] of [["zh-CN", names.zh], ["zh-TW", names.ja], ["en", names.romanized], ["ja", names.ja], ["ko", names.romanized]]) {
+      assert.equal(characterDisplayName(id, names.zh, locale), expected);
+    }
+  }
+  assert.equal(characterDisplayName("custom-cast-id", "原创角色", "en"), "原创角色");
+});
