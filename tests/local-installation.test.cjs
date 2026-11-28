@@ -2,6 +2,16 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const ts = require("typescript");
+// Match the Cloud test runner: resolve extensionless TypeScript imports through CommonJS.
+require.extensions[".ts"] = function loadTypeScript(mod, filename) {
+  const source = fs.readFileSync(filename, "utf8");
+  const output = ts.transpileModule(source, {
+    fileName: filename,
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+  }).outputText;
+  mod._compile(output, filename);
+};
 const read = p => fs.readFileSync(path.join(__dirname, "..", p), "utf8");
 test("launcher selects registry per install and skips only matching lockfile", () => {
   const bat = read("start_shiorivia.bat");

@@ -16,8 +16,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: node --test tests/local-installation.test.cjs
       - run: npm ci --registry=https://registry.npmjs.org
+        id: install
+      - run: node --test tests/local-installation.test.cjs
       - run: npm run build
-      - run: npx tsc --noEmit
-        if: ${{ !cancelled() }}
+      - run: ./node_modules/.bin/tsc --noEmit
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
